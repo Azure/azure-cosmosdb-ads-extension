@@ -1,0 +1,151 @@
+'use strict';
+// The module 'vscode' contains the VS Code extensibility API
+// Import the module and reference it with the alias vscode in your code below
+import * as vscode from 'vscode';
+
+// The module 'azdata' contains the Azure Data Studio extensibility API
+// This is a complementary set of APIs that add SQL / Data-specific functionality to the app
+// Import the module and reference it with the alias azdata in your code below
+
+import * as azdata from 'azdata';
+// import { MongoObjectExplorerNodeProvider } from './objectExplorerNodeProvider';
+import { ConnectionProvider } from './Providers/connectionProvider';
+import { IconProvider } from './Providers/iconProvider';
+import { ObjectExplorerProvider } from './Providers/objectExplorerNodeProvider';
+import { AppContext } from './appContext';
+import * as dashboard from './Dashboards/modelViewDashboard';
+import { registerSqlServicesModelView } from './Dashboards/modelViewDashboard';
+
+// this method is called when your extension is activated
+// your extension is activated the very first time the command is executed
+export function activate(context: vscode.ExtensionContext) {
+
+    // Use the console to output diagnostic information (console.log) and errors (console.error)
+    // This line of code will only be executed once when your extension is activated
+    console.log('Congratulations, your extension "cosmosdb-ads-extension" is now active!');
+
+    // The command has been defined in the package.json file
+    // Now provide the implementation of the command with  registerCommand
+    // The commandId parameter must match the command field in package.json
+    context.subscriptions.push(vscode.commands.registerCommand('cosmosdb-ads-extension.createMongoDatabase', (objectExplorerContext: azdata.ObjectExplorerContext) => {
+        console.log(objectExplorerContext);
+        if (!objectExplorerContext.connectionProfile) {
+            // TODO display error message
+            return;
+        }
+        const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
+        appContext.createMongoDatabase({ connectionId, serverName });
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('cosmosdb-ads-extension.createMongoCollection', async (objectExplorerContext: azdata.ObjectExplorerContext) => {
+        console.log(objectExplorerContext);
+        if (!objectExplorerContext.connectionProfile) {
+            // TODO handle error;
+            vscode.window.showErrorMessage('Missing connectionProfile');
+            return;
+        }
+        const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
+
+        // TODO FIX THIS
+        if (!objectExplorerContext.nodeInfo) {
+            // TODO handle error;
+            vscode.window.showErrorMessage('Missing nodeInfo');
+            return;
+        }
+        const { nodePath } = objectExplorerContext.nodeInfo;
+        // TODO Don't parse here
+        const splitPath = nodePath.split('/');
+        if (splitPath.length < 2) {
+            // TODO Handle error
+            vscode.window.showErrorMessage(`Invalid path ${nodePath}`);
+            return;
+        }
+
+        const databaseName = splitPath.pop();
+
+        await appContext.createMongoCollection({ connectionId, serverName }, databaseName);
+        
+        // TODO Fix: Not displaying latest
+        setTimeout(() => objectExplorer.expandDatabase({ nodePath, sessionId: 'languye-mongo22' }, databaseName!, serverName));
+
+        // // The code you place here will be executed every time your command is executed
+
+        // // Display a message box to the user
+        // azdata.connection.getCurrentConnection().then(connection => {
+        //     let connectionId = connection ? connection.connectionId : 'No connection found!';
+        //     vscode.window.showInformationMessage(connectionId);
+        // }, error => {
+        //      console.info(error);
+        // });
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('cosmosdb-ads-extension.deleteMongoCollection', async (objectExplorerContext: azdata.ObjectExplorerContext) => {
+        console.log(objectExplorerContext);
+        if (!objectExplorerContext.connectionProfile) {
+            // TODO handle error;
+            vscode.window.showErrorMessage('Missing connectionProfile');
+            return;
+        }
+        const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
+
+        // TODO FIX THIS
+        if (!objectExplorerContext.nodeInfo) {
+            // TODO handle error;
+            vscode.window.showErrorMessage('Missing nodeInfo');
+            return;
+        }
+        const { nodePath } = objectExplorerContext.nodeInfo;
+        // TODO Don't parse here
+        const splitPath = nodePath.split('/');
+        if (splitPath.length < 3) {
+            // TODO Handle error
+            vscode.window.showErrorMessage(`Invalid path ${nodePath}`);
+            return;
+        }
+
+        const collectionName = splitPath.pop();
+        const databaseName = splitPath.pop();
+
+        const response = await vscode.window.showInformationMessage(
+          `Are you sure you want to remove the collection: ${collectionName}?`,
+          ...['Yes', 'No']
+        );
+        if (response !== 'Yes') {
+            return;
+        }
+
+        await appContext.removeCollection(serverName, databaseName!, collectionName!);
+        
+        // TODO fix: Not displaying latest
+        setTimeout(() => objectExplorer.expandDatabase({ nodePath, sessionId: 'languye-mongo22' }, databaseName!, serverName));
+
+        // // The code you place here will be executed every time your command is executed
+
+        // // Display a message box to the user
+        // azdata.connection.getCurrentConnection().then(connection => {
+        //     let connectionId = connection ? connection.connectionId : 'No connection found!';
+        //     vscode.window.showInformationMessage(connectionId);
+        // }, error => {
+        //      console.info(error);
+        // });
+    }));
+
+    vscode.commands.registerCommand('cosmosdb-ads-extension.openModelViewDashboard', () => {
+        dashboard.openModelViewDashboard(context);
+    });
+
+    // Instantiate client
+    const appContext = new AppContext();
+
+    const connectionProvider = new ConnectionProvider(appContext);
+    const iconProvider = new IconProvider();
+    const objectExplorer = new ObjectExplorerProvider(appContext);
+    azdata.dataprotocol.registerConnectionProvider(connectionProvider);
+    azdata.dataprotocol.registerIconProvider(iconProvider);
+    azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
+    registerSqlServicesModelView();
+}
+
+// this method is called when your extension is deactivated
+export function deactivate() {
+}
