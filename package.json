@@ -1,5 +1,5 @@
 {
-  "name": "cosmosdb-ads-extension",
+  "name": "azure-cosmosdb-ads-extension",
   "displayName": "CosmosDB ADS Extension",
   "description": "CosmosDB Azure Data Studio extension",
   "publisher": "Microsoft",
