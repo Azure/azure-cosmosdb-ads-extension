@@ -52,3 +52,4 @@ jobs:
         displayName: Run Tests
         env:
           DISPLAY: ':99.0'
+      - run: yarn
