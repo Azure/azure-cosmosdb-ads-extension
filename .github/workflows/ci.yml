@@ -51,6 +51,4 @@ jobs:
           yarn && yarn compile && yarn test
         displayName: Run Tests
         env:
-          DISPLAY: ":99.0"
-            - run: yarn
-            - run: yarn run test
+          DISPLAY: ':99.0'
