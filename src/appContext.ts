@@ -50,6 +50,13 @@ export class AppContext {
     return await this._mongoClients.get(server)!.db(databaseName).collections();
   }
 
+  public async removeDatabase(server: string, databaseName: string): Promise<boolean> {
+    if (!this._mongoClients.has(server)) {
+      return false;
+    }
+    return await this._mongoClients.get(server)!.db(databaseName).dropDatabase();
+  }
+
   public async removeCollection(server: string, databaseName: string, collectionName: string): Promise<boolean> {
     if (!this._mongoClients.has(server)) {
       return false;
@@ -106,7 +113,10 @@ export class AppContext {
     // const database: DatabaseResponse = await client.databases.create({ id: databaseName });
     // console.log(database);
 
-    await this.connect(server, connectionString);
+    const client = await this.connect(server, connectionString);
+    if (!client) {
+      throw new Error('Error connecting to mongo');
+    }
     console.log(await this.listDatabases(server));
   }
 
@@ -119,13 +129,13 @@ export class AppContext {
           reject('Missing connectionProfile');
           return ;
         }
-  
+
         connectionInfo = {
           connectionId: connectionProfile.connectionId,
           serverName: connectionProfile.serverName
         }
       }
-  
+
       if (!databaseName) {
         databaseName = await vscode.window.showInputBox({
           placeHolder: "Database",
@@ -134,32 +144,32 @@ export class AppContext {
           ignoreFocusOut: true,
         });
       }
-  
+
       const collectionName = await vscode.window.showInputBox({
         placeHolder: "Collection",
         prompt: "Enter collection name",
         // validateInput: validateMongoCollectionName,
         ignoreFocusOut: true,
       });
-  
+
       if (!collectionName) {
         // TODO handle error
         reject('Collection cannot be undefined');
         return;
       }
-      
+
       const credentials = await azdata.connection.getCredentials(connectionInfo.connectionId);
-  
+
       const server = connectionInfo.serverName;
-  
+
       if (!server || !credentials || !credentials['password']) {
         reject(`Missing serverName or connectionId ${server} ${credentials}`)
       }
-  
+
       const connectionString = credentials['password'];
-  
+
       const client = await this.connect(server, connectionString);
-  
+
       if (client) {
         const collection = await client.db(databaseName).createCollection(collectionName);
         resolve(collection);

@@ -33,7 +33,11 @@
       },
       {
         "command": "cosmosdb-ads-extension.deleteMongoCollection",
-        "title": "Delete"
+        "title": "Delete Collection"
+      },
+      {
+        "command": "cosmosdb-ads-extension.deleteMongoDatabase",
+        "title": "Delete Database"
       },
       {
         "command": "cosmosdb-ads-extension.openModelViewDashboard",
@@ -49,6 +53,11 @@
         },
         {
           "command": "cosmosdb-ads-extension.createMongoCollection",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Database",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.deleteMongoDatabase",
           "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Database",
           "group": "cosmosdb"
         },
@@ -194,7 +203,7 @@
   },
   "dependencies": {
     "mongodb": "3.6.10",
-    "@azure/cosmos": "3.11.5"
+    "@azure/cosmos": "3.13.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.39.0",

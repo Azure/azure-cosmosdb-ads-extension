@@ -3,9 +3,41 @@ import * as vscode from 'vscode';
 import { AppContext } from '../appContext';
 import { ProviderId } from './connectionProvider';
 
+/**
+ * Utilities to construct nodePath from server, database or collection nsmrd or extract the names from nodepath
+ * nodePath naming convention: server/database/collection/{Documents, Scale & Settings}
+ */
+
+
+export const getMongoInfo = (nodePath: string): { serverName: string, databaseName?: string, collectionName?: string } => {
+	const pathComponents = nodePath?.split('/');
+	const slashCount = pathComponents.length - 1;
+
+	switch(slashCount) {
+		case 0: return { serverName: pathComponents[0] }; // root node
+		case 1: return { serverName: pathComponents[0], databaseName: pathComponents[1] }; // database node
+		case 2: return { serverName: pathComponents[0], databaseName: pathComponents[1], collectionName: pathComponents[2] }; // collection node
+		default:
+				throw new Error(`Unrecognized path ${nodePath}`);
+	}
+};
+
+export const createNodePath = (serverName: string, databaseName?: string, collectionName?: string): string => {
+	let nodePath = serverName;
+	if (databaseName !== undefined) {
+		nodePath += `/${databaseName}`;
+		if (collectionName !== undefined) {
+			nodePath += `/${collectionName}`;
+		}
+	}
+
+	return nodePath;
+};
+
+
 export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
 	constructor(private appContext: AppContext) {}
-	
+
 	// maintain sessions
 
 	onSessionCreatedEmitter: vscode.EventEmitter<azdata.ObjectExplorerSession> = new vscode.EventEmitter<azdata.ObjectExplorerSession>();
@@ -60,21 +92,19 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
 		});
 	}
 	expandNode(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
-		console.log(`ObjectExplorerProvider.expandNode ${nodeInfo.nodePath}`);
-    // nodePath: server/database/collection/{Documents, Scale & Settings}
+		console.log(`ObjectExplorerProvider.expandNode ${nodeInfo.nodePath} ${nodeInfo.sessionId}`);
 		if (!nodeInfo.nodePath) {
 			throw new Error('nodeInfo.nodePath is undefined');
 		}
 
-		const pathComponents = nodeInfo.nodePath?.split('/');
-		const slashCount = pathComponents.length - 1;
+		const mongoInfo = getMongoInfo(nodeInfo.nodePath);
 
-		switch(slashCount) {
-			case 0: return this.expandAccount(nodeInfo, pathComponents[0]); // root node
-			case 1: return this.expandDatabase(nodeInfo, pathComponents[1], pathComponents[0]); // database node
-			case 2: return this.expandCollection(nodeInfo, pathComponents[2]); // collection node
-			default:
-					throw new Error(`Unrecognized path ${nodeInfo.nodePath}`);
+		if (mongoInfo.collectionName !== undefined) {
+			return this.expandCollection(nodeInfo); // collection node
+		} else if (mongoInfo.databaseName !== undefined) {
+			return this.expandDatabase(nodeInfo, mongoInfo.databaseName, mongoInfo.serverName); // database node
+		} else {
+			return this.expandAccount(nodeInfo, mongoInfo.serverName); // root node
 		}
   }
 
@@ -101,6 +131,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
       return Promise.resolve(false);
     }
     return this.appContext.listCollections(server, database).then((collections) => {
+			console.log('expandDatabase done');
       this.onExpandCompletedEmitter.fire({
         sessionId: nodeInfo.sessionId,
         nodePath: nodeInfo.nodePath || 'unknown',
@@ -115,7 +146,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
     });
   }
 
-	private expandCollection(nodeInfo: azdata.ExpandNodeInfo, collection: string): Thenable<boolean> {
+	private expandCollection(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
 		this.onExpandCompletedEmitter.fire({
 			sessionId: nodeInfo.sessionId,
 			nodePath: nodeInfo.nodePath || 'unknown',
@@ -154,3 +185,4 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
 	handle?: number;
 	providerId: string = ProviderId;
 }
+
