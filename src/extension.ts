@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
         await appContext.createMongoCollection({ connectionId, serverName }, mongoInfo.databaseName);
 
         // TODO: Refresh node
-        setTimeout(() => objectExplorer.expandDatabase({ nodePath, sessionId: serverName }, mongoInfo.databaseName!, serverName));
+        setTimeout(() => objectExplorer.expandDatabase({ nodePath, sessionId: serverName }, mongoInfo.databaseName!, serverName), 0);
 
         // // The code you place here will be executed every time your command is executed
 
@@ -148,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             setTimeout(() => {
                 objectExplorer.expandDatabase({ nodePath, sessionId }, mongoInfo.databaseName!, serverName);
-            });
+            }, 0);
 
             vscode.window.showInformationMessage(`Collection ${mongoInfo.collectionName} successfully deleted`);
         } else {

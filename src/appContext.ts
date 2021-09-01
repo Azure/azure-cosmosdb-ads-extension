@@ -2,7 +2,7 @@ import { Collection, MongoClient, MongoClientOptions } from 'mongodb';
 import * as vscode from 'vscode';
 import * as azdata from 'azdata';
 import { ProviderId } from './Providers/connectionProvider';
-import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
+// import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
 export interface IDatabaseInfo {
 	name?: string;
