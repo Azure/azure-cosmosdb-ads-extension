@@ -34,7 +34,9 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
         const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
-        appContext.createMongoDatabase({ connectionId, serverName });
+
+		// Creating a database requires creating a collection inside
+        appContext.createMongoCollection({ connectionId, serverName });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('cosmosdb-ads-extension.createMongoCollection', async (objectExplorerContext: azdata.ObjectExplorerContext) => {

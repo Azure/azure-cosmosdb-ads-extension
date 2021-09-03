@@ -1,8 +1,6 @@
 import * as azdata from 'azdata';
 import * as vscode from 'vscode';
-import { AppContext } from '../appContext';
-import { CosmosDBManagementClient } from '@azure/arm-cosmosdb';
-import { TokenCredentials } from '@azure/ms-rest-js';
+import { AppContext, retrieveConnectionStringFromArm } from '../appContext';
 
 export const ProviderId: string = 'COSMOSDB_MONGO';
 
@@ -26,23 +24,25 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
 		// For now, pass connection string in password
 		console.log('connectionInfo', connectionInfo);
 
+
+		const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
+		this.connectionUriToServerMap.set(connectionUri, server);
+
 		let password = connectionInfo.options['password'];
 
 		if (connectionInfo.options['authenticationType'] === 'AzureMFA') {
 			try {
-				password = await this._retrieveConnectionString(connectionInfo);
-			} catch(e) {
+				password = await retrieveConnectionStringFromArm(connectionInfo.options);
+			} catch (e) {
 				vscode.window.showErrorMessage((e as { message: string }).message);
-				return Promise.resolve(false);
+				return false;
 			}
 		}
 
 		if (!password) {
-			return Promise.resolve(false);
+			vscode.window.showErrorMessage('Unable to retrieve credentials');
+			return false;
 		}
-
-		const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
-		this.connectionUriToServerMap.set(connectionUri, server);
 
 		await this.appContext.connect(server, password);
 
@@ -124,66 +124,4 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
 	handle?: number;
 	providerId: string = ProviderId;
 
-	/**
-	 * use cosmosdb-arm to retrive connection string
-	 */
-	private async _retrieveConnectionString(connectionInfo: azdata.ConnectionInfo): Promise<string> {
-		const cosmosDbAccountName = connectionInfo.options['server'];
-		const tenantId = connectionInfo.options['azureTenantId'];
-		const accountId = connectionInfo.options['azureAccount'];
-
-		// const token = connectionInfo.options['azureAccountToken'];
-
-		// const tokens = await azdata.accounts.getSecurityToken({
-		// 	key: {
-		// 		providerId: '',
-		// 		accountId: connectionInfo.options['azureAccount']
-		// 	},
-		// 	displayInfo: {
-		// 		contextualDisplayName: '',
-		// 		accountType: '',
-		// 		displayName: '',
-		// 		userId: ''
-		// 	},
-		// 	properties: {
-		// 		tenants: [ tenantId ]
-		// 	},
-		// 	isStale: false
-		// }, azdata.AzureResource.ResourceManagement);
-		// const token = tokens[tenantId].token;
-		// const tokenType = tokens[tenantId].tokenType;
-
-		const accounts = (await azdata.accounts.getAllAccounts()).filter(a => a.key.accountId === accountId);
-		if (accounts.length < 1) {
-			throw new Error('No azure account found');
-		}
-
-		const azureToken = await azdata.accounts.getAccountSecurityToken(accounts[0], tenantId, azdata.AzureResource.ResourceManagement);
-
-		if (!azureToken) {
-			throw new Error('Unable to retrieve ARM token');
-		}
-
-		// TODO find a better way to retrieve this info
-		const armEndpoint = "https://management.azure.com";
-
-		const parsedAzureResourceId = connectionInfo.options['azureResourceId'].split('/');
-		const subscriptionId = parsedAzureResourceId[2];
-		const resourceGroup = parsedAzureResourceId[4];
-		const client = createAzureClient(subscriptionId, new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */), armEndpoint);
-
-		const connectionStringsResponse = await client.databaseAccounts.listConnectionStrings(resourceGroup, cosmosDbAccountName);
-		const connectionString = connectionStringsResponse.connectionStrings?.[0]?.connectionString;
-		if (!connectionString) {
-			throw new Error('Missing connection string');
-		}
-		return connectionString;
-	}
 }
-
-const createAzureClient = (subscriptionId: string, credentials: any /*msRest.ServiceClientCredentials */, armEndpoint: string) => {
-	return new CosmosDBManagementClient(credentials,
-		subscriptionId,
-		{ baseUri: armEndpoint }
-	);
-};

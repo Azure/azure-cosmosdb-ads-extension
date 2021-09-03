@@ -2,6 +2,9 @@ import { Collection, MongoClient, MongoClientOptions } from 'mongodb';
 import * as vscode from 'vscode';
 import * as azdata from 'azdata';
 import { ProviderId } from './Providers/connectionProvider';
+import { CosmosDBManagementClient } from '@azure/arm-cosmosdb';
+import { TokenCredentials } from '@azure/ms-rest-js';
+
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
 export interface IDatabaseInfo {
@@ -74,50 +77,6 @@ export class AppContext {
     return vscode.window.showQuickPick<ConnectionPick>(picks, {
       placeHolder: 'Select mongo account'
     });
-
-  }
-
-  public async createMongoDatabase(connectionInfo?: ConnectionInfo) {
-    if (!connectionInfo) {
-      const connectionProfile = await this._askUserForConnectionProfile();
-      if (!connectionProfile) {
-        // TODO Show error here
-        return;
-      }
-
-      connectionInfo = {
-        connectionId: connectionProfile.connectionId,
-        serverName: connectionProfile.serverName
-      }
-    }
-
-    const databaseName = await vscode.window.showInputBox({
-      placeHolder: "Database",
-      prompt: "Enter database name",
-      // validateInput: validateMongoCollectionName,
-      ignoreFocusOut: true,
-    });
-
-    const credentials = await azdata.connection.getCredentials(connectionInfo.connectionId);
-
-    const server = connectionInfo.serverName;
-
-    if (!server || !credentials || !credentials['password']) {
-      throw new Error(`Missing serverName or connectionId ${server} ${credentials}`)
-    }
-
-    const connectionString = credentials['password'];
-
-    // // TODO not working, connectionString doesn't have the right format
-    // const client = new CosmosClient(connectionString);
-    // const database: DatabaseResponse = await client.databases.create({ id: databaseName });
-    // console.log(database);
-
-    const client = await this.connect(server, connectionString);
-    if (!client) {
-      throw new Error('Error connecting to mongo');
-    }
-    console.log(await this.listDatabases(server));
   }
 
   public createMongoCollection(connectionInfo?: ConnectionInfo, databaseName?: string): Promise<Collection> {
@@ -133,14 +92,14 @@ export class AppContext {
         connectionInfo = {
           connectionId: connectionProfile.connectionId,
           serverName: connectionProfile.serverName
-        }
+        };
       }
 
       if (!databaseName) {
         databaseName = await vscode.window.showInputBox({
           placeHolder: "Database",
           prompt: "Enter database name",
-          // validateInput: validateMongoCollectionName,
+          validateInput: validateMongoDatabaseName,
           ignoreFocusOut: true,
         });
       }
@@ -148,7 +107,7 @@ export class AppContext {
       const collectionName = await vscode.window.showInputBox({
         placeHolder: "Collection",
         prompt: "Enter collection name",
-        // validateInput: validateMongoCollectionName,
+        validateInput: validateMongoCollectionName,
         ignoreFocusOut: true,
       });
 
@@ -190,3 +149,73 @@ export class AppContext {
     return client!.close();
   }
 }
+
+export function validateMongoCollectionName(collectionName: string): string | undefined | null {
+	// https://docs.mongodb.com/manual/reference/limits/#Restriction-on-Collection-Names
+	if (!collectionName) {
+			return "Collection name cannot be empty";
+	}
+	const systemPrefix = "system.";
+	if (collectionName.startsWith(systemPrefix)) {
+			return `"${systemPrefix}" prefix is reserved for internal use`;
+	}
+	if (/[$]/.test(collectionName)) {
+			return "Collection name cannot contain $";
+	}
+	return undefined;
+}
+
+function validateMongoDatabaseName(database: string): string | undefined | null {
+	// https://docs.mongodb.com/manual/reference/limits/#naming-restrictions
+	// "#?" are restricted characters for CosmosDB - MongoDB accounts
+	const min = 1;
+	const max = 63;
+	if (!database || database.length < min || database.length > max) {
+			return `Database name must be between ${min} and ${max} characters.`;
+	}
+	if (/[/\\. "$#?]/.test(database)) {
+			return "Database name cannot contain these characters - `/\\. \"$#?`";
+	}
+	return undefined;
+}
+
+/**
+ * use cosmosdb-arm to retrive connection string
+ */
+export const retrieveConnectionStringFromArm = async (connectionInfoOptions: { [name: string]: any }): Promise<string> => {
+	const cosmosDbAccountName = connectionInfoOptions['server'];
+	const tenantId = connectionInfoOptions['azureTenantId'];
+	const accountId = connectionInfoOptions['azureAccount'];
+	const accounts = (await azdata.accounts.getAllAccounts()).filter(a => a.key.accountId === accountId);
+	if (accounts.length < 1) {
+		throw new Error('No azure account found');
+	}
+
+	const azureToken = await azdata.accounts.getAccountSecurityToken(accounts[0], tenantId, azdata.AzureResource.ResourceManagement);
+
+	if (!azureToken) {
+		throw new Error('Unable to retrieve ARM token');
+	}
+
+	// TODO find a better way to retrieve this info
+	const armEndpoint = "https://management.azure.com";
+
+	const parsedAzureResourceId = connectionInfoOptions['azureResourceId'].split('/');
+	const subscriptionId = parsedAzureResourceId[2];
+	const resourceGroup = parsedAzureResourceId[4];
+	const client = createAzureClient(subscriptionId, new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */), armEndpoint);
+
+	const connectionStringsResponse = await client.databaseAccounts.listConnectionStrings(resourceGroup, cosmosDbAccountName);
+	const connectionString = connectionStringsResponse.connectionStrings?.[0]?.connectionString;
+	if (!connectionString) {
+		throw new Error('Missing connection string');
+	}
+	return connectionString;
+};
+
+const createAzureClient = (subscriptionId: string, credentials: any /*msRest.ServiceClientCredentials */, armEndpoint: string) => {
+	return new CosmosDBManagementClient(credentials,
+		subscriptionId,
+		{ baseUri: armEndpoint }
+	);
+};
