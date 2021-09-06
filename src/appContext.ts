@@ -198,8 +198,10 @@ export const retrieveConnectionStringFromArm = async (connectionInfoOptions: {
     throw new Error("No azure account found");
   }
 
+	const azureAccount = accounts[0];
+
   const azureToken = await azdata.accounts.getAccountSecurityToken(
-    accounts[0],
+    azureAccount,
     tenantId,
     azdata.AzureResource.ResourceManagement
   );
@@ -208,8 +210,11 @@ export const retrieveConnectionStringFromArm = async (connectionInfoOptions: {
     throw new Error("Unable to retrieve ARM token");
   }
 
-  // TODO find a better way to retrieve this info
-  const armEndpoint = "https://management.azure.com";
+  const armEndpoint = azureAccount.properties?.providerSettings?.settings?.armResource?.endpoint;
+
+	if (!armEndpoint) {
+		throw new Error("Unable to retrieve ARM endpoint");
+	}
 
   const parsedAzureResourceId = connectionInfoOptions["azureResourceId"].split("/");
   const subscriptionId = parsedAzureResourceId[2];
