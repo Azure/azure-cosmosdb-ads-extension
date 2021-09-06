@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 14.x
       - run: yarn
-      - run: yarn run format:checl && yarn run lint
+      - run: yarn run format:check && yarn run lint
   unittest:
     runs-on: ubuntu-latest
     name: "Unit Tests"
