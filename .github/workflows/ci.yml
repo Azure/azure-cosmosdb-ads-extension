@@ -20,7 +20,7 @@ jobs:
       - run: yarn run compile
   lint:
     runs-on: ubuntu-latest
-    name: "Lint"
+    name: "Format check and lint"
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js 14.x
@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 14.x
       - run: yarn
-      - run: yarn run lint
+      - run: yarn run format:checl && yarn run lint
   unittest:
     runs-on: ubuntu-latest
     name: "Unit Tests"
@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: 14.x
       - run: yarn
-      - run: xvfb-run -a npm test
+      - run: xvfb-run -a yarn run test
         if: runner.os == 'Linux'
-      - run: npm test
+      - run: yarn run test
         if: runner.os != 'Linux'

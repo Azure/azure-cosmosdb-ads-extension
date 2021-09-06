@@ -9,52 +9,67 @@
 //    - open Azure Data Studio
 //    - run the command "Install 'azuredatastudio' command in PATH"
 {
-	"version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Extension",
-            "type": "sqlopsExtensionHost",
-            "request": "launch",
-            "runtimeExecutable": "azuredatastudio",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/out/**/*.js"
-            ],
-            "preLaunchTask": "npm: watch"
-        },
-        {
-            "name": "Extension Tests",
-            "type": "sqlopsExtensionHost",
-            "request": "launch",
-            "runtimeExecutable": "azuredatastudio",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}",
-                "--extensionTestsPath=${workspaceFolder}/out/test"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/out/test/**/*.js"
-            ],
-            "preLaunchTask": "npm: watch"
-        },
-        {
-            "name": "Debug in enlistment",
-            "type": "sqlopsExtensionHost",
-            "request": "launch",
-			"windows": {
-				"runtimeExecutable": "${workspaceFolder}/../azuredatastudio/scripts/sql.bat"
-			},
-			"osx": {
-				"runtimeExecutable": "${workspaceFolder}/../azuredatastudio/scripts/sql.sh"
-			},
-			"linux": {
-				"runtimeExecutable": "${workspaceFolder}/../azuredatastudio/scripts/sql.sh"
-			},
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}"
-            ],
-            "timeout": 20000
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Extension",
+      "type": "sqlopsExtensionHost",
+      "request": "launch",
+      "runtimeExecutable": "azuredatastudio",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "npm: watch"
+    },
+    {
+      "name": "Extension Tests",
+      "type": "sqlopsExtensionHost",
+      "request": "launch",
+      "windows": {
+        "runtimeExecutable": "${env:ADS_DEV}/scripts/sql.bat"
+      },
+      "osx": {
+        "runtimeExecutable": "$ADS_DEV/scripts/sql.sh"
+      },
+      "linux": {
+        "runtimeExecutable": "$ADS_DEV/scripts/sql.sh"
+      },
+      "args": [
+        "--extensionDevelopmentPath=${workspaceRoot}",
+        "--extensionTestsPath=${workspaceRoot}/out/test/suite"
+      ],
+      "stopOnEntry": false,
+      "sourceMaps": true,
+      "timeout": 60000,
+      "outFiles": ["${workspaceRoot}/out/test/**/*.js"],
+      "smartStep": true
+    },
+    {
+      "name": "Extension Tests NOT WORKING",
+      "type": "sqlopsExtensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${workspaceFolder}/../../scripts/sql.bat",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/out/test"
+      ],
+      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
+      "preLaunchTask": "npm: watch"
+    },
+    {
+      "name": "Debug in enlistment",
+      "type": "sqlopsExtensionHost",
+      "request": "launch",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/../azuredatastudio/scripts/sql.bat"
+      },
+      "osx": {
+        "runtimeExecutable": "${workspaceFolder}/../azuredatastudio/scripts/sql.sh"
+      },
+      "linux": {
+        "runtimeExecutable": "${workspaceFolder}/../azuredatastudio/scripts/sql.sh"
+      },
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "timeout": 20000
+    }
+  ]
 }
