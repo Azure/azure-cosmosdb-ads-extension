@@ -1,6 +1,6 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
-import { v4 as uuid } from 'uuid';
+import { v4 as uuid } from "uuid";
 import { AppContext, retrieveConnectionStringFromArm } from "../appContext";
 
 export const ProviderId: string = "COSMOSDB_MONGO";

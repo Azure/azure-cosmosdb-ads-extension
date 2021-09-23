@@ -5,7 +5,7 @@
 
 import * as azdata from "azdata";
 import * as vscode from "vscode";
-import { AppContext } from '../appContext';
+import { AppContext } from "../appContext";
 
 interface IButtonData {
   label: string;
@@ -44,7 +44,9 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
       },
     },
   ];
-  const navElements: azdata.ButtonComponent[] = buttons.map((b) => view.modelBuilder.button().withProperties(b).component());
+  const navElements: azdata.ButtonComponent[] = buttons.map((b) =>
+    view.modelBuilder.button().withProperties(b).component()
+  );
   return view.modelBuilder
     .toolbarContainer()
     .withItems(navElements)
@@ -194,7 +196,10 @@ const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext):
     .component();
 };
 
-export const openModelViewDashboard = async (context: vscode.ExtensionContext, appContext: AppContext): Promise<void> => {
+export const openModelViewDashboard = async (
+  context: vscode.ExtensionContext,
+  appContext: AppContext
+): Promise<void> => {
   const dashboard = azdata.window.createModelViewDashboard("languye-mongo");
   dashboard.registerTabs(async (view: azdata.ModelView) => {
     // Tab with toolbar
@@ -325,10 +330,13 @@ export const registerSqlServicesModelView = (): void => {
 };
 
 export const registerModelViewDashboardTab = (): void => {
-	azdata.ui.registerModelViewProvider('sqlservices-home', async (view) => {
-		const text = view.modelBuilder.text().withProps({
-			value: 'home tab content place holder'
-		}).component();
-		await view.initializeModel(text);
-	});
-}
+  azdata.ui.registerModelViewProvider("sqlservices-home", async (view) => {
+    const text = view.modelBuilder
+      .text()
+      .withProps({
+        value: "home tab content place holder",
+      })
+      .component();
+    await view.initializeModel(text);
+  });
+};

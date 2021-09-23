@@ -192,7 +192,7 @@ export function activate(context: vscode.ExtensionContext) {
     dashboard.openModelViewDashboard(context, appContext);
   });
 
-	context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
+  context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
 
   // Instantiate client
   const appContext = new AppContext();
@@ -204,7 +204,7 @@ export function activate(context: vscode.ExtensionContext) {
   azdata.dataprotocol.registerIconProvider(iconProvider);
   azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
   registerSqlServicesModelView();
-	// registerModelViewDashboardTab();
+  // registerModelViewDashboardTab();
 }
 
 // this method is called when your extension is deactivated
