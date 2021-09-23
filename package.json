@@ -16,9 +16,7 @@
     "Other"
   ],
   "activationEvents": [
-    "*",
-    "onCommand:cosmosdb-ads-extension.createMongoDatabase",
-    "onCommand:cosmosdb-ads-extension.createMongoCollection"
+    "*"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -73,6 +71,54 @@
         }
       ]
     },
+    "dashboard.tabs": [
+      {
+        "id": "sqlservices-home",
+        "isHomeTab": true,
+        "description": "",
+        "title": "Home",
+        "provider": "COSMOSDB_MONGO",
+        "container": {
+          "modelview-container": null
+        }
+      },
+      {
+        "id": "sqlservices.tab",
+        "title": "sqlservices",
+        "icon": {
+          "light": "./out/src/media/insights.svg",
+          "dark": "./out/src/media/insights_inverse.svg"
+        },
+        "description": "Shows available services running in the SQL Server instance",
+        "provider": "*",
+        "container": {
+          "nav-section": [
+            {
+              "id": "sqlservices",
+              "title": "Services",
+              "gridItemConfig": {
+                "sizex": 2,
+                "sizey": 1
+              },
+              "container": {
+                "modelview-container": null
+              }
+            },
+            {
+              "id": "splitPanel",
+              "title": "SplitPanel",
+              "gridItemConfig": {
+                "sizex": 2,
+                "sizey": 1
+              },
+              "container": {
+                "modelview-container": null
+              }
+            }
+          ]
+        }
+      }
+    ],
     "connectionProvider": {
       "providerId": "COSMOSDB_MONGO",
       "languageMode": "cosmosdb",

@@ -5,6 +5,7 @@
 
 import * as azdata from "azdata";
 import * as vscode from "vscode";
+import { AppContext } from '../appContext';
 
 interface IButtonData {
   label: string;
@@ -43,7 +44,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
       },
     },
   ];
-  const navElements: azdata.ButtonComponent[] = buttons.map((b) => view.modelBuilder.button().withProps(b).component());
+  const navElements: azdata.ButtonComponent[] = buttons.map((b) => view.modelBuilder.button().withProperties(b).component());
   return view.modelBuilder
     .toolbarContainer()
     .withItems(navElements)
@@ -58,12 +59,12 @@ const buildOverview = (view: azdata.ModelView): azdata.Component => {
       value: "Online",
     },
     {
-      displayName: "Backup policy",
-      value: "Periodic",
-    },
-    {
       displayName: "Capacity mode",
       value: "Provisioned throughput",
+    },
+    {
+      displayName: "Backup policy",
+      value: "Periodic",
     },
     {
       displayName: "Read location",
@@ -71,11 +72,11 @@ const buildOverview = (view: azdata.ModelView): azdata.Component => {
     },
   ];
 
-  const properties = view.modelBuilder.propertiesContainer().withProps({ propertyItems }).component();
+  const properties = view.modelBuilder.propertiesContainer().withProperties({ propertyItems }).component();
   return view.modelBuilder
     .divContainer()
     .withItems([properties])
-    .withProps({
+    .withProperties({
       CSSStyles: {
         padding: "10px",
         "border-bottom": "1px solid rgba(128, 128, 128, 0.35)",
@@ -94,8 +95,8 @@ const buildHeroCard = (
   return view.modelBuilder
     .button()
     .withProperties<azdata.ButtonProperties>({
-      buttonType: azdata.ButtonType.Informational,
-      description,
+      // buttonType: azdata.ButtonType.Informational,
+      // description,
       height: 84,
       iconHeight: 32,
       iconPath,
@@ -139,7 +140,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     .flexContainer()
     .withItems(heroCards)
     .withLayout({ flexFlow: "row", flexWrap: "wrap" })
-    .withProps({ CSSStyles: { width: "100%" } })
+    .withProperties({ CSSStyles: { width: "100%" } })
     .component();
 
   return view.modelBuilder
@@ -147,7 +148,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     .withItems([
       view.modelBuilder
         .text()
-        .withProps({
+        .withProperties({
           value: "Getting started",
           CSSStyles: { "font-family": "20px", "font-weight": "600" },
         })
@@ -155,7 +156,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       heroCardsContainer,
     ])
     .withLayout({ flexFlow: "column" })
-    .withProps({
+    .withProperties({
       CSSStyles: {
         padding: "10px",
       },
@@ -193,7 +194,7 @@ const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext):
     .component();
 };
 
-export const openModelViewDashboard = async (context: vscode.ExtensionContext): Promise<void> => {
+export const openModelViewDashboard = async (context: vscode.ExtensionContext, appContext: AppContext): Promise<void> => {
   const dashboard = azdata.window.createModelViewDashboard("languye-mongo");
   dashboard.registerTabs(async (view: azdata.ModelView) => {
     // Tab with toolbar
@@ -322,3 +323,12 @@ export const registerSqlServicesModelView = (): void => {
     await view.initializeModel(flexModel);
   });
 };
+
+export const registerModelViewDashboardTab = (): void => {
+	azdata.ui.registerModelViewProvider('sqlservices-home', async (view) => {
+		const text = view.modelBuilder.text().withProps({
+			value: 'home tab content place holder'
+		}).component();
+		await view.initializeModel(text);
+	});
+}

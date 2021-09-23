@@ -1,5 +1,6 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
+import { v4 as uuid } from 'uuid';
 import { AppContext, retrieveConnectionStringFromArm } from "../appContext";
 
 export const ProviderId: string = "COSMOSDB_MONGO";
@@ -46,7 +47,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     await this.appContext.connect(server, password);
 
     this.onConnectionCompleteEmitter.fire({
-      connectionId: "123",
+      connectionId: uuid(),
       ownerUri: connectionUri,
       messages: "",
       errorMessage: "",

@@ -14,7 +14,8 @@ import { IconProvider } from "./Providers/iconProvider";
 import { getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
 import { AppContext } from "./appContext";
 import * as dashboard from "./Dashboards/modelViewDashboard";
-import { registerSqlServicesModelView } from "./Dashboards/modelViewDashboard";
+import { registerModelViewDashboardTab, registerSqlServicesModelView } from "./Dashboards/modelViewDashboard";
+import { UriHandler } from "./protocol/UriHandler";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -188,8 +189,10 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand("cosmosdb-ads-extension.openModelViewDashboard", () => {
-    dashboard.openModelViewDashboard(context);
+    dashboard.openModelViewDashboard(context, appContext);
   });
+
+	context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
 
   // Instantiate client
   const appContext = new AppContext();
@@ -201,6 +204,7 @@ export function activate(context: vscode.ExtensionContext) {
   azdata.dataprotocol.registerIconProvider(iconProvider);
   azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
   registerSqlServicesModelView();
+	// registerModelViewDashboardTab();
 }
 
 // this method is called when your extension is deactivated
