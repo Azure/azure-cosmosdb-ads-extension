@@ -250,20 +250,21 @@
     "proposedapi": "node installTypings.js"
   },
   "dependencies": {
-    "mongodb": "3.6.10",
     "@azure/arm-cosmosdb": "13.0.0",
-    "@azure/arm-resources": "4.1.0"
+    "@azure/arm-resources": "4.1.0",
+    "@types/uuid": "^8.3.1",
+    "mongodb": "3.6.10"
   },
   "devDependencies": {
-    "@types/vscode": "^1.39.0",
     "@types/azdata": "1.29.1",
     "@types/glob": "^7.1.1",
     "@types/mocha": "^7.0.2",
     "@types/mongodb": "^3.3.2",
     "@types/node": "^13.11.0",
-    "eslint": "^6.8.0",
-    "@typescript-eslint/parser": "^2.30.0",
+    "@types/vscode": "^1.39.0",
     "@typescript-eslint/eslint-plugin": "^2.30.0",
+    "@typescript-eslint/parser": "^2.30.0",
+    "eslint": "^6.8.0",
     "glob": "^7.1.6",
     "mocha": "^7.1.2",
     "prettier": "2.3.2",
