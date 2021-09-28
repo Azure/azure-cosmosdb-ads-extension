@@ -5,7 +5,7 @@
 
 import * as azdata from "azdata";
 import * as vscode from "vscode";
-import { AppContext } from "../appContext";
+import { AppContext, retrieveDatabaseAccountInfoFromArm, retrieveMongoDbDatabasesInfoFromArm } from "../appContext";
 
 interface IButtonData {
   label: string;
@@ -54,23 +54,24 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     .component();
 };
 
-const buildOverview = (view: azdata.ModelView): azdata.Component => {
+const buildOverview = async (view: azdata.ModelView): Promise<azdata.Component> => {
+  const databaseAccountInfo = await retrieveDatabaseAccountInfoFromArm(view.connection);
   const propertyItems: azdata.PropertiesContainerItem[] = [
     {
-      displayName: "Status",
-      value: "Online",
+      displayName: "location",
+      value: databaseAccountInfo.location,
     },
     {
-      displayName: "Capacity mode",
-      value: "Provisioned throughput",
+      displayName: "Consistency policy",
+      value: databaseAccountInfo.consistencyPolicy,
     },
     {
       displayName: "Backup policy",
-      value: "Periodic",
+      value: databaseAccountInfo.backupPolicy,
     },
     {
       displayName: "Read location",
-      value: "West US",
+      value: databaseAccountInfo.readLocations.join(","),
     },
   ];
 
@@ -196,6 +197,22 @@ const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext):
     .component();
 };
 
+const buildDatabasesArea = async (view: azdata.ModelView): Promise<azdata.Component> => {
+  const databasesInfo = await retrieveMongoDbDatabasesInfoFromArm(view.connection);
+
+  return view.modelBuilder
+    .table()
+    .withProperties<azdata.TableComponentProperties>({
+      columns: ["Database", "Collections", "Throughput Shared Across Collections"],
+      data: databasesInfo.map((db) => [db.name, db.nbCollections, db.throughputSetting]),
+      height: 500,
+      CSSStyles: {
+        padding: "20px",
+      },
+    })
+    .component();
+};
+
 export const openModelViewDashboard = async (
   context: vscode.ExtensionContext,
   appContext: AppContext
@@ -252,7 +269,7 @@ export const openModelViewDashboard = async (
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([buildOverview(view), buildTabArea(view, context)])
+      .withItems([await buildOverview(view), buildTabArea(view, context)])
       .withLayout({ flexFlow: "column" })
       .component();
 
@@ -329,14 +346,22 @@ export const registerSqlServicesModelView = (): void => {
   });
 };
 
-export const registerModelViewDashboardTab = (): void => {
-  azdata.ui.registerModelViewProvider("sqlservices-home", async (view) => {
-    const text = view.modelBuilder
-      .text()
-      .withProps({
-        value: "home tab content place holder",
-      })
+export const registerModelViewDashboardTab = (context: vscode.ExtensionContext, appContext: AppContext): void => {
+  azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
+    const homeTabContainer = view.modelBuilder
+      .flexContainer()
+      .withItems([await buildOverview(view), buildTabArea(view, context)])
+      .withLayout({ flexFlow: "column" })
       .component();
-    await view.initializeModel(text);
+    await view.initializeModel(homeTabContainer);
+  });
+
+  azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
+    const homeTabContainer = view.modelBuilder
+      .flexContainer()
+      .withItems([await buildDatabasesArea(view)])
+      .withLayout({ flexFlow: "column" })
+      .component();
+    await view.initializeModel(homeTabContainer);
   });
 };

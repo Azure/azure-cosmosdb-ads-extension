@@ -204,7 +204,8 @@ export function activate(context: vscode.ExtensionContext) {
   azdata.dataprotocol.registerIconProvider(iconProvider);
   azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
   registerSqlServicesModelView();
-  // registerModelViewDashboardTab();
+
+  registerModelViewDashboardTab(context, appContext);
 }
 
 // this method is called when your extension is deactivated

@@ -73,11 +73,24 @@
     },
     "dashboard.tabs": [
       {
-        "id": "sqlservices-home",
+        "id": "mongo-account-home",
         "isHomeTab": true,
         "description": "",
         "title": "Home",
         "provider": "COSMOSDB_MONGO",
+        "container": {
+          "modelview-container": null
+        }
+      },
+      {
+        "id": "mongo-databases.tab",
+        "title": "Databases",
+        "icon": {
+          "light": "./out/src/media/insights.svg",
+          "dark": "./out/src/media/insights_inverse.svg"
+        },
+        "description": "Shows all account databases",
+        "provider": "*",
         "container": {
           "modelview-container": null
         }

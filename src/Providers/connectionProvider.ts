@@ -32,7 +32,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
 
     if (connectionInfo.options["authenticationType"] === "AzureMFA") {
       try {
-        password = await retrieveConnectionStringFromArm(connectionInfo.options);
+        password = await retrieveConnectionStringFromArm(connectionInfo);
       } catch (e) {
         vscode.window.showErrorMessage((e as { message: string }).message);
         return false;

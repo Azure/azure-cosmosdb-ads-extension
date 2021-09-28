@@ -4,6 +4,7 @@ import * as azdata from "azdata";
 import { ProviderId } from "./Providers/connectionProvider";
 import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
 import { TokenCredentials } from "@azure/ms-rest-js";
+import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -16,6 +17,19 @@ type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem
 export interface ConnectionInfo {
   connectionId: string;
   serverName: string;
+}
+
+export interface ICosmosDbDatabaseAccountInfo {
+  backupPolicy: string;
+  consistencyPolicy: string;
+  readLocations: string[];
+  location: string;
+}
+
+export interface ICosmosDbDatabaseInfo {
+  name: string;
+  nbCollections: number;
+  throughputSetting: string;
 }
 
 /**
@@ -184,21 +198,23 @@ function validateMongoDatabaseName(database: string): string | undefined | null 
   return undefined;
 }
 
-/**
- * use cosmosdb-arm to retrive connection string
- */
-export const retrieveConnectionStringFromArm = async (connectionInfoOptions: {
-  [name: string]: any;
-}): Promise<string> => {
-  const cosmosDbAccountName = connectionInfoOptions["server"];
-  const tenantId = connectionInfoOptions["azureTenantId"];
-  const accountId = connectionInfoOptions["azureAccount"];
+const retrieveAzureAccount = async (accountId: string): Promise<azdata.Account> => {
+  const manyAccounts = await azdata.accounts.getAllAccounts();
+  console.log(manyAccounts.length);
   const accounts = (await azdata.accounts.getAllAccounts()).filter((a) => a.key.accountId === accountId);
   if (accounts.length < 1) {
     throw new Error("No azure account found");
   }
 
-  const azureAccount = accounts[0];
+  return accounts[0];
+};
+
+const retrieveAzureToken = async (
+  connectionInfo: azdata.ConnectionInfo
+): Promise<{ token: string; tokenType?: string | undefined }> => {
+  const tenantId = connectionInfo.options["azureTenantId"];
+  const accountId = connectionInfo.options["azureAccount"];
+  const azureAccount = await retrieveAzureAccount(accountId);
 
   const azureToken = await azdata.accounts.getAccountSecurityToken(
     azureAccount,
@@ -210,21 +226,41 @@ export const retrieveConnectionStringFromArm = async (connectionInfoOptions: {
     throw new Error("Unable to retrieve ARM token");
   }
 
+  return azureToken;
+};
+
+const parsedAzureResourceId = (azureResourceId: string): { subscriptionId: string; resourceGroup: string } => {
+  // TODO Add error handling
+  const parsedAzureResourceId = azureResourceId.split("/");
+  return {
+    subscriptionId: parsedAzureResourceId[2],
+    resourceGroup: parsedAzureResourceId[4],
+  };
+};
+
+const createArmClient = async (connectionInfo: azdata.ConnectionInfo): Promise<CosmosDBManagementClient> => {
+  const accountId = connectionInfo.options["azureAccount"];
+  const azureAccount = await retrieveAzureAccount(accountId);
   const armEndpoint = azureAccount.properties?.providerSettings?.settings?.armResource?.endpoint;
 
   if (!armEndpoint) {
     throw new Error("Unable to retrieve ARM endpoint");
   }
 
-  const parsedAzureResourceId = connectionInfoOptions["azureResourceId"].split("/");
-  const subscriptionId = parsedAzureResourceId[2];
-  const resourceGroup = parsedAzureResourceId[4];
-  const client = createAzureClient(
-    subscriptionId,
-    new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */),
-    armEndpoint
-  );
+  const { subscriptionId } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
+  const azureToken = await retrieveAzureToken(connectionInfo);
+  const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
 
+  return new CosmosDBManagementClient(credentials, subscriptionId, { baseUri: armEndpoint });
+};
+
+/**
+ * use cosmosdb-arm to retrive connection string
+ */
+export const retrieveConnectionStringFromArm = async (connectionInfo: azdata.ConnectionInfo): Promise<string> => {
+  const client = await createArmClient(connectionInfo);
+  const cosmosDbAccountName = connectionInfo.options["server"];
+  const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
   const connectionStringsResponse = await client.databaseAccounts.listConnectionStrings(
     resourceGroup,
     cosmosDbAccountName
@@ -236,10 +272,73 @@ export const retrieveConnectionStringFromArm = async (connectionInfoOptions: {
   return connectionString;
 };
 
-const createAzureClient = (
-  subscriptionId: string,
-  credentials: any /*msRest.ServiceClientCredentials */,
-  armEndpoint: string
-) => {
-  return new CosmosDBManagementClient(credentials, subscriptionId, { baseUri: armEndpoint });
+export const retrieveDatabaseAccountInfoFromArm = async (
+  connectionInfo: azdata.ConnectionInfo
+): Promise<ICosmosDbDatabaseAccountInfo> => {
+  const client = await createArmClient(connectionInfo);
+  const accountName = connectionInfo.options["server"];
+  // const accountId = connectionInfo.options["azureAccount"];
+  const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
+  const databaseAccount = await client.databaseAccounts.get(resourceGroup, accountName);
+  return {
+    backupPolicy: databaseAccount.backupPolicy?.type ?? "None", // TODO Translate this
+    consistencyPolicy: databaseAccount.consistencyPolicy?.defaultConsistencyLevel ?? "None", // TODO Translate this
+    location: databaseAccount.location ?? "Unknown", // TODO Translate this
+    readLocations: databaseAccount.readLocations ? databaseAccount.readLocations.map((l) => l.locationName ?? "") : [],
+  };
+};
+
+const throughputSettingToString = (throughputSetting: ThroughputSettingsGetPropertiesResource): string => {
+  if (throughputSetting.autoscaleSettings) {
+    return `Max: ${throughputSetting.autoscaleSettings.maxThroughput} RU/s (autoscale)`;
+  } else if (throughputSetting.throughput) {
+    return `${throughputSetting.throughput} RU/s`;
+  }
+};
+
+const retrieveMongoDbDatabaseInfoFromArm = async (
+  client: CosmosDBManagementClient,
+  resourceGroup: string,
+  accountName: string,
+  databaseName: string
+): Promise<ICosmosDbDatabaseInfo> => {
+  const collections = await client.mongoDBResources.listMongoDBCollections(resourceGroup, accountName, databaseName);
+
+  let throughputSetting = "N/A";
+  try {
+    const rpResponse = await client.mongoDBResources.getMongoDBDatabaseThroughput(
+      resourceGroup,
+      accountName,
+      databaseName
+    );
+
+    if (rpResponse.resource) {
+      throughputSetting = throughputSettingToString(rpResponse.resource);
+    }
+  } catch (e) {
+    // Entity with the specified id does not exist in the system. More info: https://aka.ms/cosmosdb-tsg-not-found
+  }
+
+  return {
+    name: databaseName,
+    nbCollections: collections.length,
+    throughputSetting,
+  };
+};
+
+export const retrieveMongoDbDatabasesInfoFromArm = async (
+  connectionInfo: azdata.ConnectionInfo
+): Promise<ICosmosDbDatabaseInfo[]> => {
+  const client = await createArmClient(connectionInfo);
+  const accountName = connectionInfo.options["server"];
+  // const accountId = connectionInfo.options["azureAccount"];
+  const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
+  const mongoDBResources = await client.mongoDBResources.listMongoDBDatabases(resourceGroup, accountName);
+
+  // TODO Error handling here for missing databaseName
+  const promises = mongoDBResources
+    .filter((resource) => !!resource.name)
+    .map((resource) => retrieveMongoDbDatabaseInfoFromArm(client, resourceGroup, accountName, resource.name!));
+
+  return await Promise.all(promises);
 };
