@@ -212,9 +212,16 @@ const buildDatabasesArea = async (
           value: "Datbase",
           type: azdata.ColumnType.hyperlink,
           name: "Database",
+					width: 250
         },
-        "Collections",
-        "Throughput Shared Across Collections",
+				{
+					value: "Collections", // TODO Translate
+					type: azdata.ColumnType.text
+				},
+				{
+					value: "Throughput Shared Across Collections", // TODO translate
+					type: azdata.ColumnType.text
+				}
       ],
       data: databasesInfo.map((db) => [
         <azdata.HyperlinkColumnCellValue>{
