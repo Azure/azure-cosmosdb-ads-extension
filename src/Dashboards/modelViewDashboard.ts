@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as azdata from "azdata";
+import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
 import { AppContext, retrieveDatabaseAccountInfoFromArm, retrieveMongoDbDatabasesInfoFromArm } from "../appContext";
 
@@ -58,8 +59,8 @@ const buildOverview = async (view: azdata.ModelView): Promise<azdata.Component> 
   const databaseAccountInfo = await retrieveDatabaseAccountInfoFromArm(view.connection);
   const propertyItems: azdata.PropertiesContainerItem[] = [
     {
-      displayName: "location",
-      value: databaseAccountInfo.location,
+      displayName: "Status",
+      value: databaseAccountInfo.serverStatus,
     },
     {
       displayName: "Consistency policy",
@@ -197,27 +198,61 @@ const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext):
     .component();
 };
 
-const buildDatabasesArea = async (view: azdata.ModelView): Promise<azdata.Component> => {
+const buildDatabasesArea = async (
+  view: azdata.ModelView,
+  context: vscode.ExtensionContext
+): Promise<azdata.Component> => {
   const databasesInfo = await retrieveMongoDbDatabasesInfoFromArm(view.connection);
 
-  return view.modelBuilder
+  const tableComponent = view.modelBuilder
     .table()
     .withProperties<azdata.TableComponentProperties>({
-      columns: ["Database", "Collections", "Throughput Shared Across Collections"],
-      data: databasesInfo.map((db) => [db.name, db.nbCollections, db.throughputSetting]),
+      columns: [
+        <azdata.HyperlinkColumn>{
+          value: "Datbase",
+          type: azdata.ColumnType.hyperlink,
+          name: "Database",
+        },
+        "Collections",
+        "Throughput Shared Across Collections",
+      ],
+      data: databasesInfo.map((db) => [
+        <azdata.HyperlinkColumnCellValue>{
+          title: db.name,
+          icon: context.asAbsolutePath("images/CosmosDB_20170524.svg"),
+          url: "https://www.microsoft.com",
+        },
+        db.nbCollections,
+        db.throughputSetting,
+      ]),
+      // updateCells: [ { row: 2, column: 1, value: 123 }],
       height: 500,
       CSSStyles: {
         padding: "20px",
       },
     })
     .component();
+
+  if (tableComponent.onCellAction) {
+    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+      vscode.window.showInformationMessage(
+        `clicked: ${arg.row} row, ${arg.column} column, ${arg.columnName} columnName`
+      );
+    });
+  }
+
+  // tableComponent.onRowSelected((arg: any) => {
+  // 	vscode.window.showInformationMessage(`clicked: ${arg.toString()}`);
+  // });
+
+  return tableComponent;
 };
 
 export const openModelViewDashboard = async (
   context: vscode.ExtensionContext,
   appContext: AppContext
 ): Promise<void> => {
-  const dashboard = azdata.window.createModelViewDashboard("languye-mongo");
+  const dashboard = azdata.window.createModelViewDashboard("dashboard1");
   dashboard.registerTabs(async (view: azdata.ModelView) => {
     // Tab with toolbar
     const button = view.modelBuilder
@@ -359,7 +394,7 @@ export const registerModelViewDashboardTab = (context: vscode.ExtensionContext, 
   azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([await buildDatabasesArea(view)])
+      .withItems([await buildDatabasesArea(view, context)])
       .withLayout({ flexFlow: "column" })
       .component();
     await view.initializeModel(homeTabContainer);

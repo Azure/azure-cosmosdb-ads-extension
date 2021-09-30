@@ -1,3 +1,4 @@
+import * as msRest from "@azure/ms-rest-js";
 import { Collection, MongoClient, MongoClientOptions } from "mongodb";
 import * as vscode from "vscode";
 import * as azdata from "azdata";
@@ -5,6 +6,7 @@ import { ProviderId } from "./Providers/connectionProvider";
 import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
 import { TokenCredentials } from "@azure/ms-rest-js";
 import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
+import { getServerState } from "./Dashboards/ServerUXStates";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -20,6 +22,7 @@ export interface ConnectionInfo {
 }
 
 export interface ICosmosDbDatabaseAccountInfo {
+  serverStatus: string;
   backupPolicy: string;
   consistencyPolicy: string;
   readLocations: string[];
@@ -281,6 +284,7 @@ export const retrieveDatabaseAccountInfoFromArm = async (
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
   const databaseAccount = await client.databaseAccounts.get(resourceGroup, accountName);
   return {
+    serverStatus: getServerState(databaseAccount.provisioningState),
     backupPolicy: databaseAccount.backupPolicy?.type ?? "None", // TODO Translate this
     consistencyPolicy: databaseAccount.consistencyPolicy?.defaultConsistencyLevel ?? "None", // TODO Translate this
     location: databaseAccount.location ?? "Unknown", // TODO Translate this
@@ -293,21 +297,27 @@ const throughputSettingToString = (throughputSetting: ThroughputSettingsGetPrope
     return `Max: ${throughputSetting.autoscaleSettings.maxThroughput} RU/s (autoscale)`;
   } else if (throughputSetting.throughput) {
     return `${throughputSetting.throughput} RU/s`;
+  } else {
+    return "";
   }
 };
 
 const retrieveMongoDbDatabaseInfoFromArm = async (
   client: CosmosDBManagementClient,
-  resourceGroup: string,
+  resourceGroupName: string,
   accountName: string,
   databaseName: string
 ): Promise<ICosmosDbDatabaseInfo> => {
-  const collections = await client.mongoDBResources.listMongoDBCollections(resourceGroup, accountName, databaseName);
+  const collections = await client.mongoDBResources.listMongoDBCollections(
+    resourceGroupName,
+    accountName,
+    databaseName
+  );
 
   let throughputSetting = "N/A";
   try {
     const rpResponse = await client.mongoDBResources.getMongoDBDatabaseThroughput(
-      resourceGroup,
+      resourceGroupName,
       accountName,
       databaseName
     );
