@@ -6,7 +6,12 @@
 import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
-import { AppContext, retrieveDatabaseAccountInfoFromArm, retrieveMongoDbDatabasesInfoFromArm } from "../appContext";
+import {
+  AppContext,
+  getAccountName,
+  retrieveDatabaseAccountInfoFromArm,
+  retrieveMongoDbDatabasesInfoFromArm,
+} from "../appContext";
 
 interface IButtonData {
   label: string;
@@ -212,22 +217,21 @@ const buildDatabasesArea = async (
           value: "Datbase",
           type: azdata.ColumnType.hyperlink,
           name: "Database",
-					width: 250
+          width: 250,
         },
-				{
-					value: "Collections", // TODO Translate
-					type: azdata.ColumnType.text
-				},
-				{
-					value: "Throughput Shared Across Collections", // TODO translate
-					type: azdata.ColumnType.text
-				}
+        {
+          value: "Collections", // TODO Translate
+          type: azdata.ColumnType.text,
+        },
+        {
+          value: "Throughput Shared Across Collections", // TODO translate
+          type: azdata.ColumnType.text,
+        },
       ],
       data: databasesInfo.map((db) => [
         <azdata.HyperlinkColumnCellValue>{
           title: db.name,
           icon: context.asAbsolutePath("images/CosmosDB_20170524.svg"),
-          url: "https://www.microsoft.com",
         },
         db.nbCollections,
         db.throughputSetting,
@@ -242,8 +246,14 @@ const buildDatabasesArea = async (
 
   if (tableComponent.onCellAction) {
     tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-      vscode.window.showInformationMessage(
-        `clicked: ${arg.row} row, ${arg.column} column, ${arg.columnName} columnName`
+      // vscode.window.showInformationMessage(
+      //   `clicked: ${arg.row} row, ${arg.column} column, ${arg.columnName} columnName`
+      // );
+      const azureAccountId = view.connection.options["azureAccount"];
+      vscode.commands.executeCommand(
+        "cosmosdb-ads-extension.openDatabaseDashboard",
+        azureAccountId,
+        databasesInfo[arg.row].name
       );
     });
   }
@@ -388,7 +398,7 @@ export const registerSqlServicesModelView = (): void => {
   });
 };
 
-export const registerModelViewDashboardTab = (context: vscode.ExtensionContext, appContext: AppContext): void => {
+export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     const homeTabContainer = view.modelBuilder
       .flexContainer()

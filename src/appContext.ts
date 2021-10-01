@@ -1,4 +1,3 @@
-import * as msRest from "@azure/ms-rest-js";
 import { Collection, MongoClient, MongoClientOptions } from "mongodb";
 import * as vscode from "vscode";
 import * as azdata from "azdata";
@@ -32,6 +31,12 @@ export interface ICosmosDbDatabaseAccountInfo {
 export interface ICosmosDbDatabaseInfo {
   name: string;
   nbCollections: number;
+  throughputSetting: string;
+}
+
+export interface ICosmosDbCollectionInfo {
+  name: string;
+  nbDocuments: number;
   throughputSetting: string;
 }
 
@@ -279,8 +284,7 @@ export const retrieveDatabaseAccountInfoFromArm = async (
   connectionInfo: azdata.ConnectionInfo
 ): Promise<ICosmosDbDatabaseAccountInfo> => {
   const client = await createArmClient(connectionInfo);
-  const accountName = connectionInfo.options["server"];
-  // const accountId = connectionInfo.options["azureAccount"];
+  const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
   const databaseAccount = await client.databaseAccounts.get(resourceGroup, accountName);
   return {
@@ -336,12 +340,14 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   };
 };
 
+// const accountId = connectionInfo.options["azureAccount"];
+export const getAccountName = (connectionInfo: azdata.ConnectionInfo): string => connectionInfo.options["server"];
+
 export const retrieveMongoDbDatabasesInfoFromArm = async (
   connectionInfo: azdata.ConnectionInfo
 ): Promise<ICosmosDbDatabaseInfo[]> => {
   const client = await createArmClient(connectionInfo);
-  const accountName = connectionInfo.options["server"];
-  // const accountId = connectionInfo.options["azureAccount"];
+  const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
   const mongoDBResources = await client.mongoDBResources.listMongoDBDatabases(resourceGroup, accountName);
 
@@ -349,6 +355,65 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
   const promises = mongoDBResources
     .filter((resource) => !!resource.name)
     .map((resource) => retrieveMongoDbDatabaseInfoFromArm(client, resourceGroup, accountName, resource.name!));
+
+  return await Promise.all(promises);
+};
+
+const retrieveMongoDbCollectionInfoFromArm = async (
+  client: CosmosDBManagementClient,
+  resourceGroupName: string,
+  accountName: string,
+  databaseName: string,
+  collectionName: string
+): Promise<ICosmosDbCollectionInfo> => {
+  // const collections = await client.mongoDBResources.listMongoDBCollections(
+  //   resourceGroupName,
+  //   accountName,
+  //   databaseName
+  // );
+
+  let throughputSetting = "N/A";
+  try {
+    const rpResponse = await client.mongoDBResources.getMongoDBCollectionThroughput(
+      resourceGroupName,
+      accountName,
+      databaseName,
+      collectionName
+    );
+
+    if (rpResponse.resource) {
+      throughputSetting = throughputSettingToString(rpResponse.resource);
+    }
+  } catch (e) {
+    // Entity with the specified id does not exist in the system. More info: https://aka.ms/cosmosdb-tsg-not-found
+  }
+
+  return {
+    name: collectionName,
+    nbDocuments: 1,
+    throughputSetting,
+  };
+};
+
+export const retrieveMongoDbCollectionsInfoFromArm = async (
+  connectionInfo: azdata.ConnectionInfo,
+  databaseName: string
+): Promise<ICosmosDbCollectionInfo[]> => {
+  const client = await createArmClient(connectionInfo);
+  const accountName = getAccountName(connectionInfo);
+  const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
+  const mongoDBResources = await client.mongoDBResources.listMongoDBCollections(
+    resourceGroup,
+    accountName,
+    databaseName
+  );
+
+  // TODO Error handling here for missing databaseName
+  const promises = mongoDBResources
+    .filter((resource) => !!resource.name)
+    .map((resource) =>
+      retrieveMongoDbCollectionInfoFromArm(client, resourceGroup, accountName, databaseName, resource.name!)
+    );
 
   return await Promise.all(promises);
 };

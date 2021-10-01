@@ -13,8 +13,8 @@ import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
 import { getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
 import { AppContext } from "./appContext";
-import * as dashboard from "./Dashboards/modelViewDashboard";
-import { registerModelViewDashboardTab, registerSqlServicesModelView } from "./Dashboards/modelViewDashboard";
+import * as databaseDashboard from "./Dashboards/databaseDashboard";
+import { registerHomeDashboardTabs, registerSqlServicesModelView } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
 
 // this method is called when your extension is activated
@@ -188,9 +188,13 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  vscode.commands.registerCommand("cosmosdb-ads-extension.openModelViewDashboard", () => {
-    dashboard.openModelViewDashboard(context, appContext);
-  });
+  vscode.commands.registerCommand(
+    "cosmosdb-ads-extension.openDatabaseDashboard",
+    (azureAccountId: string, databaseName: string) => {
+      // TODO ask for database if databaseName not defined
+      databaseDashboard.openDatabaseDashboard(azureAccountId, databaseName, context);
+    }
+  );
 
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
 
@@ -205,7 +209,7 @@ export function activate(context: vscode.ExtensionContext) {
   azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
   registerSqlServicesModelView();
 
-  registerModelViewDashboardTab(context, appContext);
+  registerHomeDashboardTabs(context, appContext);
 }
 
 // this method is called when your extension is deactivated

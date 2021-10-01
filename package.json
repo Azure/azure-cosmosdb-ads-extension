@@ -38,8 +38,8 @@
         "title": "Delete Database"
       },
       {
-        "command": "cosmosdb-ads-extension.openModelViewDashboard",
-        "title": "Open Dashboard"
+        "command": "cosmosdb-ads-extension.openDatabaseDashboard",
+        "title": "Open Database"
       }
     ],
     "menus": {
@@ -65,7 +65,7 @@
           "group": "cosmosdb"
         },
         {
-          "command": "cosmosdb-ads-extension.openModelViewDashboard",
+          "command": "cosmosdb-ads-extension.openDatabaseDashboard",
           "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Assembly",
           "group": "cosmosdb"
         }
