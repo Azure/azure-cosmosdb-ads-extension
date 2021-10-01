@@ -6,12 +6,7 @@
 import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
-import {
-  AppContext,
-  retrieveDatabaseAccountInfoFromArm,
-  retrieveMongoDbCollectionsInfoFromArm,
-  retrieveMongoDbDatabasesInfoFromArm,
-} from "../appContext";
+import { retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
 
 interface IButtonData {
   label: string;
@@ -129,6 +124,10 @@ const buildCollectionsArea = async (
           width: 250,
         },
         {
+          value: "Data Usage (KB)", // TODO Translate
+          type: azdata.ColumnType.text,
+        },
+        {
           value: "Documents", // TODO Translate
           type: azdata.ColumnType.text,
         },
@@ -143,10 +142,10 @@ const buildCollectionsArea = async (
           icon: context.asAbsolutePath("images/CosmosDB_20170524.svg"),
           url: "https://www.microsoft.com",
         },
-        collection.nbDocuments,
+        collection.usageSizeKB === undefined ? "Unknown" : collection.usageSizeKB,
+        collection.documentCount === undefined ? "Unknown" : collection.documentCount,
         collection.throughputSetting,
       ]),
-      // updateCells: [ { row: 2, column: 1, value: 123 }],
       height: 500,
       CSSStyles: {
         padding: "20px",

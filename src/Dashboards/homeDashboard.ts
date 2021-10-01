@@ -6,12 +6,7 @@
 import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
-import {
-  AppContext,
-  getAccountName,
-  retrieveDatabaseAccountInfoFromArm,
-  retrieveMongoDbDatabasesInfoFromArm,
-} from "../appContext";
+import { AppContext, retrieveDatabaseAccountInfoFromArm, retrieveMongoDbDatabasesInfoFromArm } from "../appContext";
 
 interface IButtonData {
   label: string;
@@ -220,6 +215,10 @@ const buildDatabasesArea = async (
           width: 250,
         },
         {
+          value: "Data Usage (KB)", // TODO Translate
+          type: azdata.ColumnType.text,
+        },
+        {
           value: "Collections", // TODO Translate
           type: azdata.ColumnType.text,
         },
@@ -233,6 +232,7 @@ const buildDatabasesArea = async (
           title: db.name,
           icon: context.asAbsolutePath("images/CosmosDB_20170524.svg"),
         },
+        db.usageSizeKB === undefined ? "Unknown" : db.usageSizeKB,
         db.nbCollections,
         db.throughputSetting,
       ]),

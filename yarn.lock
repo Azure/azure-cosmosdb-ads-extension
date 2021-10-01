@@ -18,13 +18,14 @@
     "@azure/ms-rest-js" "^2.0.4"
     tslib "^1.10.0"
 
-"@azure/arm-resources@4.1.0":
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@azure/arm-resources/-/arm-resources-4.1.0.tgz#1a46b34cf143817a9626ed19de7b1025c2ec6877"
-  integrity sha512-6J6fAa1BuoBzhYjeeDZnUkdSSLGHBRJ7Mag2jVkMnpW9c3+1Fuekf8Pz4S5ZRQzIT/EvQhx4msyORLsCziFMig==
+"@azure/arm-monitor@6.1.1":
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/@azure/arm-monitor/-/arm-monitor-6.1.1.tgz#10ed7183194550833fef98c05c58d365aff671cd"
+  integrity sha512-CyCNEh0Y3pzjX3Bo4GN74YNN5dXSJfnGS0bqKNaQkBwIyUOIhjo3bUSu+H94aiJh2ux25GWSqh4kp6DK6p/K5g==
   dependencies:
-    "@azure/ms-rest-azure-js" "^2.0.1"
-    "@azure/ms-rest-js" "^2.0.4"
+    "@azure/core-auth" "^1.1.4"
+    "@azure/ms-rest-azure-js" "^2.1.0"
+    "@azure/ms-rest-js" "^2.2.0"
     tslib "^1.10.0"
 
 "@azure/core-auth@^1.1.4":
@@ -35,7 +36,7 @@
     "@azure/abort-controller" "^1.0.0"
     tslib "^2.2.0"
 
-"@azure/ms-rest-azure-js@^2.0.1":
+"@azure/ms-rest-azure-js@^2.0.1", "@azure/ms-rest-azure-js@^2.1.0":
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/@azure/ms-rest-azure-js/-/ms-rest-azure-js-2.1.0.tgz#8c90b31468aeca3146b06c7144b386fd4827f64c"
   integrity sha512-CjZjB8apvXl5h97Ck6SbeeCmU0sk56YPozPtTyGudPp1RGoHXNjFNtoOvwOG76EdpmMpxbK10DqcygI16Lu60Q==

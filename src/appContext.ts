@@ -3,9 +3,11 @@ import * as vscode from "vscode";
 import * as azdata from "azdata";
 import { ProviderId } from "./Providers/connectionProvider";
 import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
+import { MonitorManagementClient } from "@azure/arm-monitor";
 import { TokenCredentials } from "@azure/ms-rest-js";
 import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
+import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -32,12 +34,14 @@ export interface ICosmosDbDatabaseInfo {
   name: string;
   nbCollections: number;
   throughputSetting: string;
+  usageSizeKB: number | undefined;
 }
 
 export interface ICosmosDbCollectionInfo {
   name: string;
-  nbDocuments: number;
+  documentCount: number | undefined;
   throughputSetting: string;
+  usageSizeKB: number | undefined;
 }
 
 /**
@@ -262,6 +266,22 @@ const createArmClient = async (connectionInfo: azdata.ConnectionInfo): Promise<C
   return new CosmosDBManagementClient(credentials, subscriptionId, { baseUri: armEndpoint });
 };
 
+const createArmMonitorClient = async (connectionInfo: azdata.ConnectionInfo): Promise<MonitorManagementClient> => {
+  const accountId = connectionInfo.options["azureAccount"];
+  const azureAccount = await retrieveAzureAccount(accountId);
+  const armEndpoint = azureAccount.properties?.providerSettings?.settings?.armResource?.endpoint;
+
+  if (!armEndpoint) {
+    throw new Error("Unable to retrieve ARM endpoint");
+  }
+
+  const { subscriptionId } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
+  const azureToken = await retrieveAzureToken(connectionInfo);
+  const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+
+  return new MonitorManagementClient(credentials, subscriptionId, { baseUri: armEndpoint });
+};
+
 /**
  * use cosmosdb-arm to retrive connection string
  */
@@ -310,7 +330,9 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   client: CosmosDBManagementClient,
   resourceGroupName: string,
   accountName: string,
-  databaseName: string
+  databaseName: string,
+  monitorARmClient: MonitorManagementClient,
+  resourceUri: string
 ): Promise<ICosmosDbDatabaseInfo> => {
   const collections = await client.mongoDBResources.listMongoDBCollections(
     resourceGroupName,
@@ -333,10 +355,13 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
     // Entity with the specified id does not exist in the system. More info: https://aka.ms/cosmosdb-tsg-not-found
   }
 
+  const usageSizeKB = await getUsageSizeInKB(monitorARmClient, resourceUri, databaseName);
+
   return {
     name: databaseName,
     nbCollections: collections.length,
     throughputSetting,
+    usageSizeKB,
   };
 };
 
@@ -350,11 +375,21 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
   const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
   const mongoDBResources = await client.mongoDBResources.listMongoDBDatabases(resourceGroup, accountName);
+  const monitorArmClient = await createArmMonitorClient(connectionInfo);
 
   // TODO Error handling here for missing databaseName
   const promises = mongoDBResources
     .filter((resource) => !!resource.name)
-    .map((resource) => retrieveMongoDbDatabaseInfoFromArm(client, resourceGroup, accountName, resource.name!));
+    .map((resource) =>
+      retrieveMongoDbDatabaseInfoFromArm(
+        client,
+        resourceGroup,
+        accountName,
+        resource.name!,
+        monitorArmClient,
+        connectionInfo.options["azureResourceId"]
+      )
+    );
 
   return await Promise.all(promises);
 };
@@ -364,14 +399,10 @@ const retrieveMongoDbCollectionInfoFromArm = async (
   resourceGroupName: string,
   accountName: string,
   databaseName: string,
-  collectionName: string
+  collectionName: string,
+  monitorARmClient: MonitorManagementClient,
+  resourceUri: string
 ): Promise<ICosmosDbCollectionInfo> => {
-  // const collections = await client.mongoDBResources.listMongoDBCollections(
-  //   resourceGroupName,
-  //   accountName,
-  //   databaseName
-  // );
-
   let throughputSetting = "N/A";
   try {
     const rpResponse = await client.mongoDBResources.getMongoDBCollectionThroughput(
@@ -388,10 +419,25 @@ const retrieveMongoDbCollectionInfoFromArm = async (
     // Entity with the specified id does not exist in the system. More info: https://aka.ms/cosmosdb-tsg-not-found
   }
 
+  // Retrieve metrics
+  const usageDataKB = await getUsageSizeInKB(monitorARmClient, resourceUri, databaseName, collectionName);
+  const filter = `DatabaseName eq '${databaseName}' and CollectionName eq '${collectionName}'`;
+  const metricnames = "DocumentCount";
+
+  let documentCount;
+  try {
+    const metricsResponse = await monitorARmClient.metrics.list(resourceUri, { filter, metricnames });
+    console.log(databaseName, metricsResponse.value);
+    documentCount = metricsResponse.value[0].timeseries?.[0].data?.[0]?.total;
+  } catch (e) {
+    console.error(e);
+  }
+
   return {
     name: collectionName,
-    nbDocuments: 1,
+    documentCount,
     throughputSetting,
+    usageSizeKB: usageDataKB,
   };
 };
 
@@ -408,11 +454,21 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
     databaseName
   );
 
+  const monitorArmClient = await createArmMonitorClient(connectionInfo);
+
   // TODO Error handling here for missing databaseName
   const promises = mongoDBResources
     .filter((resource) => !!resource.name)
     .map((resource) =>
-      retrieveMongoDbCollectionInfoFromArm(client, resourceGroup, accountName, databaseName, resource.name!)
+      retrieveMongoDbCollectionInfoFromArm(
+        client,
+        resourceGroup,
+        accountName,
+        databaseName,
+        resource.name!,
+        monitorArmClient,
+        connectionInfo.options["azureResourceId"]
+      )
     );
 
   return await Promise.all(promises);
