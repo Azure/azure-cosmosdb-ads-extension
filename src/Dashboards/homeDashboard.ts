@@ -8,12 +8,6 @@ import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
 import { AppContext, retrieveDatabaseAccountInfoFromArm, retrieveMongoDbDatabasesInfoFromArm } from "../appContext";
 
-interface IButtonData {
-  label: string;
-  icon?: string;
-  onClick?: () => void;
-}
-
 const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer => {
   const buttons: azdata.ButtonProperties[] = [
     {
@@ -154,7 +148,14 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
         .text()
         .withProperties({
           value: "Getting started",
-          CSSStyles: { "font-family": "20px", "font-weight": "600" },
+          CSSStyles: { "font-size": "20px", "font-weight": "600" },
+        })
+        .component(),
+      view.modelBuilder
+        .text()
+        .withProperties({
+          value:
+            "Getting started with creating a new database, using mongo shell, viewing documentation, and managing via portal",
         })
         .component(),
       heroCardsContainer,
@@ -209,7 +210,7 @@ const buildDatabasesArea = async (
     .withProperties<azdata.TableComponentProperties>({
       columns: [
         <azdata.HyperlinkColumn>{
-          value: "Datbase",
+          value: "Database",
           type: azdata.ColumnType.hyperlink,
           name: "Database",
           width: 250,
@@ -258,151 +259,35 @@ const buildDatabasesArea = async (
     });
   }
 
-  // tableComponent.onRowSelected((arg: any) => {
-  // 	vscode.window.showInformationMessage(`clicked: ${arg.toString()}`);
-  // });
-
-  return tableComponent;
-};
-
-export const openModelViewDashboard = async (
-  context: vscode.ExtensionContext,
-  appContext: AppContext
-): Promise<void> => {
-  const dashboard = azdata.window.createModelViewDashboard("dashboard1");
-  dashboard.registerTabs(async (view: azdata.ModelView) => {
-    // Tab with toolbar
-    const button = view.modelBuilder
-      .button()
-      .withProperties<azdata.ButtonProperties>({
-        label: "Add databases tab",
-        iconPath: {
-          light: context.asAbsolutePath("images/compare.svg"),
-          dark: context.asAbsolutePath("images/compare-inverse.svg"),
-        },
-      })
-      .component();
-
-    const toolbar = view.modelBuilder
-      .toolbarContainer()
-      .withItems([button])
-      .withLayout({
-        orientation: azdata.Orientation.Horizontal,
-      })
-      .component();
-
-    const input1 = view.modelBuilder
-      .inputBox()
-      .withProperties<azdata.InputBoxProperties>({ value: "input 1" })
-      .component();
-
-    // const cards: azdata.RadioCard[] = [
-    // 	{
-    // 		id: 'card1',
-    // 		descriptions: [{ textValue: 'description11'}, { textValue: 'description12'}],
-    // 		icon: context.asAbsolutePath('images/CosmosDB_20170524.svg')
-    // 	},
-    // 	{
-    // 		id: 'card2',
-    // 		descriptions: [{ textValue: 'description21'}, { textValue: 'description22'}],
-    // 		icon: context.asAbsolutePath('images/CosmosDB_20170524.svg')
-    // 	},
-    // ];
-    // const radioCardGroup = view.modelBuilder.radioCardGroup()
-    // 	.withProps({
-    // 		cards,
-    // 		iconHeight: '100px',
-    // 		iconWidth: '100px',
-    // 		cardWidth: '170px',
-    // 		cardHeight: '170px',
-    // 		ariaLabel: 'test',
-    // 		selectedCardId: 'card1'
-    // 	}).component();
-
-    const homeTabContainer = view.modelBuilder
-      .flexContainer()
-      .withItems([await buildOverview(view), buildTabArea(view, context)])
-      .withLayout({ flexFlow: "column" })
-      .component();
-
-    const homeTab: azdata.DashboardTab = {
-      id: "home",
-      toolbar: buildToolbar(view, context),
-      content: homeTabContainer,
-      title: "Home",
-      icon: context.asAbsolutePath("images/home.svg"), // icon can be the path of a svg file
-    };
-
-    const databasesTab: azdata.DashboardTab = {
-      id: "databases",
-      toolbar: toolbar,
-      content: input1,
-      title: "Databases",
-      icon: context.asAbsolutePath("images/CosmosDB_20170524.svg"), // icon can be the path of a svg file
-    };
-
-    return [homeTab, databasesTab];
-  });
-  await dashboard.open();
-};
-
-export const registerSqlServicesModelView = (): void => {
-  azdata.ui.registerModelViewProvider("sqlservices", async (view) => {
-    let flexModel = view.modelBuilder
-      .flexContainer()
-      .withLayout({
-        flexFlow: "row",
-        alignItems: "center",
-      })
-      .withItems(
-        [
-          // 1st child panel with N cards
-          view.modelBuilder
-            .flexContainer()
-            .withLayout({
-              flexFlow: "column",
-              alignItems: "center",
-              justifyContent: "center",
-            })
-            .withItems([
-              view.modelBuilder
-                .card()
-                .withProperties<azdata.CardProperties>({
-                  label: "label1",
-                  value: "value1",
-                  actions: [{ label: "action" }],
-                })
-                .component(),
-            ])
-            .component(),
-          // 2nd child panel with N cards
-          view.modelBuilder
-            .flexContainer()
-            .withLayout({ flexFlow: "column" })
-            .withItems([
-              view.modelBuilder
-                .card()
-                .withProperties<azdata.CardProperties>({
-                  label: "label2",
-                  value: "value2",
-                  actions: [{ label: "action" }],
-                })
-                .component(),
-            ])
-            .component(),
-        ],
-        { flex: "1 1 50%" }
-      )
-      .component();
-    await view.initializeModel(flexModel);
-  });
+  return view.modelBuilder
+    .flexContainer()
+    .withItems([
+      view.modelBuilder
+        .text()
+        .withProperties({
+          value: "Database overview",
+          CSSStyles: { "font-size": "20px", "font-weight": "600" },
+        })
+        .component(),
+      view.modelBuilder
+        .text()
+        .withProperties({
+          value: "Click on a database for more details",
+        })
+        .component(),
+      tableComponent,
+    ])
+    .withLayout({ flexFlow: "column" })
+    .withProperties({ CSSStyles: { padding: "10px" } })
+    .component();
 };
 
 export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([await buildOverview(view), buildTabArea(view, context)])
+      // .withItems([buildToolbar(view, context), await buildOverview(view), buildTabArea(view, context)]) // Use this for monitoring tab
+      .withItems([buildToolbar(view, context), await buildOverview(view), buildGettingStarted(view, context)])
       .withLayout({ flexFlow: "column" })
       .component();
     await view.initializeModel(homeTabContainer);

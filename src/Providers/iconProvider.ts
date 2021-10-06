@@ -1,7 +1,7 @@
 import * as azdata from "azdata";
 import { ProviderId } from "./connectionProvider";
 
-const IconId = "myprovidericon";
+const IconId = "cosmosdb";
 export class IconProvider implements azdata.IconProvider {
   public readonly providerId: string = ProviderId;
   public handle?: number;

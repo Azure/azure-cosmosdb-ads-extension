@@ -40,6 +40,10 @@
       {
         "command": "cosmosdb-ads-extension.openDatabaseDashboard",
         "title": "Open Database"
+      },
+      {
+        "command": "cosmosdb-ads-extension.openCollection",
+        "title": "Open Collection"
       }
     ],
     "menus": {
@@ -65,7 +69,7 @@
           "group": "cosmosdb"
         },
         {
-          "command": "cosmosdb-ads-extension.openDatabaseDashboard",
+          "command": "cosmosdb-ads-extension.openCollection",
           "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Assembly",
           "group": "cosmosdb"
         }
@@ -94,42 +98,6 @@
         "container": {
           "modelview-container": null
         }
-      },
-      {
-        "id": "sqlservices.tab",
-        "title": "sqlservices",
-        "icon": {
-          "light": "./out/src/media/insights.svg",
-          "dark": "./out/src/media/insights_inverse.svg"
-        },
-        "description": "Shows available services running in the SQL Server instance",
-        "provider": "*",
-        "container": {
-          "nav-section": [
-            {
-              "id": "sqlservices",
-              "title": "Services",
-              "gridItemConfig": {
-                "sizex": 2,
-                "sizey": 1
-              },
-              "container": {
-                "modelview-container": null
-              }
-            },
-            {
-              "id": "splitPanel",
-              "title": "SplitPanel",
-              "gridItemConfig": {
-                "sizex": 2,
-                "sizey": 1
-              },
-              "container": {
-                "modelview-container": null
-              }
-            }
-          ]
-        }
       }
     ],
     "connectionProvider": {
@@ -139,19 +107,12 @@
       "displayName": "Mongo account",
       "iconPath": [
         {
-          "id": "kusto:cloud",
+          "id": "cosmosdb",
           "path": {
-            "light": "resources/light/azureDE.svg",
-            "dark": "resources/dark/azureDE_inverse.svg"
+            "light": "images/Azure-Cosmos-DB.svg",
+            "dark": "images/Azure-Cosmos-DB.svg"
           },
           "default": true
-        },
-        {
-          "id": "kusto:cluster",
-          "path": {
-            "light": "resources/light/sql_bigdata_cluster.svg",
-            "dark": "resources/dark/sql_bigdata_cluster_inverse.svg"
-          }
         }
       ],
       "connectionOptions": [

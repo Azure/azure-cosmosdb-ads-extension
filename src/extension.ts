@@ -14,7 +14,7 @@ import { IconProvider } from "./Providers/iconProvider";
 import { getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
 import { AppContext } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
-import { registerHomeDashboardTabs, registerSqlServicesModelView } from "./Dashboards/homeDashboard";
+import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
 
 // this method is called when your extension is activated
@@ -188,12 +188,21 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  vscode.commands.registerCommand(
-    "cosmosdb-ads-extension.openDatabaseDashboard",
-    (azureAccountId: string, databaseName: string) => {
-      // TODO ask for database if databaseName not defined
-      databaseDashboard.openDatabaseDashboard(azureAccountId, databaseName, context);
-    }
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.openDatabaseDashboard",
+      (azureAccountId: string, databaseName: string) => {
+        // TODO ask for database if databaseName not defined
+        databaseDashboard.openDatabaseDashboard(azureAccountId, databaseName, context);
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("cosmosdb-ads-extension.openCollection", (collectionName: string) => {
+      // TODO implement
+      vscode.window.showInformationMessage(collectionName);
+    })
   );
 
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
@@ -203,11 +212,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   const connectionProvider = new ConnectionProvider(appContext);
   const iconProvider = new IconProvider();
-  const objectExplorer = new ObjectExplorerProvider(appContext);
+  const objectExplorer = new ObjectExplorerProvider(context, appContext);
   azdata.dataprotocol.registerConnectionProvider(connectionProvider);
   azdata.dataprotocol.registerIconProvider(iconProvider);
   azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
-  registerSqlServicesModelView();
 
   registerHomeDashboardTabs(context, appContext);
 }

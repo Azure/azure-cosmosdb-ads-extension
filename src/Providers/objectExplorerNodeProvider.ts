@@ -39,7 +39,7 @@ export const createNodePath = (serverName: string, databaseName?: string, collec
 };
 
 export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
-  constructor(private appContext: AppContext) {}
+  constructor(private context: vscode.ExtensionContext, private appContext: AppContext) {}
 
   // maintain sessions
 
@@ -125,6 +125,10 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
         nodes: databases.map((db) => ({
           nodePath: `${nodeInfo?.nodePath}/${db.name}`,
           nodeType: "Database",
+          icon: {
+            light: this.context.asAbsolutePath("images/CosmosDB_20170524.svg"),
+            dark: this.context.asAbsolutePath("images/CosmosDB_20170524.svg"),
+          },
           label: db.name || "unknown",
           isLeaf: false,
         })),
@@ -146,6 +150,10 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
         nodes: collections.map((coll) => ({
           nodePath: `${nodeInfo?.nodePath}/${coll.collectionName}`,
           nodeType: "Queue",
+          icon: {
+            light: this.context.asAbsolutePath("images/tree-collection.svg"),
+            dark: this.context.asAbsolutePath("images/tree-collection.svg"),
+          },
           label: coll.collectionName || "unknown",
           isLeaf: false,
         })),

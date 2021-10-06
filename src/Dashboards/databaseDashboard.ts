@@ -139,8 +139,7 @@ const buildCollectionsArea = async (
       data: collectionsInfo.map((collection) => [
         <azdata.HyperlinkColumnCellValue>{
           title: collection.name,
-          icon: context.asAbsolutePath("images/CosmosDB_20170524.svg"),
-          url: "https://www.microsoft.com",
+          icon: context.asAbsolutePath("images/tree-collection.svg"),
         },
         collection.usageSizeKB === undefined ? "Unknown" : collection.usageSizeKB,
         collection.documentCount === undefined ? "Unknown" : collection.documentCount,
@@ -165,7 +164,27 @@ const buildCollectionsArea = async (
   // 	vscode.window.showInformationMessage(`clicked: ${arg.toString()}`);
   // });
 
-  return tableComponent;
+  return view.modelBuilder
+    .flexContainer()
+    .withItems([
+      view.modelBuilder
+        .text()
+        .withProperties({
+          value: "Collection overview",
+          CSSStyles: { "font-size": "20px", "font-weight": "600" },
+        })
+        .component(),
+      view.modelBuilder
+        .text()
+        .withProperties({
+          value: "Click on a collection to work with the data",
+        })
+        .component(),
+      tableComponent,
+    ])
+    .withLayout({ flexFlow: "column" })
+    .withProperties({ CSSStyles: { padding: "10px" } })
+    .component();
 };
 
 export const openDatabaseDashboard = async (
@@ -210,7 +229,7 @@ export const openDatabaseDashboard = async (
       id: "collections",
       content: input1,
       title: "collections",
-      icon: context.asAbsolutePath("images/CosmosDB_20170524.svg"), // icon can be the path of a svg file
+      icon: context.asAbsolutePath("images/tree-collection.svg"), // icon can be the path of a svg file
     };
 
     return [homeTab, databasesTab];
