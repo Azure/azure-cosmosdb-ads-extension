@@ -101,6 +101,10 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
   }
   expandNode(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
     console.log(`ObjectExplorerProvider.expandNode ${nodeInfo.nodePath} ${nodeInfo.sessionId}`);
+    return this.executeExpandNode(nodeInfo);
+  }
+
+  private executeExpandNode(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
     if (!nodeInfo.nodePath) {
       throw new Error("nodeInfo.nodePath is undefined");
     }
@@ -186,7 +190,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
 
   refreshNode(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
     console.log("ObjectExplorerProvider.refreshNode");
-    return Promise.resolve(true);
+    return this.executeExpandNode(nodeInfo);
   }
   findNodes(findNodesInfo: azdata.FindNodesInfo): Thenable<azdata.ObjectExplorerFindNodesResponse> {
     console.log("ObjectExplorerProvider.findNodes");
