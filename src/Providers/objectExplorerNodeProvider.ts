@@ -204,4 +204,12 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
   }
   handle?: number;
   providerId: string = ProviderId;
+
+  public async updateNode(node: azdata.ObjectExplorerContext): Promise<void> {
+    const node1 = await azdata.objectexplorer.getNode(
+      node.connectionProfile!.id,
+      node.isConnectionNode ? node.connectionProfile!.serverName : node.nodeInfo!.nodePath
+    );
+    await node1.refresh();
+  }
 }

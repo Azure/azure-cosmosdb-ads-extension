@@ -11,7 +11,7 @@ import * as azdata from "azdata";
 // import { MongoObjectExplorerNodeProvider } from './objectExplorerNodeProvider';
 import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
-import { getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
+import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
 import { AppContext } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
@@ -30,16 +30,22 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.createMongoDatabase",
-      (objectExplorerContext: azdata.ObjectExplorerContext) => {
+      async (objectExplorerContext: azdata.ObjectExplorerContext) => {
         console.log(objectExplorerContext);
         if (!objectExplorerContext.connectionProfile) {
           // TODO display error message
           return;
         }
-        const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
 
-        // Creating a database requires creating a collection inside
-        appContext.createMongoCollection({ connectionId, serverName });
+        try {
+          // Creating a database requires creating a collection inside
+          const newDatabase = await appContext.createMongoCollection(objectExplorerContext.connectionProfile);
+          if (newDatabase) {
+            await objectExplorer.updateNode(objectExplorerContext);
+          }
+        } catch (e) {
+          vscode.window.showErrorMessage("Failed to create mongo database");
+        }
       }
     )
   );
@@ -54,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage("Missing connectionProfile");
           return;
         }
-        const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
+        const { serverName } = objectExplorerContext.connectionProfile;
 
         // TODO FIX THIS
         if (!objectExplorerContext.nodeInfo) {
@@ -64,23 +70,18 @@ export function activate(context: vscode.ExtensionContext) {
         }
         const { nodePath } = objectExplorerContext.nodeInfo;
         const mongoInfo = getMongoInfo(nodePath);
-        await appContext.createMongoCollection({ connectionId, serverName }, mongoInfo.databaseName);
 
-        // TODO: Refresh node
-        setTimeout(
-          () => objectExplorer.expandDatabase({ nodePath, sessionId: serverName }, mongoInfo.databaseName!, serverName),
-          0
-        );
-
-        // // The code you place here will be executed every time your command is executed
-
-        // // Display a message box to the user
-        // azdata.connection.getCurrentConnection().then(connection => {
-        //     let connectionId = connection ? connection.connectionId : 'No connection found!';
-        //     vscode.window.showInformationMessage(connectionId);
-        // }, error => {
-        //      console.info(error);
-        // });
+        try {
+          const newCollection = await appContext.createMongoCollection(
+            objectExplorerContext.connectionProfile,
+            mongoInfo.databaseName
+          );
+          if (newCollection) {
+            await objectExplorer.updateNode(objectExplorerContext);
+          }
+        } catch (e) {
+          vscode.window.showErrorMessage("Failed to create mongo collection");
+        }
       }
     )
   );
@@ -95,7 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage("Missing connectionProfile");
           return;
         }
-        const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
+        const { serverName } = objectExplorerContext.connectionProfile;
 
         // TODO FIX THIS
         if (!objectExplorerContext.nodeInfo) {
@@ -115,19 +116,13 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (await appContext.removeDatabase(serverName, mongoInfo.databaseName!)) {
+          // update parent node
+          const parentNode = { ...objectExplorerContext, isConnectionNode: true };
+          await objectExplorer.updateNode(parentNode);
           vscode.window.showInformationMessage(`Database ${mongoInfo.databaseName} successfully deleted`);
-          // TODO: Update server node
         } else {
           vscode.window.showErrorMessage(`Failed to delete database ${mongoInfo.databaseName}`);
         }
-
-        // // Display a message box to the user
-        // azdata.connection.getCurrentConnection().then(connection => {
-        //     let connectionId = connection ? connection.connectionId : 'No connection found!';
-        //     vscode.window.showInformationMessage(connectionId);
-        // }, error => {
-        //      console.info(error);
-        // });
       }
     )
   );
@@ -162,28 +157,18 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (await appContext.removeCollection(serverName, mongoInfo.databaseName!, mongoInfo.collectionName!)) {
-          const sessionId = objectExplorerContext?.connectionProfile?.connectionName || "";
-          // objectExplorer.refreshNode({
-          //     nodePath: createNodePath(serverName, databaseName),
-          //     sessionId: serverName
-          // });
-
-          setTimeout(() => {
-            objectExplorer.expandDatabase({ nodePath, sessionId }, mongoInfo.databaseName!, serverName);
-          }, 0);
-
+          // Find parent node to update
+          const { serverName, databaseName } = getMongoInfo(objectExplorerContext.nodeInfo.nodePath);
+          const newNodePath = createNodePath(serverName, databaseName);
+          const parentNode = {
+            ...objectExplorerContext,
+            nodeInfo: { ...objectExplorerContext.nodeInfo, nodePath: newNodePath },
+          };
+          await objectExplorer.updateNode(parentNode);
           vscode.window.showInformationMessage(`Collection ${mongoInfo.collectionName} successfully deleted`);
         } else {
           vscode.window.showErrorMessage(`Failed to delete collection ${mongoInfo.collectionName}`);
         }
-
-        // // Display a message box to the user
-        // azdata.connection.getCurrentConnection().then(connection => {
-        //     let connectionId = connection ? connection.connectionId : 'No connection found!';
-        //     vscode.window.showInformationMessage(connectionId);
-        // }, error => {
-        //      console.info(error);
-        // });
       }
     )
   );

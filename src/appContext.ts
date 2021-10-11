@@ -17,10 +17,6 @@ export interface IDatabaseInfo {
 }
 
 type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem;
-export interface ConnectionInfo {
-  connectionId: string;
-  serverName: string;
-}
 
 export interface ICosmosDbDatabaseAccountInfo {
   serverStatus: string;
@@ -111,7 +107,7 @@ export class AppContext {
     });
   }
 
-  public createMongoCollection(connectionInfo?: ConnectionInfo, databaseName?: string): Promise<Collection> {
+  public createMongoCollection(connectionInfo?: azdata.ConnectionInfo, databaseName?: string): Promise<Collection> {
     return new Promise(async (resolve, reject) => {
       if (!connectionInfo) {
         const connectionProfile = await this._askUserForConnectionProfile();
@@ -121,10 +117,7 @@ export class AppContext {
           return;
         }
 
-        connectionInfo = {
-          connectionId: connectionProfile.connectionId,
-          serverName: connectionProfile.serverName,
-        };
+        connectionInfo = connectionProfile;
       }
 
       if (!databaseName) {
@@ -149,23 +142,42 @@ export class AppContext {
         return;
       }
 
-      const credentials = await azdata.connection.getCredentials(connectionInfo.connectionId);
-
-      const server = connectionInfo.serverName;
-
-      if (!server || !credentials || !credentials["password"]) {
-        reject(`Missing serverName or connectionId ${server} ${credentials}`);
+      const serverName = connectionInfo.options["server"];
+      if (!serverName) {
+        reject(`Missing serverName ${serverName}`);
       }
 
-      const connectionString = credentials["password"];
+      // TODO reduce code duplication with ConnectionProvider.connect
+      const connection = await (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
+      if (connection.length < 1) {
+        reject(`Unable to retrieve credentials for ${serverName}`);
+        return;
+      }
+      const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
+      let connectionString = credentials["password"];
 
-      const client = await this.connect(server, connectionString);
+      if (connectionInfo.options["authenticationType"] === "AzureMFA") {
+        try {
+          connectionString = await retrieveConnectionStringFromArm(connectionInfo);
+        } catch (e) {
+          vscode.window.showErrorMessage((e as { message: string }).message);
+          return false;
+        }
+      }
+
+      if (!connectionString) {
+        reject(`Unable to retrieve connection string`);
+        return;
+      }
+
+      const client = await this.connect(serverName, connectionString);
 
       if (client) {
         const collection = await client.db(databaseName).createCollection(collectionName);
         resolve(collection);
       } else {
-        reject(`Could not connect to ${server}`);
+        reject(`Could not connect to ${serverName}`);
+        return;
       }
     });
   }
