@@ -103,7 +103,6 @@
     "connectionProvider": {
       "providerId": "COSMOSDB_MONGO",
       "languageMode": "cosmosdb",
-      "notebookKernelAlias": "CosmosDB",
       "displayName": "Mongo account",
       "iconPath": [
         {
