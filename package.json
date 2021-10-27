@@ -104,6 +104,7 @@
       "providerId": "COSMOSDB_MONGO",
       "languageMode": "cosmosdb",
       "displayName": "Mongo account",
+      "isQueryProvider": false,
       "iconPath": [
         {
           "id": "cosmosdb",
