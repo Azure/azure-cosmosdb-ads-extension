@@ -44,6 +44,10 @@
       {
         "command": "cosmosdb-ads-extension.openCollection",
         "title": "Open Collection"
+      },
+      {
+        "command": "cosmosdb-ads-extension.openQuery",
+        "title": "Open Query"
       }
     ],
     "menus": {
