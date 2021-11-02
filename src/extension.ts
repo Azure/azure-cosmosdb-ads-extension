@@ -190,6 +190,12 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("cosmosdb-ads-extension.openQuery", () => {
+
+    })
+  );
+
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
 
   // Instantiate client

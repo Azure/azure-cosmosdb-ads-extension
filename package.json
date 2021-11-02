@@ -44,6 +44,14 @@
       {
         "command": "cosmosdb-ads-extension.openCollection",
         "title": "Open Collection"
+      },
+      {
+        "command": "cosmosdb-ads-extension.openCollection",
+        "title": "Open Collection"
+      },
+      {
+        "command": "cosmosdb-ads-extension.openQuery",
+        "title": "Open Query"
       }
     ],
     "menus": {
@@ -226,8 +234,15 @@
   "dependencies": {
     "@azure/arm-cosmosdb": "13.0.0",
     "@azure/arm-monitor": "6.1.1",
-    "@types/uuid": "^8.3.1",
-    "mongodb": "3.6.10"
+    "@nteract/commutable": "7.4.2",
+    "@nteract/core": "15.1.0",
+    "immutable": "4.0.0-rc.12",
+    "react": "17.0.2",
+    "react-redux": "7.1.3",
+    "redux": "4.0.4",
+    "rx-jupyter": "5.5.12",
+    "mongodb": "3.6.10",
+    "utility-types": "3.10.0"
   },
   "devDependencies": {
     "@types/azdata": "1.29.1",
@@ -235,6 +250,8 @@
     "@types/mocha": "^7.0.2",
     "@types/mongodb": "^3.3.2",
     "@types/node": "^13.11.0",
+    "@types/react": "17.0.29",
+    "@types/uuid": "^8.3.1",
     "@types/vscode": "^1.39.0",
     "@typescript-eslint/eslint-plugin": "^2.30.0",
     "@typescript-eslint/parser": "^2.30.0",
