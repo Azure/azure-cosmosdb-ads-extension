@@ -97,5 +97,4 @@ export default class ViewLoader {
   //   </body>
   //   </html>`;
   // }
-
 }
