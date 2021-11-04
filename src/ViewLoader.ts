@@ -34,39 +34,68 @@ export default class ViewLoader {
   }
 
   private getWebviewContent(): string {
-    // Local path to main script run in the webview
-    const reactAppPathOnDisk: vscode.Uri = vscode.Uri.file(
-      path.join(this._extensionPath, "output", "wwwroot", "notebookClient", "dist", "index.js")
-    );
-
-    const reactAppUri = reactAppPathOnDisk.with({ scheme: "vscode-resource" });
-
-    const configJson = { blah: 1234 };
-
+    const site = "https://localhost:5001/notebookClient/dist/index.html";
     return `<!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Config View</title>
+        <title>Open Query</title>
 
         <meta http-equiv="Content-Security-Policy"
-                    content="default-src 'none';
+                    content="
 														 connect-src *;
                              img-src https:;
                              script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
                              style-src vscode-resource: 'unsafe-inline';">
-
-        <script>
-          window.acquireVsCodeApi = acquireVsCodeApi;
-          window.initialData = ${configJson};
-        </script>
     </head>
     <body>
-        <div id="content"></div>
-
-        <script src="${reactAppUri}"></script>
+      <iframe
+        title="nbclient"
+        width="300"
+        height="200"
+        src="${site}">
+      </iframe>
     </body>
     </html>`;
   }
+
+  // TODO No iframe version
+  // private getWebviewContent(): string {
+  //   // Local path to main script run in the webview
+  //   const reactAppPathOnDisk: vscode.Uri = vscode.Uri.file(
+  //     path.join(this._extensionPath, "output", "wwwroot", "notebookClient", "dist", "index.js")
+  //   );
+
+  //   const reactAppUri = reactAppPathOnDisk.with({ scheme: "vscode-resource" });
+
+  //   const configJson = { blah: 1234 };
+
+  //   return `<!DOCTYPE html>
+  //   <html lang="en">
+  //   <head>
+  //       <meta charset="UTF-8">
+  //       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //       <title>Open Query</title>
+
+  //       <meta http-equiv="Content-Security-Policy"
+  //                   content="default-src 'none';
+  //                            connect-src *;
+  //                            img-src https:;
+  //                            script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
+  //                            style-src vscode-resource: 'unsafe-inline';">
+
+  //       <script>
+  //         window.acquireVsCodeApi = acquireVsCodeApi;
+  //         window.initialData = ${configJson};
+  //       </script>
+  //   </head>
+  //   <body>
+  //       <div id="content"></div>
+
+  //       <script src="${reactAppUri}"></script>
+  //   </body>
+  //   </html>`;
+  // }
+
 }

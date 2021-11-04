@@ -16,7 +16,7 @@
       "type": "sqlopsExtensionHost",
       "request": "launch",
       "runtimeExecutable": "azuredatastudio",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "--ignore-certificate-errors"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
       "preLaunchTask": "npm: watch"
     },
