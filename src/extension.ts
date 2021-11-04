@@ -2,6 +2,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
+import * as fs from "fs";
 
 // The module 'azdata' contains the Azure Data Studio extensibility API
 // This is a complementary set of APIs that add SQL / Data-specific functionality to the app
@@ -16,6 +17,9 @@ import { AppContext } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
+
+import * as path from "path";
+import ViewLoader from "./ViewLoader";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -188,6 +192,42 @@ export function activate(context: vscode.ExtensionContext) {
       // TODO implement
       vscode.window.showInformationMessage(collectionName);
     })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.openQuery",
+      (azureAccountId: string, databaseName: string, collectionName: string) => {
+        // const panel = vscode.window.createWebviewPanel(
+        //   "cosmosDbQuery", // Identifies the type of the webview. Used internally
+        //   "Query", // Title of the panel displayed to the user
+        //   vscode.ViewColumn.One, // Editor column to show the new webview panel in.
+        //   {
+        //     enableScripts: true
+        //     // Only allow the webview to access resources in our extension's media directory
+        //     // localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, "output"))],
+        //   }
+        // );
+
+        // const filePath: vscode.Uri = vscode.Uri.file(path.join(context.extensionPath, "output", "wwwroot", "notebookClient", "dist", "index.html"));
+        // try {
+        //   panel.webview.html = fs.readFileSync(filePath.fsPath, "utf8");
+        // 	console.log('READ');
+        // } catch(e) {
+        //   console.error(e);
+        // }
+
+        // Get path to resource on disk
+        // const onDiskPath = vscode.Uri.file(path.join(context.extensionPath, "output", "wwwroot", "notebookClient", "dist", "index2.html"));
+        // // And get the special URI to use with the webview
+        // const indexSrc = panel.webview.asWebviewUri(onDiskPath);
+        // console.log(indexSrc);
+
+        // panel.webview.html = getWebviewContent();
+
+        const view = new ViewLoader(context.extensionPath);
+      }
+    )
   );
 
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
