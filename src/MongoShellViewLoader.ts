@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
-import * as SockJS from "sockjs-client";
+import "sockjs-client";
 import * as path from "path";
+import * as SockJS from "sockjs-client";
 import { WebSocket } from "ws";
 
 interface IFromWebviewMessage {
