@@ -49,7 +49,7 @@ export default class MongoShellViewLoader2 {
       "--username",
       "languye-mongo",
       "--password",
-      "xW9Lq7yzxEpH8Z31JEoWvcGqocER5Qh0QEjSlaEk52938bGPs62Ey3oSzdDqPwk1Ua29XzcHOTKTygQUfOzaSQ==",
+      "",
       "--tls",
       "--tlsAllowInvalidCertificates",
     ];
