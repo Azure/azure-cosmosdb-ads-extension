@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import "sockjs-client";
 import * as path from "path";
 import * as SockJS from "sockjs-client";
 import { WebSocket } from "ws";
