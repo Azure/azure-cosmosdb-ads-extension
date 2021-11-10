@@ -20,6 +20,7 @@ import { UriHandler } from "./protocol/UriHandler";
 
 import * as path from "path";
 import ViewLoader from "./ViewLoader";
+import MongoShellViewLoader from "./MongoShellViewLoader";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -226,6 +227,15 @@ export function activate(context: vscode.ExtensionContext) {
         // panel.webview.html = getWebviewContent();
 
         const view = new ViewLoader(context.extensionPath);
+      }
+    )
+  );
+
+	context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.openMongoShell",
+      (azureAccountId: string, databaseName: string, collectionName: string) => {
+        const view = new MongoShellViewLoader(context.extensionPath);
       }
     )
   );

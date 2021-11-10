@@ -48,6 +48,10 @@
       {
         "command": "cosmosdb-ads-extension.openQuery",
         "title": "Open Query"
+      },
+      {
+        "command": "cosmosdb-ads-extension.openMongoShell",
+        "title": "Open Mongo Shell"
       }
     ],
     "menus": {
@@ -230,7 +234,9 @@
   "dependencies": {
     "@azure/arm-cosmosdb": "13.0.0",
     "@azure/arm-monitor": "6.1.1",
-    "mongodb": "3.6.10"
+    "mongodb": "3.6.10",
+    "sockjs-client": "1.5.2",
+    "ws": "8.2.3"
   },
   "devDependencies": {
     "@types/azdata": "1.29.1",
@@ -239,8 +245,10 @@
     "@types/mocha": "7.0.2",
     "@types/mongodb": "3.6.20",
     "@types/node": "13.13.52",
+    "@types/sockjs-client": "1.5.1",
     "@types/uuid": "8.3.1",
     "@types/vscode": "^1.39.0",
+    "@types/ws": "8.2.0",
     "@typescript-eslint/eslint-plugin": "2.34.0",
     "@typescript-eslint/parser": "2.34.0",
     "eslint": "6.8.0",
