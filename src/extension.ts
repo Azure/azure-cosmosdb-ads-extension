@@ -231,7 +231,7 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
-	context.subscriptions.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoShell",
       (azureAccountId: string, databaseName: string, collectionName: string) => {

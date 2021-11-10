@@ -9,7 +9,7 @@ interface IFromWebviewMessage {
 }
 
 interface IToWebviewMessage {
-  command: "updateOutput" | "updateTerminal";
+  command: "updateTerminal";
   value: string;
 }
 
@@ -30,7 +30,7 @@ export default class MongoShellViewLoader {
 
     this._panel.webview.onDidReceiveMessage(
       (msg: IFromWebviewMessage) => {
-        console.log('Received message from webview', msg);
+        console.log("Received message from webview", msg);
         switch (msg.command) {
           case "execute":
             this._websocket && this._websocket.send(msg.value + `\n`);
@@ -48,12 +48,13 @@ export default class MongoShellViewLoader {
     this._websocket = await this.connectToServer();
     this._websocket.onmessage = (webSocketMessage) => {
       let output = webSocketMessage.data as string;
-      if (output.length > 0 && output.charAt(output.length - 1) === '\n') {
-        output = output.substring(0, output.length -1);
-      }
-      console.log(`Received from websocket ${output}`);
-      this._panel!.webview.postMessage({ command: 'updateOutput', value: output } as IToWebviewMessage);
-      this._panel!.webview.postMessage({ command: 'updateTerminal', value: output } as IToWebviewMessage);
+      console.log(`Received from websocket [${output}]`);
+
+      output
+        .split("\n")
+        .forEach((line) =>
+          this._panel!.webview.postMessage({ command: "updateTerminal", value: line } as IToWebviewMessage)
+        );
     };
   }
 
@@ -71,8 +72,10 @@ export default class MongoShellViewLoader {
 
   private getWebviewContent(): string {
     // Get path to resource on disk
-    const xtermjsScriptPath = vscode.Uri.file(path.join(this._extensionPath, 'node_modules', 'xterm', 'lib', 'xterm.js'));
-    const xtermjsCssPath = vscode.Uri.file(path.join(this._extensionPath, 'node_modules', 'xterm', 'css', 'xterm.css'));
+    const xtermjsScriptPath = vscode.Uri.file(
+      path.join(this._extensionPath, "node_modules", "xterm", "lib", "xterm.js")
+    );
+    const xtermjsCssPath = vscode.Uri.file(path.join(this._extensionPath, "node_modules", "xterm", "css", "xterm.css"));
 
     // And get the special URI to use with the webview
     const xtermjsScript = this._panel!.webview.asWebviewUri(xtermjsScriptPath);
@@ -94,37 +97,10 @@ export default class MongoShellViewLoader {
       <script src="${xtermjsScript}"></script>
     </head>
     <body>
-      <input id="input" />
-      <button id="button1">Button1</button>
-      <div id="result">Mongo Shell Output</div>
-
       <div id="terminal"></div>
 
       <script>
         const vscode = acquireVsCodeApi();
-        const resultElt = document.getElementById('result');
-        const inputElt = document.getElementById('input');
-        window.addEventListener('message', event => {
-          const message = event.data; // The JSON data our extension sent
-          switch (message.command) {
-            case 'updateOutput':
-              const current = resultElt.innerHTML;
-              resultElt.innerHTML = current + '<br />' + message.value;
-              break;
-            case 'updateTerminal':
-              term.writeln("");
-              term.write(message.value);
-              break;
-          }
-        });
-        document.getElementById('button1').addEventListener('click', e => {
-          vscode.postMessage({
-            command: 'execute',
-            value: inputElt.value
-          });
-        });
-
-        // Terminal
         let currentLine = "";
         const term = new Terminal();
         term.open(document.getElementById('terminal'));
@@ -148,6 +124,18 @@ export default class MongoShellViewLoader {
             term.write(keyEvent.key);
           }
         });
+
+        window.addEventListener('message', event => {
+          const message = event.data; // The JSON data our extension sent
+          switch (message.command) {
+            case 'updateTerminal':
+              const text = message.value;
+              term.writeln("");
+              term.write(text);
+              break;
+          }
+        });
+
     </script>
     </body>
     </html>`;
