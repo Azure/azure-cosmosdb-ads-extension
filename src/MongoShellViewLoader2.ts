@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as child from "child_process";
+import { IMongoShellOptions } from "./appContext";
 
 interface IFromWebviewMessage {
   command: "execute";
@@ -18,7 +19,7 @@ export default class MongoShellViewLoader2 {
   private _disposables: vscode.Disposable[] = [];
   private _childProcess: child.ChildProcess;
 
-  constructor(extensionPath: string) {
+  constructor(extensionPath: string, options?: IMongoShellOptions) {
     this._extensionPath = extensionPath;
 
     this._panel = vscode.window.createWebviewPanel("mongoshell", "Mongo Shell", vscode.ViewColumn.One, {
@@ -40,7 +41,7 @@ export default class MongoShellViewLoader2 {
       this._disposables
     );
 
-    const args: string[] = [
+    let args: string[] = [
       "--host",
       "languye-mongo.mongo.cosmos.azure.com",
       "--port",
@@ -48,10 +49,25 @@ export default class MongoShellViewLoader2 {
       "--username",
       "languye-mongo",
       "--password",
-      "",
+      "xW9Lq7yzxEpH8Z31JEoWvcGqocER5Qh0QEjSlaEk52938bGPs62Ey3oSzdDqPwk1Ua29XzcHOTKTygQUfOzaSQ==",
       "--tls",
       "--tlsAllowInvalidCertificates",
     ];
+
+    if (options) {
+      args = [
+        "--host",
+        options.hostname,
+        "--port",
+        options.port,
+        "--username",
+        options.username,
+        "--password",
+        options.password,
+        "--tls",
+        "--tlsAllowInvalidCertificates",
+      ];
+    }
 
     this._childProcess = child.execFile(path.join(this._extensionPath, "mongosh.exe"), args);
     this._childProcess.stdout?.on("data", (output: string) => {

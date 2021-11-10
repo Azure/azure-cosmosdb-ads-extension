@@ -67,6 +67,11 @@
           "group": "cosmosdb"
         },
         {
+          "command": "cosmosdb-ads-extension.openMongoShell",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Database",
+          "group": "cosmosdb"
+        },
+        {
           "command": "cosmosdb-ads-extension.deleteMongoDatabase",
           "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Database",
           "group": "cosmosdb"

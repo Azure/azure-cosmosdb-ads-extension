@@ -235,9 +235,10 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoShell",
-      (azureAccountId: string, databaseName: string, collectionName: string) => {
+      async (objectExplorerContext: azdata.ObjectExplorerContext) => {
         // const view = new MongoShellViewLoader(context.extensionPath);
-        const view = new MongoShellViewLoader2(context.extensionPath);
+        const mongoShellOptions = await appContext.getMongoShellOptions(objectExplorerContext.connectionProfile);
+        const view = new MongoShellViewLoader2(context.extensionPath, mongoShellOptions);
       }
     )
   );

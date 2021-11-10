@@ -8,6 +8,7 @@ import { TokenCredentials } from "@azure/ms-rest-js";
 import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
+import { parseDocDBConnectionString } from "./util/docDBConnectionStrings";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -38,6 +39,13 @@ export interface ICosmosDbCollectionInfo {
   documentCount: number | undefined;
   throughputSetting: string;
   usageSizeKB: number | undefined;
+}
+
+export interface IMongoShellOptions {
+  hostname: string;
+  port: string;
+  username: string;
+  password: string;
 }
 
 /**
@@ -104,6 +112,58 @@ export class AppContext {
 
     return vscode.window.showQuickPick<ConnectionPick>(picks, {
       placeHolder: "Select mongo account",
+    });
+  }
+
+  public getMongoShellOptions(connectionInfo?: azdata.ConnectionInfo): Promise<IMongoShellOptions> {
+    return new Promise(async (resolve, reject) => {
+      if (!connectionInfo) {
+        const connectionProfile = await this._askUserForConnectionProfile();
+        if (!connectionProfile) {
+          // TODO Show error here
+          reject("Missing connectionProfile");
+          return;
+        }
+
+        connectionInfo = connectionProfile;
+      }
+
+      const serverName = connectionInfo.options["server"];
+      if (!serverName) {
+        reject(`Missing serverName ${serverName}`);
+      }
+
+      // TODO reduce code duplication with ConnectionProvider.connect
+      const connection = await (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
+      if (connection.length < 1) {
+        reject(`Unable to retrieve credentials for ${serverName}`);
+        return;
+      }
+      const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
+      let connectionString = credentials["password"];
+
+      if (connectionInfo.options["authenticationType"] === "AzureMFA") {
+        try {
+          connectionString = await retrieveConnectionStringFromArm(connectionInfo);
+        } catch (e) {
+          vscode.window.showErrorMessage((e as { message: string }).message);
+          return false;
+        }
+      }
+
+      if (!connectionString) {
+        reject(`Unable to retrieve connection string`);
+        return;
+      }
+
+      // TODO Use different parsing if vanilla mongo
+      const parsedConnectionString = parseDocDBConnectionString(connectionString);
+      resolve({
+        hostname: parsedConnectionString.hostName,
+        port: parsedConnectionString.port,
+        password: parsedConnectionString.masterKey,
+        username: serverName,
+      });
     });
   }
 
