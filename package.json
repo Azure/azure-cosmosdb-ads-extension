@@ -62,12 +62,12 @@
           "group": "cosmosdb"
         },
         {
-          "command": "cosmosdb-ads-extension.createMongoCollection",
-          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Database",
+          "command": "cosmosdb-ads-extension.openMongoShell",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Server",
           "group": "cosmosdb"
         },
         {
-          "command": "cosmosdb-ads-extension.openMongoShell",
+          "command": "cosmosdb-ads-extension.createMongoCollection",
           "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Database",
           "group": "cosmosdb"
         },

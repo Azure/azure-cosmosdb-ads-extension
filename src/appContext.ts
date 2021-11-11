@@ -8,7 +8,7 @@ import { TokenCredentials } from "@azure/ms-rest-js";
 import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
-import { parseDocDBConnectionString } from "./util/docDBConnectionStrings";
+import { URL } from "url";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -156,13 +156,13 @@ export class AppContext {
         return;
       }
 
-      // TODO Use different parsing if vanilla mongo
-      const parsedConnectionString = parseDocDBConnectionString(connectionString);
+      // TODO Use different parsing method if vanilla mongo
+      const url = new URL(connectionString);
       resolve({
-        hostname: parsedConnectionString.hostName,
-        port: parsedConnectionString.port,
-        password: parsedConnectionString.masterKey,
-        username: serverName,
+        username: url.username,
+        password: decodeURIComponent(url.password),
+        hostname: url.hostname,
+        port: url.port,
       });
     });
   }
