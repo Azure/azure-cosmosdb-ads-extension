@@ -9,12 +9,15 @@ import * as vscode from "vscode";
 import { AppContext, retrieveDatabaseAccountInfoFromArm, retrieveMongoDbDatabasesInfoFromArm } from "../appContext";
 
 const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer => {
-  const buttons: azdata.ButtonProperties[] = [
+  const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
       label: "New Database",
       iconPath: {
         light: context.asAbsolutePath("images/AddDatabase.svg"),
         dark: context.asAbsolutePath("images/AddDatabase.svg"),
+      },
+      onDidClick() {
+        console.log("Not implemented");
       },
     },
     {
@@ -23,12 +26,20 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         light: context.asAbsolutePath("images/Hosted-Terminal.svg"),
         dark: context.asAbsolutePath("images/Hosted-Terminal.svg"),
       },
+      onDidClick() {
+        vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
+          connectionProfile: view.connection,
+        });
+      },
     },
     {
       label: "Refresh",
       iconPath: {
         light: context.asAbsolutePath("images/refresh-cosmos.svg"),
         dark: context.asAbsolutePath("images/refresh-cosmos.svg"),
+      },
+      onDidClick() {
+        console.log("Not implemented");
       },
     },
     {
@@ -37,11 +48,16 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         light: context.asAbsolutePath("images/Info.svg"),
         dark: context.asAbsolutePath("images/Info.svg"),
       },
+      onDidClick() {
+        console.log("Not implemented");
+      },
     },
   ];
-  const navElements: azdata.ButtonComponent[] = buttons.map((b) =>
-    view.modelBuilder.button().withProperties(b).component()
-  );
+  const navElements: azdata.ButtonComponent[] = buttons.map((b) => {
+    const component = view.modelBuilder.button().withProperties(b).component();
+    component.onDidClick(b.onDidClick);
+    return component;
+  });
   return view.modelBuilder
     .toolbarContainer()
     .withItems(navElements)

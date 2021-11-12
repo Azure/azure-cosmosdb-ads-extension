@@ -20,8 +20,11 @@ import { UriHandler } from "./protocol/UriHandler";
 
 import * as path from "path";
 import ViewLoader from "./ViewLoader";
-import MongoShellViewLoader from "./MongoShellViewLoader";
-import MongoShellViewLoader2 from "./MongoShellViewLoader2";
+import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
+
+export interface HasConnectionProfile {
+  connectionProfile: azdata.IConnectionProfile;
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -235,10 +238,43 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoShell",
-      async (objectExplorerContext: azdata.ObjectExplorerContext) => {
-        // const view = new MongoShellViewLoader(context.extensionPath);
-        const mongoShellOptions = await appContext.getMongoShellOptions(objectExplorerContext.connectionProfile);
-        const view = new MongoShellViewLoader2(context.extensionPath, mongoShellOptions);
+      async (hasConnectionProfile?: HasConnectionProfile) => {
+        // Download mongosh
+        const executablePath = await downloadMongoShell(context.extensionPath);
+
+        if (!executablePath) {
+          vscode.window.showErrorMessage("Unable to download mongo shell");
+          return;
+        }
+        const mongoShellOptions = await appContext.getMongoShellOptions(hasConnectionProfile?.connectionProfile);
+
+        const serverName = hasConnectionProfile?.connectionProfile?.options["server"];
+        const terminalOptions: vscode.TerminalOptions = {
+          name: `Mongo Shell: ${serverName}`,
+          shellPath: executablePath,
+        };
+        if (mongoShellOptions) {
+          terminalOptions.shellArgs = [
+            "--host",
+            mongoShellOptions.hostname,
+            "--port",
+            mongoShellOptions.port,
+            "--username",
+            mongoShellOptions.username,
+            "--password",
+            mongoShellOptions.password,
+            "--tls",
+            "--tlsAllowInvalidCertificates",
+          ];
+        }
+
+        const terminal = vscode.window.createTerminal(terminalOptions);
+
+        // If account is known, skip the first prompt that asks for connection string
+        if (mongoShellOptions) {
+          terminal.sendText("\n");
+        }
+        terminal.show();
       }
     )
   );

@@ -356,3 +356,6 @@ out
 
 # dotnet
 output/
+
+# Mongoshell download
+mongoshellexecutable/

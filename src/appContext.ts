@@ -115,13 +115,13 @@ export class AppContext {
     });
   }
 
-  public getMongoShellOptions(connectionInfo?: azdata.ConnectionInfo): Promise<IMongoShellOptions> {
+  public getMongoShellOptions(connectionInfo?: azdata.ConnectionInfo): Promise<IMongoShellOptions | undefined> {
     return new Promise(async (resolve, reject) => {
       if (!connectionInfo) {
         const connectionProfile = await this._askUserForConnectionProfile();
         if (!connectionProfile) {
           // TODO Show error here
-          reject("Missing connectionProfile");
+          resolve(undefined);
           return;
         }
 
@@ -131,6 +131,7 @@ export class AppContext {
       const serverName = connectionInfo.options["server"];
       if (!serverName) {
         reject(`Missing serverName ${serverName}`);
+        return;
       }
 
       // TODO reduce code duplication with ConnectionProvider.connect
