@@ -261,7 +261,10 @@ const buildDatabasesArea = async (
       data: databasesInfo.map((db) => [
         <azdata.HyperlinkColumnCellValue>{
           title: db.name,
-          icon: context.asAbsolutePath("images/CosmosDB_20170524.svg"),
+          icon: {
+            light: context.asAbsolutePath("resources/light/database.svg"),
+            dark: context.asAbsolutePath("resources/dark/database-inverse.svg"),
+          },
         },
         db.usageSizeKB === undefined ? "Unknown" : db.usageSizeKB,
         db.nbCollections,

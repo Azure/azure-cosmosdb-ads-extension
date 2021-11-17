@@ -130,8 +130,8 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
           nodePath: `${nodeInfo?.nodePath}/${db.name}`,
           nodeType: "Database",
           icon: {
-            light: this.context.asAbsolutePath("images/CosmosDB_20170524.svg"),
-            dark: this.context.asAbsolutePath("images/CosmosDB_20170524.svg"),
+            light: this.context.asAbsolutePath("resources/light/database.svg"),
+            dark: this.context.asAbsolutePath("resources/dark/database-inverse.svg"),
           },
           label: db.name || "unknown",
           isLeaf: false,
@@ -155,8 +155,8 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
           nodePath: `${nodeInfo?.nodePath}/${coll.collectionName}`,
           nodeType: "Queue",
           icon: {
-            light: this.context.asAbsolutePath("images/tree-collection.svg"),
-            dark: this.context.asAbsolutePath("images/tree-collection.svg"),
+            light: this.context.asAbsolutePath("resources/light/collection.svg"),
+            dark: this.context.asAbsolutePath("resources/dark/collection-inverse.svg"),
           },
           label: coll.collectionName || "unknown",
           isLeaf: false,
@@ -174,6 +174,10 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
         {
           nodePath: `${nodeInfo?.nodePath}/documents`,
           nodeType: "Assembly",
+          icon: {
+            light: this.context.asAbsolutePath("resources/light/document.svg"),
+            dark: this.context.asAbsolutePath("resources/dark/document-inverse.svg"),
+          },
           label: "Documents",
           isLeaf: true,
         },
@@ -182,6 +186,10 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
           nodeType: "Service",
           label: "Scale & Settings",
           isLeaf: true,
+          icon: {
+            light: this.context.asAbsolutePath("resources/light/scale.svg"),
+            dark: this.context.asAbsolutePath("resources/dark/scale-inverse.svg"),
+          },
         },
       ],
     });

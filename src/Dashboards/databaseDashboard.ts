@@ -165,7 +165,10 @@ const buildCollectionsArea = async (
       data: collectionsInfo.map((collection) => [
         <azdata.HyperlinkColumnCellValue>{
           title: collection.name,
-          icon: context.asAbsolutePath("images/tree-collection.svg"),
+          icon: {
+            light: context.asAbsolutePath("resources/light/collection.svg"),
+            dark: context.asAbsolutePath("resources/dark/collection-inverse.svg"),
+          },
         },
         collection.usageSizeKB === undefined ? "Unknown" : collection.usageSizeKB,
         collection.documentCount === undefined ? "Unknown" : collection.documentCount,
@@ -255,7 +258,10 @@ export const openDatabaseDashboard = async (
       id: "collections",
       content: input1,
       title: "collections",
-      icon: context.asAbsolutePath("images/tree-collection.svg"), // icon can be the path of a svg file
+      icon: {
+        light: context.asAbsolutePath("resources/light/collection.svg"),
+        dark: context.asAbsolutePath("resources/dark/collection-inverse.svg"),
+      },
     };
 
     return [homeTab, databasesTab];
