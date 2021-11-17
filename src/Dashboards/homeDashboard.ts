@@ -16,9 +16,10 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         light: context.asAbsolutePath("images/AddDatabase.svg"),
         dark: context.asAbsolutePath("images/AddDatabase.svg"),
       },
-      onDidClick() {
-        console.log("Not implemented");
-      },
+      onDidClick: () =>
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
+          connectionProfile: view.connection,
+        }),
     },
     {
       label: "Open Mongo Shell",
@@ -104,22 +105,23 @@ const buildHeroCard = (
   iconPath: string,
   title: string,
   description: string,
-  onClick?: () => void
+  onClick: () => void
 ): azdata.ButtonComponent => {
-  return view.modelBuilder
+  const component = view.modelBuilder
     .button()
     .withProperties<azdata.ButtonProperties>({
-      // buttonType: azdata.ButtonType.Informational,
-      // description,
+      buttonType: azdata.ButtonType.Informational,
       height: 84,
       iconHeight: 32,
       iconPath,
       iconWidth: 32,
-      label: title,
       title,
+      description,
       width: 236,
     })
     .component();
+  component.onDidClick(onClick);
+  return component;
 };
 
 const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {
@@ -128,25 +130,37 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       view,
       context.asAbsolutePath("images/AddDatabase.svg"),
       "New Database",
-      "Create database to store you data"
+      "Create database to store you data",
+      () =>
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
+          connectionProfile: view.connection,
+        })
     ),
     buildHeroCard(
       view,
       context.asAbsolutePath("images/Hosted-Terminal.svg"),
       "Mongo shell",
-      "Interact with data using Mongo's"
+      "Interact with data using Mongo shell",
+      () =>
+        vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
+          connectionProfile: view.connection,
+        })
     ),
     buildHeroCard(
       view,
       context.asAbsolutePath("images/azure.svg"),
       "Open in portal",
-      "View and manage this account (e.g. backup settings) in Azure portal"
+      "View and manage this account (e.g. backup settings) in Azure portal",
+      () => openInPortal(view.connection)
     ),
     buildHeroCard(
       view,
       context.asAbsolutePath("images/Info.svg"),
       "Documentation",
-      "Find quickstarts, how-to guides, and references."
+      "Find quickstarts, how-to guides, and references.",
+      () => {
+        /* TODO NOT IMPLEMENTED */
+      }
     ),
   ];
 
@@ -270,7 +284,8 @@ const buildDatabasesArea = async (
       vscode.commands.executeCommand(
         "cosmosdb-ads-extension.openDatabaseDashboard",
         azureAccountId,
-        databasesInfo[arg.row].name
+        databasesInfo[arg.row].name,
+        context
       );
     });
   }
@@ -317,4 +332,15 @@ export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appC
       .component();
     await view.initializeModel(homeTabContainer);
   });
+};
+
+const openInPortal = (connection: azdata.connection.Connection) => {
+  const azurePortalEndpoint = connection?.options?.azurePortalEndpoint;
+  const azureResourceId = connection?.options?.azureResourceId;
+  if (!azurePortalEndpoint || !azureResourceId) {
+    vscode.window.showErrorMessage("Missing azure information from connection");
+    return;
+  }
+  const url = `${azurePortalEndpoint}/#@microsoft.onmicrosoft.com/resource${azureResourceId}/overview`;
+  vscode.env.openExternal(vscode.Uri.parse(url));
 };

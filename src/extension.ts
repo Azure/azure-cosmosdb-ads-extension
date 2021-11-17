@@ -26,6 +26,13 @@ export interface HasConnectionProfile {
   connectionProfile: azdata.IConnectionProfile;
 }
 
+/**
+ * Check if this context is a node tree item
+ * @param context
+ * @returns
+ */
+const isNodeTreeItem = (context: azdata.ObjectExplorerContext) => !!context.nodeInfo;
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -42,18 +49,21 @@ export function activate(context: vscode.ExtensionContext) {
       async (objectExplorerContext: azdata.ObjectExplorerContext) => {
         console.log(objectExplorerContext);
         if (!objectExplorerContext.connectionProfile) {
-          // TODO display error message
+          vscode.window.showErrorMessage("Missing connectionProfile");
           return;
         }
 
         try {
           // Creating a database requires creating a collection inside
           const newDatabase = await appContext.createMongoCollection(objectExplorerContext.connectionProfile);
-          if (newDatabase) {
-            await objectExplorer.updateNode(objectExplorerContext);
+          if (newDatabase && isNodeTreeItem(objectExplorerContext)) {
+            vscode.window.showInformationMessage(`Successfully created: ${newDatabase}`);
+            if (isNodeTreeItem(objectExplorerContext)) {
+              objectExplorer.updateNode(objectExplorerContext);
+            }
           }
         } catch (e) {
-          vscode.window.showErrorMessage("Failed to create mongo database");
+          vscode.window.showErrorMessage(`Failed to create mongo database: ${e}`);
         }
       }
     )
@@ -86,10 +96,13 @@ export function activate(context: vscode.ExtensionContext) {
             mongoInfo.databaseName
           );
           if (newCollection) {
-            await objectExplorer.updateNode(objectExplorerContext);
+            vscode.window.showInformationMessage(`Successfully created: ${newCollection.collectionName}`);
+            if (isNodeTreeItem(objectExplorerContext)) {
+              objectExplorer.updateNode(objectExplorerContext);
+            }
           }
         } catch (e) {
-          vscode.window.showErrorMessage("Failed to create mongo collection");
+          vscode.window.showErrorMessage(`Failed to create mongo collection: ${e}`);
         }
       }
     )
@@ -239,6 +252,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoShell",
       async (hasConnectionProfile?: HasConnectionProfile) => {
+        console.log("Downloading mongoshell");
+
         // Download mongosh
         const executablePath = await downloadMongoShell(context.extensionPath);
 

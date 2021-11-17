@@ -7,6 +7,7 @@ import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
 import { retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
+import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 
 interface IButtonData {
   label: string;
@@ -14,19 +15,33 @@ interface IButtonData {
   onClick?: () => void;
 }
 
-const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer => {
-  const buttons: azdata.ButtonProperties[] = [
+const buildToolbar = (
+  view: azdata.ModelView,
+  context: vscode.ExtensionContext,
+  databaseName: string,
+  connection: azdata.ConnectionInfo
+): azdata.ToolbarContainer => {
+  const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
       label: "New Collection",
       iconPath: {
         light: context.asAbsolutePath("images/AddDatabase.svg"),
         dark: context.asAbsolutePath("images/AddDatabase.svg"),
       },
+      onDidClick: () =>
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", {
+          connectionProfile: connection,
+          nodeInfo: {
+            nodePath: createNodePath("server", databaseName),
+          },
+        }),
     },
   ];
-  const navElements: azdata.ButtonComponent[] = buttons.map((b) =>
-    view.modelBuilder.button().withProperties(b).component()
-  );
+  const navElements: azdata.ButtonComponent[] = buttons.map((b) => {
+    const component = view.modelBuilder.button().withProperties(b).component();
+    component.onDidClick(b.onDidClick);
+    return component;
+  });
   return view.modelBuilder
     .toolbarContainer()
     .withItems(navElements)
@@ -59,14 +74,25 @@ const buildHeroCard = (
   return button;
 };
 
-const buildWorkingWithDatabase = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {
+const buildWorkingWithDatabase = (
+  view: azdata.ModelView,
+  context: vscode.ExtensionContext,
+  databaseName: string,
+  connection: azdata.ConnectionInfo
+): azdata.Component => {
   const heroCards: azdata.ButtonComponent[] = [
     buildHeroCard(
       view,
       context.asAbsolutePath("images/AddDatabase.svg"),
       "New Collection",
       "Create a new collection to store you data",
-      () => vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection")
+      () =>
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", {
+          connectionProfile: connection,
+          nodeInfo: {
+            nodePath: createNodePath("server", databaseName),
+          },
+        })
     ),
     buildHeroCard(
       view,
@@ -211,7 +237,7 @@ export const openDatabaseDashboard = async (
     const homeTabContainer = view.modelBuilder
       .flexContainer()
       .withItems([
-        buildWorkingWithDatabase(view, context),
+        buildWorkingWithDatabase(view, context, databaseName, connectionInfo),
         await buildCollectionsArea(databaseName, view, context, connectionInfo),
       ])
       .withLayout({ flexFlow: "column" })
@@ -219,7 +245,7 @@ export const openDatabaseDashboard = async (
 
     const homeTab: azdata.DashboardTab = {
       id: "home",
-      toolbar: buildToolbar(view, context),
+      toolbar: buildToolbar(view, context, databaseName, connectionInfo),
       content: homeTabContainer,
       title: "Home",
       icon: context.asAbsolutePath("images/home.svg"), // icon can be the path of a svg file
