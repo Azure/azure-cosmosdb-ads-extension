@@ -11,5 +11,5 @@ function download(filename, url) {
 console.log("Downloading azdata proposed typings");
 download(
   "typings/azdata.proposed.d.ts",
-  "https://raw.githubusercontent.com/Microsoft/azuredatastudio/master/src/sql/azdata.proposed.d.ts"
+  "https://raw.githubusercontent.com/Microsoft/azuredatastudio/main/src/sql/azdata.proposed.d.ts"
 );
