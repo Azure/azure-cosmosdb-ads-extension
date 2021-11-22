@@ -7,6 +7,7 @@ import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
 import { AppContext, retrieveDatabaseAccountInfoFromArm, retrieveMongoDbDatabasesInfoFromArm } from "../appContext";
+import { buildHeroCard } from "./util";
 
 const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer => {
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
@@ -98,30 +99,6 @@ const buildOverview = async (view: azdata.ModelView): Promise<azdata.Component> 
       },
     })
     .component();
-};
-
-const buildHeroCard = (
-  view: azdata.ModelView,
-  iconPath: string,
-  title: string,
-  description: string,
-  onClick: () => void
-): azdata.ButtonComponent => {
-  const component = view.modelBuilder
-    .button()
-    .withProperties<azdata.ButtonProperties>({
-      buttonType: azdata.ButtonType.Informational,
-      height: 84,
-      iconHeight: 32,
-      iconPath,
-      iconWidth: 32,
-      title,
-      description,
-      width: 236,
-    })
-    .component();
-  component.onDidClick(onClick);
-  return component;
 };
 
 const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {

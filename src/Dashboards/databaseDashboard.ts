@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as azdata from "azdata";
-import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
 import { retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
+import { buildHeroCard } from "./util";
 
 interface IButtonData {
   label: string;
@@ -47,31 +47,6 @@ const buildToolbar = (
     .withItems(navElements)
     .withLayout({ orientation: azdata.Orientation.Horizontal })
     .component();
-};
-
-const buildHeroCard = (
-  view: azdata.ModelView,
-  iconPath: string,
-  title: string,
-  description: string,
-  onClick: () => void
-): azdata.ButtonComponent => {
-  const button = view.modelBuilder
-    .button()
-    .withProperties<azdata.ButtonProperties>({
-      // buttonType: azdata.ButtonType.Informational,
-      // description,
-      height: 84,
-      iconHeight: 32,
-      iconPath,
-      iconWidth: 32,
-      label: title,
-      title,
-      width: 236,
-    })
-    .component();
-  button.onDidClick(onClick); // TODO Make sure to manage disposable (unlisten)
-  return button;
 };
 
 const buildWorkingWithDatabase = (
@@ -182,16 +157,12 @@ const buildCollectionsArea = async (
     .component();
 
   if (tableComponent.onCellAction) {
-    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+    tableComponent.onCellAction((arg: azdata.ICellActionEventArgs) => {
       vscode.window.showInformationMessage(
         `clicked: ${arg.row} row, ${arg.column} column, ${arg.columnName} columnName`
       );
     });
   }
-
-  // tableComponent.onRowSelected((arg: any) => {
-  // 	vscode.window.showInformationMessage(`clicked: ${arg.toString()}`);
-  // });
 
   return view.modelBuilder
     .flexContainer()
@@ -254,17 +225,18 @@ export const openDatabaseDashboard = async (
       icon: context.asAbsolutePath("images/home.svg"), // icon can be the path of a svg file
     };
 
-    const databasesTab: azdata.DashboardTab = {
+    // TODO Implement this tab
+    const collectionsTab: azdata.DashboardTab = {
       id: "collections",
       content: input1,
-      title: "collections",
+      title: "Collections",
       icon: {
         light: context.asAbsolutePath("resources/light/collection.svg"),
         dark: context.asAbsolutePath("resources/dark/collection-inverse.svg"),
       },
     };
 
-    return [homeTab, databasesTab];
+    return [homeTab /*, collectionsTab */];
   });
   await dashboard.open();
 };

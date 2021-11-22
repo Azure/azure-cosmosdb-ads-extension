@@ -159,7 +159,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
             dark: this.context.asAbsolutePath("resources/dark/collection-inverse.svg"),
           },
           label: coll.collectionName || "unknown",
-          isLeaf: false,
+          isLeaf: true, // false, TODO: enable collection subnodes when support is implemented
         })),
       });
       return true;
