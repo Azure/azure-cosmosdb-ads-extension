@@ -36,6 +36,8 @@ const isNodeTreeItem = (context: azdata.ObjectExplorerContext) => !!context.node
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  const terminalMap = new Map<string, vscode.Terminal>(); // servername <-> terminal
+
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "cosmosdb-ads-extension" is now active!');
@@ -252,6 +254,15 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoShell",
       async (hasConnectionProfile?: HasConnectionProfile) => {
+        const serverName = hasConnectionProfile?.connectionProfile?.options["server"];
+        if (terminalMap.has(serverName)) {
+          const terminal = terminalMap.get(serverName);
+          if (terminal!.exitStatus === undefined) {
+            terminal!.show();
+            return;
+          }
+        }
+
         console.log("Downloading mongoshell");
 
         // Download mongosh
@@ -263,7 +274,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
         const mongoShellOptions = await appContext.getMongoShellOptions(hasConnectionProfile?.connectionProfile);
 
-        const serverName = hasConnectionProfile?.connectionProfile?.options["server"];
         const terminalOptions: vscode.TerminalOptions = {
           name: `Mongo Shell: ${serverName}`,
           shellPath: executablePath,
@@ -293,6 +303,12 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const terminal = vscode.window.createTerminal(terminalOptions);
+        terminalMap.set(serverName, terminal);
+        vscode.window.onDidCloseTerminal((t) => {
+          if (t === terminal && t.exitStatus !== undefined) {
+            terminalMap.delete(serverName);
+          }
+        });
 
         // If account is known, skip the first prompt that asks for connection string
         if (mongoShellOptions?.connectionInfo) {
