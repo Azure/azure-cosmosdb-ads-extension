@@ -269,24 +269,33 @@ export function activate(context: vscode.ExtensionContext) {
           shellPath: executablePath,
         };
         if (mongoShellOptions) {
-          terminalOptions.shellArgs = [
-            "--host",
-            mongoShellOptions.hostname,
-            "--port",
-            mongoShellOptions.port,
-            "--username",
-            mongoShellOptions.username,
-            "--password",
-            mongoShellOptions.password,
-            "--tls",
-            "--tlsAllowInvalidCertificates",
-          ];
+          terminalOptions.shellArgs = undefined;
+          if (mongoShellOptions.connectionString !== undefined) {
+            terminalOptions.shellArgs = [mongoShellOptions.connectionString];
+          } else if (mongoShellOptions.connectionInfo !== undefined) {
+            terminalOptions.shellArgs = ["--host", mongoShellOptions.connectionInfo.hostname];
+            if (mongoShellOptions.connectionInfo.port) {
+              terminalOptions.shellArgs.push("--port", mongoShellOptions.connectionInfo.port);
+            }
+
+            if (mongoShellOptions.connectionInfo.username) {
+              terminalOptions.shellArgs.push("--username", mongoShellOptions.connectionInfo.username);
+            }
+
+            if (mongoShellOptions.connectionInfo.password) {
+              terminalOptions.shellArgs.push("--password", mongoShellOptions.connectionInfo.password);
+            }
+          }
+
+          if (mongoShellOptions.isCosmosDB && terminalOptions.shellArgs !== undefined) {
+            terminalOptions.shellArgs.push("--tls", "--tlsAllowInvalidCertificates");
+          }
         }
 
         const terminal = vscode.window.createTerminal(terminalOptions);
 
         // If account is known, skip the first prompt that asks for connection string
-        if (mongoShellOptions) {
+        if (mongoShellOptions?.connectionInfo) {
           terminal.sendText("\n");
         }
         terminal.show();

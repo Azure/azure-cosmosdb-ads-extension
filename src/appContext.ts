@@ -9,6 +9,7 @@ import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { URL } from "url";
+import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -42,10 +43,16 @@ export interface ICosmosDbCollectionInfo {
 }
 
 export interface IMongoShellOptions {
-  hostname: string;
-  port: string;
-  username: string;
-  password: string;
+  isCosmosDB: boolean;
+  connectionString: string | undefined;
+  connectionInfo:
+    | {
+        hostname: string;
+        port: string | undefined;
+        username: string | undefined;
+        password: string | undefined;
+      }
+    | undefined;
 }
 
 /**
@@ -158,13 +165,13 @@ export class AppContext {
       }
 
       // TODO Use different parsing method if vanilla mongo
-      const url = new URL(connectionString);
-      resolve({
-        username: url.username,
-        password: decodeURIComponent(url.password),
-        hostname: url.hostname,
-        port: url.port,
-      });
+      const options: IMongoShellOptions = {
+        isCosmosDB: isCosmosDBAccount(connectionString),
+        connectionString,
+        connectionInfo: undefined,
+      };
+
+      resolve(options);
     });
   }
 
