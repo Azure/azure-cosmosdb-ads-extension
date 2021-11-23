@@ -6,7 +6,12 @@
 import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
-import { AppContext, retrieveDatabaseAccountInfoFromArm, retrieveMongoDbDatabasesInfoFromArm } from "../appContext";
+import {
+  AppContext,
+  isAzureconnection,
+  retrieveDatabaseAccountInfoFromArm,
+  retrieveMongoDbDatabasesInfoFromArm,
+} from "../appContext";
 import { buildHeroCard } from "./util";
 
 const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer => {
@@ -34,6 +39,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         });
       },
     },
+    /* TODO Implement
     {
       label: "Refresh",
       iconPath: {
@@ -44,6 +50,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         console.log("Not implemented");
       },
     },
+		*/
     {
       label: "Learn more",
       iconPath: {
@@ -206,7 +213,7 @@ const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext):
     .component();
 };
 
-const buildDatabasesArea = async (
+const buildDatabasesAreaAzure = async (
   view: azdata.ModelView,
   context: vscode.ExtensionContext
 ): Promise<azdata.Component> => {
@@ -247,7 +254,6 @@ const buildDatabasesArea = async (
         db.nbCollections,
         db.throughputSetting,
       ]),
-      // updateCells: [ { row: 2, column: 1, value: 123 }],
       height: 500,
       CSSStyles: {
         padding: "20px",
@@ -257,9 +263,84 @@ const buildDatabasesArea = async (
 
   if (tableComponent.onCellAction) {
     tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-      // vscode.window.showInformationMessage(
-      //   `clicked: ${arg.row} row, ${arg.column} column, ${arg.columnName} columnName`
-      // );
+      const azureAccountId = view.connection.options["azureAccount"];
+      vscode.commands.executeCommand(
+        "cosmosdb-ads-extension.openDatabaseDashboard",
+        azureAccountId,
+        databasesInfo[arg.row].name,
+        context
+      );
+    });
+  }
+
+  return view.modelBuilder
+    .flexContainer()
+    .withItems([
+      view.modelBuilder
+        .text()
+        .withProperties({
+          value: "Database overview",
+          CSSStyles: { "font-size": "20px", "font-weight": "600" },
+        })
+        .component(),
+      view.modelBuilder
+        .text()
+        .withProperties({
+          value: "Click on a database for more details",
+        })
+        .component(),
+      tableComponent,
+    ])
+    .withLayout({ flexFlow: "column" })
+    .withProperties({ CSSStyles: { padding: "10px" } })
+    .component();
+};
+
+const buildDatabasesAreaNonAzure = async (
+  view: azdata.ModelView,
+  context: vscode.ExtensionContext,
+  appContext: AppContext
+): Promise<azdata.Component> => {
+  const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number }[] = [];
+  const server = view.connection.options["server"];
+  for (const db of await appContext.listDatabases(server)) {
+    const name = db.name;
+    if (name !== undefined) {
+      const colls = await appContext.listCollections(server, name);
+      console.log(colls);
+      const nbCollections = (await appContext.listCollections(server, name)).length;
+      databasesInfo.push({ name, nbCollections, sizeOnDisk: db.sizeOnDisk });
+    }
+  }
+
+  const tableComponent = view.modelBuilder
+    .table()
+    .withProperties<azdata.TableComponentProperties>({
+      columns: [
+        {
+          value: "Database",
+          type: azdata.ColumnType.text,
+          width: 250,
+        },
+        {
+          value: "Size On Disk", // TODO Translate
+          type: azdata.ColumnType.text,
+        },
+        {
+          value: "Collections", // TODO Translate
+          type: azdata.ColumnType.text,
+        },
+      ],
+      data: databasesInfo.map((db) => [db.name, db.sizeOnDisk, db.nbCollections]),
+      height: 500,
+      CSSStyles: {
+        padding: "20px",
+      },
+    })
+    .component();
+
+  if (tableComponent.onCellAction) {
+    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
       const azureAccountId = view.connection.options["azureAccount"];
       vscode.commands.executeCommand(
         "cosmosdb-ads-extension.openDatabaseDashboard",
@@ -295,19 +376,29 @@ const buildDatabasesArea = async (
 
 export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
+    const viewItems: azdata.Component[] = [buildToolbar(view, context)];
+    if (isAzureconnection(view.connection)) {
+      viewItems.push(await buildOverview(view));
+    }
+    viewItems.push(buildGettingStarted(view, context));
+
     const homeTabContainer = view.modelBuilder
       .flexContainer()
       // .withItems([buildToolbar(view, context), await buildOverview(view), buildTabArea(view, context)]) // Use this for monitoring tab
-      .withItems([buildToolbar(view, context), await buildOverview(view), buildGettingStarted(view, context)])
+      .withItems(viewItems)
       .withLayout({ flexFlow: "column" })
       .component();
     await view.initializeModel(homeTabContainer);
   });
 
   azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
+    const viewItem = isAzureconnection(view.connection)
+      ? await buildDatabasesAreaAzure(view, context)
+      : await buildDatabasesAreaNonAzure(view, context, appContext);
+
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([await buildDatabasesArea(view, context)])
+      .withItems([viewItem])
       .withLayout({ flexFlow: "column" })
       .component();
     await view.initializeModel(homeTabContainer);

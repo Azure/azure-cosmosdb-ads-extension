@@ -15,6 +15,7 @@ import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
 
 export interface IDatabaseInfo {
   name?: string;
+  sizeOnDisk: number;
   empty?: boolean;
 }
 
@@ -553,3 +554,6 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
 
   return await Promise.all(promises);
 };
+
+export const isAzureconnection = (connectionInfo: azdata.ConnectionInfo): boolean =>
+  connectionInfo.options["authenticationType"] === "AzureMFA";
