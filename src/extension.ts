@@ -13,7 +13,7 @@ import * as azdata from "azdata";
 import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
 import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
-import { AppContext } from "./appContext";
+import { AppContext, createStatusBarItem, hideStatusBarItem, showStatusBarItem } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
@@ -263,10 +263,10 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
 
-        console.log("Downloading mongoshell");
-
         // Download mongosh
+				showStatusBarItem("Downloading mongo shell...");
         const executablePath = await downloadMongoShell(context.extensionPath);
+				hideStatusBarItem();
 
         if (!executablePath) {
           vscode.window.showErrorMessage("Unable to download mongo shell");
@@ -323,6 +323,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Instantiate client
   const appContext = new AppContext();
+	createStatusBarItem();
 
   const connectionProvider = new ConnectionProvider(appContext);
   const iconProvider = new IconProvider();
