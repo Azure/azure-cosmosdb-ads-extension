@@ -265,22 +265,21 @@ export class AppContext {
 }
 
 export const createStatusBarItem = (): void => {
-	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 200);
+  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 200);
 };
 
 export const showStatusBarItem = (text: string): void => {
-	if (statusBarItem) {
-		statusBarItem.text = text;
-		statusBarItem.show();
-	}
+  if (statusBarItem) {
+    statusBarItem.text = text;
+    statusBarItem.show();
+  }
 };
 
 export const hideStatusBarItem = (): void => {
-	if (statusBarItem) {
-		statusBarItem.hide();
-	}
+  if (statusBarItem) {
+    statusBarItem.hide();
+  }
 };
-
 
 export function validateMongoCollectionName(collectionName: string): string | undefined | null {
   // https://docs.mongodb.com/manual/reference/limits/#Restriction-on-Collection-Names
@@ -313,9 +312,9 @@ function validateMongoDatabaseName(database: string): string | undefined | null 
 
 const retrieveAzureAccount = async (accountId: string): Promise<azdata.Account> => {
   const manyAccounts = await azdata.accounts.getAllAccounts();
-  showStatusBarItem('Retrieving Azure Account...');
+  showStatusBarItem("Retrieving Azure Account...");
   const accounts = (await azdata.accounts.getAllAccounts()).filter((a) => a.key.accountId === accountId);
-	hideStatusBarItem();
+  hideStatusBarItem();
   if (accounts.length < 1) {
     throw new Error("No azure account found");
   }
@@ -330,13 +329,13 @@ const retrieveAzureToken = async (
   const accountId = connectionInfo.options["azureAccount"];
   const azureAccount = await retrieveAzureAccount(accountId);
 
-	showStatusBarItem('Retrieving Azure Token...');
+  showStatusBarItem("Retrieving Azure Token...");
   const azureToken = await azdata.accounts.getAccountSecurityToken(
     azureAccount,
     tenantId,
     azdata.AzureResource.ResourceManagement
   );
-	hideStatusBarItem();
+  hideStatusBarItem();
 
   if (!azureToken) {
     throw new Error("Unable to retrieve ARM token");
@@ -393,12 +392,12 @@ export const retrieveConnectionStringFromArm = async (connectionInfo: azdata.Con
   const client = await createArmClient(connectionInfo);
   const cosmosDbAccountName = connectionInfo.options["server"];
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
-	showStatusBarItem('Retrieving connection string...');
+  showStatusBarItem("Retrieving connection string...");
   const connectionStringsResponse = await client.databaseAccounts.listConnectionStrings(
     resourceGroup,
     cosmosDbAccountName
   );
-	hideStatusBarItem();
+  hideStatusBarItem();
   const connectionString = connectionStringsResponse.connectionStrings?.[0]?.connectionString;
   if (!connectionString) {
     throw new Error("Missing connection string");
@@ -412,9 +411,9 @@ export const retrieveDatabaseAccountInfoFromArm = async (
   const client = await createArmClient(connectionInfo);
   const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
-	showStatusBarItem('Retrieving database accounts...');
+  showStatusBarItem("Retrieving database accounts...");
   const databaseAccount = await client.databaseAccounts.get(resourceGroup, accountName);
-	hideStatusBarItem();
+  hideStatusBarItem();
   return {
     serverStatus: getServerState(databaseAccount.provisioningState),
     backupPolicy: databaseAccount.backupPolicy?.type ?? "None", // TODO Translate this
@@ -442,7 +441,7 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   monitorARmClient: MonitorManagementClient,
   resourceUri: string
 ): Promise<ICosmosDbDatabaseInfo> => {
-	showStatusBarItem('Retrieving mongodb collections...');
+  showStatusBarItem("Retrieving mongodb collections...");
   const collections = await client.mongoDBResources.listMongoDBCollections(
     resourceGroupName,
     accountName,
@@ -451,7 +450,7 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
 
   let throughputSetting = "N/A";
   try {
-		showStatusBarItem('Retrieving mongodb database throughput...');
+    showStatusBarItem("Retrieving mongodb database throughput...");
     const rpResponse = await client.mongoDBResources.getMongoDBDatabaseThroughput(
       resourceGroupName,
       accountName,
@@ -464,7 +463,7 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   } catch (e) {
     // Entity with the specified id does not exist in the system. More info: https://aka.ms/cosmosdb-tsg-not-found
   }
-	hideStatusBarItem();
+  hideStatusBarItem();
 
   const usageSizeKB = await getUsageSizeInKB(monitorARmClient, resourceUri, databaseName);
 
@@ -485,9 +484,9 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
   const client = await createArmClient(connectionInfo);
   const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
-	showStatusBarItem('Retrieving mongodb databases...');
+  showStatusBarItem("Retrieving mongodb databases...");
   const mongoDBResources = await client.mongoDBResources.listMongoDBDatabases(resourceGroup, accountName);
-	hideStatusBarItem();
+  hideStatusBarItem();
   const monitorArmClient = await createArmMonitorClient(connectionInfo);
 
   // TODO Error handling here for missing databaseName
@@ -539,9 +538,9 @@ const retrieveMongoDbCollectionInfoFromArm = async (
 
   let documentCount;
   try {
-		showStatusBarItem('Retrieving mongodb usage...');
+    showStatusBarItem("Retrieving mongodb usage...");
     const metricsResponse = await monitorARmClient.metrics.list(resourceUri, { filter, metricnames });
-		hideStatusBarItem();
+    hideStatusBarItem();
     documentCount = metricsResponse.value[0].timeseries?.[0].data?.[0]?.total;
   } catch (e) {
     console.error(e);
@@ -562,13 +561,13 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
   const client = await createArmClient(connectionInfo);
   const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
-	showStatusBarItem('Retrieving mongodb usage...');
+  showStatusBarItem("Retrieving mongodb usage...");
   const mongoDBResources = await client.mongoDBResources.listMongoDBCollections(
     resourceGroup,
     accountName,
     databaseName
   );
-	hideStatusBarItem();
+  hideStatusBarItem();
 
   const monitorArmClient = await createArmMonitorClient(connectionInfo);
 

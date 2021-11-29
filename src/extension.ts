@@ -264,9 +264,9 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         // Download mongosh
-				showStatusBarItem("Downloading mongo shell...");
+        showStatusBarItem("Downloading mongo shell...");
         const executablePath = await downloadMongoShell(context.extensionPath);
-				hideStatusBarItem();
+        hideStatusBarItem();
 
         if (!executablePath) {
           vscode.window.showErrorMessage("Unable to download mongo shell");
@@ -323,7 +323,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Instantiate client
   const appContext = new AppContext();
-	createStatusBarItem();
+  createStatusBarItem();
 
   const connectionProvider = new ConnectionProvider(appContext);
   const iconProvider = new IconProvider();
