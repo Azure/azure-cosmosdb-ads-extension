@@ -234,7 +234,8 @@
     "test": "node ./out/test/runTest.js",
     "format": "prettier --write \"{src,test}/**/*.{ts,tsx,html}\" \"*.{js,html}\"",
     "format:check": "prettier --check \"{src,test}/**/*.{ts,tsx,html}\" \"*.{js,html}\"",
-    "proposedapi": "node installTypings.js"
+    "proposedapi": "node installTypings.js",
+    "publish": "yarn run vscode:prepublish && vsce package"
   },
   "dependencies": {
     "@azure/arm-cosmosdb": "13.0.0",
@@ -266,7 +267,8 @@
     "mocha": "7.2.0",
     "prettier": "2.3.2",
     "typescript": "3.9.10",
-    "vscode-test": "1.6.1"
+    "vscode-test": "1.6.1",
+    "vsce": "2.5.0"
   },
   "prettier": {
     "printWidth": 120
