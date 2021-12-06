@@ -1,7 +1,10 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
+import * as nls from "vscode-nls";
 import { v4 as uuid } from "uuid";
 import { AppContext, retrieveConnectionStringFromArm } from "../appContext";
+
+const localize = nls.loadMessageBundle();
 
 export const ProviderId: string = "COSMOSDB_MONGO";
 
