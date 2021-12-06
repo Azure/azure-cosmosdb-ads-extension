@@ -2,6 +2,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
+import * as nls from "vscode-nls";
 import * as fs from "fs";
 
 // The module 'azdata' contains the Azure Data Studio extensibility API
@@ -22,6 +23,10 @@ import * as path from "path";
 import ViewLoader from "./ViewLoader";
 import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
 
+const localize = nls.loadMessageBundle();
+// uncomment to test
+// let localize = nls.config({ locale: 'pseudo' })();
+
 export interface HasConnectionProfile {
   connectionProfile: azdata.IConnectionProfile;
 }
@@ -33,39 +38,34 @@ export interface HasConnectionProfile {
  */
 const isNodeTreeItem = (context: azdata.ObjectExplorerContext) => !!context.nodeInfo;
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
   const terminalMap = new Map<string, vscode.Terminal>(); // servername <-> terminal
 
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "cosmosdb-ads-extension" is now active!');
-
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with  registerCommand
-  // The commandId parameter must match the command field in package.json
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.createMongoDatabase",
       async (objectExplorerContext: azdata.ObjectExplorerContext) => {
         console.log(objectExplorerContext);
         if (!objectExplorerContext.connectionProfile) {
-          vscode.window.showErrorMessage("Missing connectionProfile");
+          vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
 
         try {
           // Creating a database requires creating a collection inside
-          const newDatabase = await appContext.createMongoCollection(objectExplorerContext.connectionProfile);
-          if (newDatabase && isNodeTreeItem(objectExplorerContext)) {
-            vscode.window.showInformationMessage(`Successfully created: ${newDatabase}`);
+          const { databaseName } = await appContext.createMongoCollection(objectExplorerContext.connectionProfile);
+          if (databaseName && isNodeTreeItem(objectExplorerContext)) {
+            vscode.window.showInformationMessage(
+              localize("sucessfullyCreatedDatabase", "Successfully created database: {0}?", databaseName)
+            );
             if (isNodeTreeItem(objectExplorerContext)) {
               objectExplorer.updateNode(objectExplorerContext);
             }
           }
         } catch (e) {
-          vscode.window.showErrorMessage(`Failed to create mongo database: ${e}`);
+          vscode.window.showErrorMessage(
+            localize("failedCreatedDatabase", "Failed to create mongo database {0}", e as string)
+          );
         }
       }
     )
@@ -78,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
         console.log("createMongoCollection");
         if (!objectExplorerContext.connectionProfile) {
           // TODO handle error;
-          vscode.window.showErrorMessage("Missing connectionProfile");
+          vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
         const { serverName } = objectExplorerContext.connectionProfile;
@@ -86,25 +86,29 @@ export function activate(context: vscode.ExtensionContext) {
         // TODO FIX THIS
         if (!objectExplorerContext.nodeInfo) {
           // TODO handle error;
-          vscode.window.showErrorMessage("Missing nodeInfo");
+          vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
           return;
         }
         const { nodePath } = objectExplorerContext.nodeInfo;
         const mongoInfo = getMongoInfo(nodePath);
 
         try {
-          const newCollection = await appContext.createMongoCollection(
+          const { collection: newCollection } = await appContext.createMongoCollection(
             objectExplorerContext.connectionProfile,
             mongoInfo.databaseName
           );
           if (newCollection) {
-            vscode.window.showInformationMessage(`Successfully created: ${newCollection.collectionName}`);
+            vscode.window.showInformationMessage(
+              localize("successCreateCollection", "Successfully created: {0}", newCollection.collectionName)
+            );
             if (isNodeTreeItem(objectExplorerContext)) {
               objectExplorer.updateNode(objectExplorerContext);
             }
           }
         } catch (e) {
-          vscode.window.showErrorMessage(`Failed to create mongo collection: ${e}`);
+          vscode.window.showErrorMessage(
+            localize("failedCreateCollection", "Failed to create collection {0}", e as string)
+          );
         }
       }
     )
@@ -117,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
         console.log(objectExplorerContext);
         if (!objectExplorerContext.connectionProfile) {
           // TODO handle error;
-          vscode.window.showErrorMessage("Missing connectionProfile");
+          vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
         const { serverName } = objectExplorerContext.connectionProfile;
@@ -125,15 +129,19 @@ export function activate(context: vscode.ExtensionContext) {
         // TODO FIX THIS
         if (!objectExplorerContext.nodeInfo) {
           // TODO handle error;
-          vscode.window.showErrorMessage("Missing nodeInfo");
+          vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
           return;
         }
         const { nodePath } = objectExplorerContext.nodeInfo;
         const mongoInfo = getMongoInfo(nodePath);
 
         const response = await vscode.window.showInformationMessage(
-          `Are you sure you want to remove the database: ${mongoInfo.databaseName}?`,
-          ...["Yes", "No"]
+          localize(
+            "removeDatabaseConfirm",
+            "Are you sure you want to remove the database: {0}?",
+            mongoInfo.databaseName
+          ),
+          ...[localize("yes", "Yes"), localize("no", "No")]
         );
         if (response !== "Yes") {
           return;
@@ -143,9 +151,13 @@ export function activate(context: vscode.ExtensionContext) {
           // update parent node
           const parentNode = { ...objectExplorerContext, isConnectionNode: true };
           await objectExplorer.updateNode(parentNode);
-          vscode.window.showInformationMessage(`Database ${mongoInfo.databaseName} successfully deleted`);
+          vscode.window.showInformationMessage(
+            localize("successDeleteDatabase", "Successfully deleted database {0}", mongoInfo.databaseName)
+          );
         } else {
-          vscode.window.showErrorMessage(`Failed to delete database ${mongoInfo.databaseName}`);
+          vscode.window.showErrorMessage(
+            localize("failedDeleteDatabase", "Failed to delete database {0}", mongoInfo.databaseName)
+          );
         }
       }
     )
@@ -158,7 +170,7 @@ export function activate(context: vscode.ExtensionContext) {
         console.log(objectExplorerContext);
         if (!objectExplorerContext.connectionProfile) {
           // TODO handle error;
-          vscode.window.showErrorMessage("Missing connectionProfile");
+          vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
         const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
@@ -166,15 +178,19 @@ export function activate(context: vscode.ExtensionContext) {
         // TODO FIX THIS
         if (!objectExplorerContext.nodeInfo) {
           // TODO handle error;
-          vscode.window.showErrorMessage("Missing nodeInfo");
+          vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
           return;
         }
         const { nodePath } = objectExplorerContext.nodeInfo;
         const mongoInfo = getMongoInfo(nodePath);
 
         const response = await vscode.window.showInformationMessage(
-          `Are you sure you want to remove the collection: ${mongoInfo.collectionName}?`,
-          ...["Yes", "No"]
+          localize(
+            "command.removeCollectionConfirm",
+            "Are you sure you want to remove the collection: {0}?",
+            mongoInfo.collectionName
+          ),
+          ...[localize("yes", "Yes"), localize("no", "No")]
         );
         if (response !== "Yes") {
           return;
@@ -189,9 +205,13 @@ export function activate(context: vscode.ExtensionContext) {
             nodeInfo: { ...objectExplorerContext.nodeInfo, nodePath: newNodePath },
           };
           await objectExplorer.updateNode(parentNode);
-          vscode.window.showInformationMessage(`Collection ${mongoInfo.collectionName} successfully deleted`);
+          vscode.window.showInformationMessage(
+            localize("successDeleteCollection", "Successfully deleted collection {0}", mongoInfo.collectionName)
+          );
         } else {
-          vscode.window.showErrorMessage(`Failed to delete collection ${mongoInfo.collectionName}`);
+          vscode.window.showErrorMessage(
+            localize("failDeleteCollection", "Failed to delete collection {0}", mongoInfo.collectionName)
+          );
         }
       }
     )
@@ -264,12 +284,12 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         // Download mongosh
-        showStatusBarItem("Downloading mongo shell...");
+        showStatusBarItem(localize("downloadingMongoShell", "Downloading mongo shell..."));
         const executablePath = await downloadMongoShell(context.extensionPath);
         hideStatusBarItem();
 
         if (!executablePath) {
-          vscode.window.showErrorMessage("Unable to download mongo shell");
+          vscode.window.showErrorMessage(localize("failDownloadMongoShell", "Unable to download mongo shell"));
           return;
         }
         const mongoShellOptions = await appContext.getMongoShellOptions(hasConnectionProfile?.connectionProfile);

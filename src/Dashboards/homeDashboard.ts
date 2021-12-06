@@ -6,6 +6,7 @@
 import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
+import * as nls from "vscode-nls";
 import {
   AppContext,
   isAzureconnection,
@@ -14,10 +15,12 @@ import {
 } from "../appContext";
 import { buildHeroCard } from "./util";
 
+const localize = nls.loadMessageBundle();
+
 const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer => {
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
-      label: "New Database",
+      label: localize("newDatabase", "New Database"),
       iconPath: {
         light: context.asAbsolutePath("images/AddDatabase.svg"),
         dark: context.asAbsolutePath("images/AddDatabase.svg"),
@@ -28,7 +31,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         }),
     },
     {
-      label: "Open Mongo Shell",
+      label: localize("openMongoShell", "Open Mongo Shell"),
       iconPath: {
         light: context.asAbsolutePath("images/Hosted-Terminal.svg"),
         dark: context.asAbsolutePath("images/Hosted-Terminal.svg"),
@@ -41,7 +44,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     },
     /* TODO Implement
     {
-      label: "Refresh",
+      label: localize("refresh", "Refresh"),
       iconPath: {
         light: context.asAbsolutePath("images/refresh-cosmos.svg"),
         dark: context.asAbsolutePath("images/refresh-cosmos.svg"),
@@ -52,7 +55,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     },
 		*/
     {
-      label: "Learn more",
+      label: localize("learnMore", "Learn more"),
       iconPath: {
         light: context.asAbsolutePath("images/Info.svg"),
         dark: context.asAbsolutePath("images/Info.svg"),
@@ -78,19 +81,19 @@ const buildOverview = async (view: azdata.ModelView): Promise<azdata.Component> 
   const databaseAccountInfo = await retrieveDatabaseAccountInfoFromArm(view.connection);
   const propertyItems: azdata.PropertiesContainerItem[] = [
     {
-      displayName: "Status",
+      displayName: localize("status", "Status"),
       value: databaseAccountInfo.serverStatus,
     },
     {
-      displayName: "Consistency policy",
+      displayName: localize("consistencyPolicy", "Consistency policy"),
       value: databaseAccountInfo.consistencyPolicy,
     },
     {
-      displayName: "Backup policy",
+      displayName: localize("backupPolicy", "Backup policy"),
       value: databaseAccountInfo.backupPolicy,
     },
     {
-      displayName: "Read location",
+      displayName: localize("readLocation", "Read location"),
       value: databaseAccountInfo.readLocations.join(","),
     },
   ];
@@ -113,8 +116,8 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     buildHeroCard(
       view,
       context.asAbsolutePath("images/AddDatabase.svg"),
-      "New Database",
-      "Create database to store you data",
+      localize("newDatabase", "New Database"),
+      localize("newDtabaseDescription", "Create database to store you data"),
       () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
           connectionProfile: view.connection,
@@ -123,8 +126,8 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     buildHeroCard(
       view,
       context.asAbsolutePath("images/Hosted-Terminal.svg"),
-      "Mongo shell",
-      "Interact with data using Mongo shell",
+      localize("openMongoShell", "Open Mongo Shell"),
+      localize("mongoShellDescription", "Interact with data using Mongo shell"),
       () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
           connectionProfile: view.connection,
@@ -133,15 +136,15 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     buildHeroCard(
       view,
       context.asAbsolutePath("images/azure.svg"),
-      "Open in portal",
-      "View and manage this account (e.g. backup settings) in Azure portal",
+      localize("openInPortal", "Open in portal"),
+      localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
       () => openInPortal(view.connection)
     ),
     buildHeroCard(
       view,
       context.asAbsolutePath("images/Info.svg"),
-      "Documentation",
-      "Find quickstarts, how-to guides, and references.",
+      localize("documentation", "Documentation"),
+      localize("documentation", "Find quickstarts, how-to guides, and references."),
       () => {
         /* TODO NOT IMPLEMENTED */
       }
@@ -161,15 +164,17 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       view.modelBuilder
         .text()
         .withProperties({
-          value: "Getting started",
+          value: localize("gettingStarted", "Getting started"),
           CSSStyles: { "font-size": "20px", "font-weight": "600" },
         })
         .component(),
       view.modelBuilder
         .text()
         .withProperties({
-          value:
-            "Getting started with creating a new database, using mongo shell, viewing documentation, and managing via portal",
+          value: localize(
+            "gettingStartedDescription",
+            "Getting started with creating a new database, using mongo shell, viewing documentation, and managing via portal"
+          ),
         })
         .component(),
       heroCardsContainer,
@@ -193,12 +198,12 @@ const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext):
     {
       id: "tab1",
       content: buildGettingStarted(view, context),
-      title: "Getting started",
+      title: localize("gettingStarted", "Getting started"),
     },
     {
       id: "tab2",
       content: input2,
-      title: "Monitoring",
+      title: localize("monitoring", "Monitoring"),
     },
   ];
   return view.modelBuilder
@@ -224,21 +229,21 @@ const buildDatabasesAreaAzure = async (
     .withProperties<azdata.TableComponentProperties>({
       columns: [
         <azdata.HyperlinkColumn>{
-          value: "Database",
+          value: localize("database", "Database"),
           type: azdata.ColumnType.hyperlink,
           name: "Database",
           width: 250,
         },
         {
-          value: "Data Usage (KB)", // TODO Translate
+          value: localize("dataUsage", "Data Usage (KB)"),
           type: azdata.ColumnType.text,
         },
         {
-          value: "Collections", // TODO Translate
+          value: localize("collection", "Collections"),
           type: azdata.ColumnType.text,
         },
         {
-          value: "Throughput Shared Across Collections", // TODO translate
+          value: localize("throughputSharedAccrossCollection", "Throughput Shared Across Collections"),
           type: azdata.ColumnType.text,
         },
       ],
@@ -250,7 +255,7 @@ const buildDatabasesAreaAzure = async (
             dark: context.asAbsolutePath("resources/dark/database-inverse.svg"),
           },
         },
-        db.usageSizeKB === undefined ? "Unknown" : db.usageSizeKB,
+        db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
         db.nbCollections,
         db.throughputSetting,
       ]),
@@ -279,14 +284,14 @@ const buildDatabasesAreaAzure = async (
       view.modelBuilder
         .text()
         .withProperties({
-          value: "Database overview",
+          value: localize("databaseOverview", "Database overview"),
           CSSStyles: { "font-size": "20px", "font-weight": "600" },
         })
         .component(),
       view.modelBuilder
         .text()
         .withProperties({
-          value: "Click on a database for more details",
+          value: localize("databaseOverviewDescription", "Click on a database for more details"),
         })
         .component(),
       tableComponent,
@@ -318,16 +323,16 @@ const buildDatabasesAreaNonAzure = async (
     .withProperties<azdata.TableComponentProperties>({
       columns: [
         {
-          value: "Database",
+          value: localize("database", "Database"),
           type: azdata.ColumnType.text,
           width: 250,
         },
         {
-          value: "Size On Disk", // TODO Translate
+          value: localize("sizeOnDisk", "Size On Disk"),
           type: azdata.ColumnType.text,
         },
         {
-          value: "Collections", // TODO Translate
+          value: localize("collections", "Collections"),
           type: azdata.ColumnType.text,
         },
       ],
@@ -357,14 +362,14 @@ const buildDatabasesAreaNonAzure = async (
       view.modelBuilder
         .text()
         .withProperties({
-          value: "Database overview",
+          value: localize("databaseOverview", "Database overview"),
           CSSStyles: { "font-size": "20px", "font-weight": "600" },
         })
         .component(),
       view.modelBuilder
         .text()
         .withProperties({
-          value: "Click on a database for more details",
+          value: localize("clickOnDatabaseDescription", "Click on a database for more details"),
         })
         .component(),
       tableComponent,
@@ -409,7 +414,7 @@ const openInPortal = (connection: azdata.connection.Connection) => {
   const azurePortalEndpoint = connection?.options?.azurePortalEndpoint;
   const azureResourceId = connection?.options?.azureResourceId;
   if (!azurePortalEndpoint || !azureResourceId) {
-    vscode.window.showErrorMessage("Missing azure information from connection");
+    vscode.window.showErrorMessage(localize("missingAzureInformation", "Missing azure information from connection"));
     return;
   }
   const url = `${azurePortalEndpoint}/#@microsoft.onmicrosoft.com/resource${azureResourceId}/overview`;

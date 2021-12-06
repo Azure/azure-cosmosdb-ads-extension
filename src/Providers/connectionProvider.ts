@@ -40,7 +40,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     }
 
     if (!password) {
-      vscode.window.showErrorMessage("Unable to retrieve credentials");
+      vscode.window.showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
       return false;
     }
 

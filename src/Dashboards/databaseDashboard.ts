@@ -5,6 +5,7 @@
 
 import * as azdata from "azdata";
 import * as vscode from "vscode";
+import * as nls from "vscode-nls";
 import { retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { buildHeroCard } from "./util";
@@ -15,6 +16,8 @@ interface IButtonData {
   onClick?: () => void;
 }
 
+const localize = nls.loadMessageBundle();
+
 const buildToolbar = (
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
@@ -23,7 +26,7 @@ const buildToolbar = (
 ): azdata.ToolbarContainer => {
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
-      label: "New Collection",
+      label: localize("newCollection", "New Collection"),
       iconPath: {
         light: context.asAbsolutePath("images/AddDatabase.svg"),
         dark: context.asAbsolutePath("images/AddDatabase.svg"),
@@ -59,8 +62,8 @@ const buildWorkingWithDatabase = (
     buildHeroCard(
       view,
       context.asAbsolutePath("images/AddDatabase.svg"),
-      "New Collection",
-      "Create a new collection to store you data",
+      localize("newCollection", "New Collection"),
+      localize("newCollectionDescription", "Create a new collection to store you data"),
       () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", {
           connectionProfile: connection,
@@ -72,8 +75,8 @@ const buildWorkingWithDatabase = (
     buildHeroCard(
       view,
       context.asAbsolutePath("images/AddDatabase.svg"),
-      "Sample collection",
-      "Create a new collection using one of our sample datasets",
+      localize("sampleCollection", "Sample collection"),
+      localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
       () => {}
     ),
   ];
@@ -91,7 +94,7 @@ const buildWorkingWithDatabase = (
       view.modelBuilder
         .text()
         .withProperties({
-          value: "Getting started",
+          value: localize("gettingStarted", "Getting started"),
           CSSStyles: { "font-family": "20px", "font-weight": "600" },
         })
         .component(),
@@ -119,21 +122,21 @@ const buildCollectionsArea = async (
     .withProperties<azdata.TableComponentProperties>({
       columns: [
         <azdata.HyperlinkColumn>{
-          value: "Collection",
+          value: localize("collection", "Collection"),
           type: azdata.ColumnType.hyperlink,
           name: "Collection",
           width: 250,
         },
         {
-          value: "Data Usage (KB)", // TODO Translate
+          value: localize("dataUsage", "Data Usage (KB)"),
           type: azdata.ColumnType.text,
         },
         {
-          value: "Documents", // TODO Translate
+          value: localize("documents", "Documents"),
           type: azdata.ColumnType.text,
         },
         {
-          value: "Throughput", // TODO translate
+          value: localize("throughput", "Throughput"),
           type: azdata.ColumnType.text,
         },
       ],
@@ -145,8 +148,8 @@ const buildCollectionsArea = async (
             dark: context.asAbsolutePath("resources/dark/collection-inverse.svg"),
           },
         },
-        collection.usageSizeKB === undefined ? "Unknown" : collection.usageSizeKB,
-        collection.documentCount === undefined ? "Unknown" : collection.documentCount,
+        collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
+        collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
         collection.throughputSetting,
       ]),
       height: 500,
@@ -156,28 +159,20 @@ const buildCollectionsArea = async (
     })
     .component();
 
-  if (tableComponent.onCellAction) {
-    tableComponent.onCellAction((arg: azdata.ICellActionEventArgs) => {
-      vscode.window.showInformationMessage(
-        `clicked: ${arg.row} row, ${arg.column} column, ${arg.columnName} columnName`
-      );
-    });
-  }
-
   return view.modelBuilder
     .flexContainer()
     .withItems([
       view.modelBuilder
         .text()
         .withProperties({
-          value: "Collection overview",
+          value: localize("collectionOverview", "Collection overview"),
           CSSStyles: { "font-size": "20px", "font-weight": "600" },
         })
         .component(),
       view.modelBuilder
         .text()
         .withProperties({
-          value: "Click on a collection to work with the data",
+          value: localize("collectionOverviewDescription", "Click on a collection to work with the data"),
         })
         .component(),
       tableComponent,
@@ -197,7 +192,7 @@ export const openDatabaseDashboard = async (
   )[0];
   if (!connectionInfo) {
     // TODO Handle error here
-    vscode.window.showErrorMessage("no valid connection found");
+    vscode.window.showErrorMessage(localize("noValidConnection", "No valid connection found"));
     return;
   }
 
@@ -229,7 +224,7 @@ export const openDatabaseDashboard = async (
     const collectionsTab: azdata.DashboardTab = {
       id: "collections",
       content: input1,
-      title: "Collections",
+      title: localize("collections", "Collections"),
       icon: {
         light: context.asAbsolutePath("resources/light/collection.svg"),
         dark: context.asAbsolutePath("resources/dark/collection-inverse.svg"),

@@ -242,6 +242,7 @@
     "@microsoft/ads-service-downloader": "0.2.3",
     "mongodb": "3.6.10",
     "sockjs-client": "1.5.2",
+    "vscode-nls": "5.0.0",
     "ws": "8.2.3",
     "xterm": "4.15.0",
     "xterm-addon-fit": "0.5.0"

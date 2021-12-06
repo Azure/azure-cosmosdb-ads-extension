@@ -1,8 +1,10 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
+import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
 import { ProviderId } from "./connectionProvider";
 
+const localize = nls.loadMessageBundle();
 /**
  * Utilities to construct nodePath from server, database or collection nsmrd or extract the names from nodepath
  * nodePath naming convention: server/database/collection/{Documents, Scale & Settings}
@@ -22,7 +24,7 @@ export const getMongoInfo = (
     case 2:
       return { serverName: pathComponents[0], databaseName: pathComponents[1], collectionName: pathComponents[2] }; // collection node
     default:
-      throw new Error(`Unrecognized path ${nodePath}`);
+      throw new Error(localize("unrecognizedPath", "Unrecognized path {0}", nodePath));
   }
 };
 
@@ -133,7 +135,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
             light: this.context.asAbsolutePath("resources/light/database.svg"),
             dark: this.context.asAbsolutePath("resources/dark/database-inverse.svg"),
           },
-          label: db.name || "unknown",
+          label: db.name || localize("unknown", "Unknown"),
           isLeaf: false,
         })),
       });
@@ -158,7 +160,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
             light: this.context.asAbsolutePath("resources/light/collection.svg"),
             dark: this.context.asAbsolutePath("resources/dark/collection-inverse.svg"),
           },
-          label: coll.collectionName || "unknown",
+          label: coll.collectionName || localize("unknown", "Unknown"),
           isLeaf: true, // false, TODO: enable collection subnodes when support is implemented
         })),
       });
@@ -178,13 +180,13 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
             light: this.context.asAbsolutePath("resources/light/document.svg"),
             dark: this.context.asAbsolutePath("resources/dark/document-inverse.svg"),
           },
-          label: "Documents",
+          label: localize("documents", "Documents"),
           isLeaf: true,
         },
         {
           nodePath: `${nodeInfo?.nodePath}/scale_and_settings`,
           nodeType: "Service",
-          label: "Scale & Settings",
+          label: localize("scaleAndSettings", "Scale & Settings"),
           isLeaf: true,
           icon: {
             light: this.context.asAbsolutePath("resources/light/scale.svg"),

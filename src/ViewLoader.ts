@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import * as nls from "vscode-nls";
 
+const localize = nls.loadMessageBundle();
 export default class ViewLoader {
   private readonly _panel: vscode.WebviewPanel | undefined;
   private readonly _extensionPath: string;
@@ -10,7 +12,7 @@ export default class ViewLoader {
   constructor(extensionPath: string) {
     this._extensionPath = extensionPath;
 
-    this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", "Query", vscode.ViewColumn.One, {
+    this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", localize("query", "Query"), vscode.ViewColumn.One, {
       enableScripts: true,
 
       // localResourceRoots: [

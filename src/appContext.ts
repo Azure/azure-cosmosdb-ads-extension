@@ -1,5 +1,6 @@
 import { Collection, MongoClient, MongoClientOptions } from "mongodb";
 import * as vscode from "vscode";
+import * as nls from "vscode-nls";
 import * as azdata from "azdata";
 import { ProviderId } from "./Providers/connectionProvider";
 import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
@@ -8,7 +9,6 @@ import { TokenCredentials } from "@azure/ms-rest-js";
 import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
-import { URL } from "url";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
@@ -57,6 +57,7 @@ export interface IMongoShellOptions {
 }
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
+const localize = nls.loadMessageBundle();
 
 /**
  * Global context for app
@@ -121,7 +122,7 @@ export class AppContext {
       }));
 
     return vscode.window.showQuickPick<ConnectionPick>(picks, {
-      placeHolder: "Select mongo account",
+      placeHolder: localize("selectMongoAccount", "Select mongo account"),
     });
   }
 
@@ -140,14 +141,14 @@ export class AppContext {
 
       const serverName = connectionInfo.options["server"];
       if (!serverName) {
-        reject(`Missing serverName ${serverName}`);
+        reject(localize("missingServerName", "Missing serverName {0}", serverName));
         return;
       }
 
       // TODO reduce code duplication with ConnectionProvider.connect
       const connection = await (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
       if (connection.length < 1) {
-        reject(`Unable to retrieve credentials for ${serverName}`);
+        reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
         return;
       }
       const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
@@ -163,7 +164,7 @@ export class AppContext {
       }
 
       if (!connectionString) {
-        reject(`Unable to retrieve connection string`);
+        reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
         return;
       }
 
@@ -178,13 +179,16 @@ export class AppContext {
     });
   }
 
-  public createMongoCollection(connectionInfo?: azdata.ConnectionInfo, databaseName?: string): Promise<Collection> {
+  public createMongoCollection(
+    connectionInfo?: azdata.ConnectionInfo,
+    databaseName?: string
+  ): Promise<{ collection: Collection; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
       if (!connectionInfo) {
         const connectionProfile = await this._askUserForConnectionProfile();
         if (!connectionProfile) {
           // TODO Show error here
-          reject("Missing connectionProfile");
+          reject(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
 
@@ -193,35 +197,35 @@ export class AppContext {
 
       if (!databaseName) {
         databaseName = await vscode.window.showInputBox({
-          placeHolder: "Database",
-          prompt: "Enter database name",
+          placeHolder: localize("database", "Database"),
+          prompt: localize("enterDatabaseName", "Enter database name"),
           validateInput: validateMongoDatabaseName,
           ignoreFocusOut: true,
         });
       }
 
       const collectionName = await vscode.window.showInputBox({
-        placeHolder: "Collection",
-        prompt: "Enter collection name",
+        placeHolder: localize("collection", "Collection"),
+        prompt: localize("enterCollectionName", "Enter collection name"),
         validateInput: validateMongoCollectionName,
         ignoreFocusOut: true,
       });
 
       if (!collectionName) {
         // TODO handle error
-        reject("Collection cannot be undefined");
+        reject(localize("collectionCannotBeUndefined", "Collection cannot be undefined"));
         return;
       }
 
       const serverName = connectionInfo.options["server"];
       if (!serverName) {
-        reject(`Missing serverName ${serverName}`);
+        reject(localize("missingServerName", "Missing serverName {0}", serverName));
       }
 
       // TODO reduce code duplication with ConnectionProvider.connect
       const connection = await (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
       if (connection.length < 1) {
-        reject(`Unable to retrieve credentials for ${serverName}`);
+        reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
         return;
       }
       const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
@@ -237,7 +241,7 @@ export class AppContext {
       }
 
       if (!connectionString) {
-        reject(`Unable to retrieve connection string`);
+        reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
         return;
       }
 
@@ -245,9 +249,9 @@ export class AppContext {
 
       if (client) {
         const collection = await client.db(databaseName).createCollection(collectionName);
-        resolve(collection);
+        resolve({ collection, databaseName: databaseName! });
       } else {
-        reject(`Could not connect to ${serverName}`);
+        reject(localize("failConnectTo", "Could not connect to {0}", serverName));
         return;
       }
     });
@@ -284,14 +288,14 @@ export const hideStatusBarItem = (): void => {
 export function validateMongoCollectionName(collectionName: string): string | undefined | null {
   // https://docs.mongodb.com/manual/reference/limits/#Restriction-on-Collection-Names
   if (!collectionName) {
-    return "Collection name cannot be empty";
+    return localize("collectionNameCannotBeEmpty", "Collection name cannot be empty");
   }
   const systemPrefix = "system.";
   if (collectionName.startsWith(systemPrefix)) {
-    return `"${systemPrefix}" prefix is reserved for internal use`;
+    return localize("prefixForInternalUse", "{0} prefix is reserved for internal use", systemPrefix);
   }
   if (/[$]/.test(collectionName)) {
-    return "Collection name cannot contain $";
+    return localize("collectionNameCannotContainDollar", "Collection name cannot contain $");
   }
   return undefined;
 }
@@ -302,21 +306,21 @@ function validateMongoDatabaseName(database: string): string | undefined | null 
   const min = 1;
   const max = 63;
   if (!database || database.length < min || database.length > max) {
-    return `Database name must be between ${min} and ${max} characters.`;
+    return localize("databaseNameMinMaxChar", "Database name must be between {0} and {1} characters", min, max);
   }
   if (/[/\\. "$#?]/.test(database)) {
-    return 'Database name cannot contain these characters - `/\\. "$#?`';
+    return localize("databaseNameCannotContainChar", 'Database name cannot contain these characters - `/\\. "$#?`');
   }
   return undefined;
 }
 
 const retrieveAzureAccount = async (accountId: string): Promise<azdata.Account> => {
   const manyAccounts = await azdata.accounts.getAllAccounts();
-  showStatusBarItem("Retrieving Azure Account...");
+  showStatusBarItem(localize("retrievingAzureAccount", "Retrieving Azure Account..."));
   const accounts = (await azdata.accounts.getAllAccounts()).filter((a) => a.key.accountId === accountId);
   hideStatusBarItem();
   if (accounts.length < 1) {
-    throw new Error("No azure account found");
+    throw new Error(localize("noAzureAccountFound", "No azure account found"));
   }
 
   return accounts[0];
@@ -329,7 +333,7 @@ const retrieveAzureToken = async (
   const accountId = connectionInfo.options["azureAccount"];
   const azureAccount = await retrieveAzureAccount(accountId);
 
-  showStatusBarItem("Retrieving Azure Token...");
+  showStatusBarItem(localize("retrievingAzureToken", "Retrieving Azure Token..."));
   const azureToken = await azdata.accounts.getAccountSecurityToken(
     azureAccount,
     tenantId,
@@ -338,7 +342,7 @@ const retrieveAzureToken = async (
   hideStatusBarItem();
 
   if (!azureToken) {
-    throw new Error("Unable to retrieve ARM token");
+    throw new Error(localize("failRetrieveArmToken", "Unable to retrieve ARM token"));
   }
 
   return azureToken;
@@ -359,7 +363,7 @@ const createArmClient = async (connectionInfo: azdata.ConnectionInfo): Promise<C
   const armEndpoint = azureAccount.properties?.providerSettings?.settings?.armResource?.endpoint;
 
   if (!armEndpoint) {
-    throw new Error("Unable to retrieve ARM endpoint");
+    throw new Error(localize("failRetrieveArmEndpoint", "Unable to retrieve ARM endpoint"));
   }
 
   const { subscriptionId } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
@@ -375,7 +379,7 @@ const createArmMonitorClient = async (connectionInfo: azdata.ConnectionInfo): Pr
   const armEndpoint = azureAccount.properties?.providerSettings?.settings?.armResource?.endpoint;
 
   if (!armEndpoint) {
-    throw new Error("Unable to retrieve ARM endpoint");
+    throw new Error(localize("failRetrieveArmEndpoint", "Unable to retrieve ARM endpoint"));
   }
 
   const { subscriptionId } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
@@ -392,7 +396,7 @@ export const retrieveConnectionStringFromArm = async (connectionInfo: azdata.Con
   const client = await createArmClient(connectionInfo);
   const cosmosDbAccountName = connectionInfo.options["server"];
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
-  showStatusBarItem("Retrieving connection string...");
+  showStatusBarItem(localize("retrievingConnectionString", "Retrieving connection string..."));
   const connectionStringsResponse = await client.databaseAccounts.listConnectionStrings(
     resourceGroup,
     cosmosDbAccountName
@@ -400,7 +404,7 @@ export const retrieveConnectionStringFromArm = async (connectionInfo: azdata.Con
   hideStatusBarItem();
   const connectionString = connectionStringsResponse.connectionStrings?.[0]?.connectionString;
   if (!connectionString) {
-    throw new Error("Missing connection string");
+    throw new Error(localize("missingConnectionString", "Missing connection string"));
   }
   return connectionString;
 };
@@ -411,7 +415,7 @@ export const retrieveDatabaseAccountInfoFromArm = async (
   const client = await createArmClient(connectionInfo);
   const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
-  showStatusBarItem("Retrieving database accounts...");
+  showStatusBarItem(localize("retrievingDatabaseAccounts", "Retrieving database accounts..."));
   const databaseAccount = await client.databaseAccounts.get(resourceGroup, accountName);
   hideStatusBarItem();
   return {
@@ -441,7 +445,7 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   monitorARmClient: MonitorManagementClient,
   resourceUri: string
 ): Promise<ICosmosDbDatabaseInfo> => {
-  showStatusBarItem("Retrieving mongodb collections...");
+  showStatusBarItem(localize("retrievingMongoDbCollection", "Retrieving mongodb collections..."));
   const collections = await client.mongoDBResources.listMongoDBCollections(
     resourceGroupName,
     accountName,
@@ -450,7 +454,7 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
 
   let throughputSetting = "N/A";
   try {
-    showStatusBarItem("Retrieving mongodb database throughput...");
+    showStatusBarItem(localize("retrievingMongoDbDatabaseThroughput", "Retrieving mongodb database throughput..."));
     const rpResponse = await client.mongoDBResources.getMongoDBDatabaseThroughput(
       resourceGroupName,
       accountName,
@@ -484,7 +488,7 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
   const client = await createArmClient(connectionInfo);
   const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
-  showStatusBarItem("Retrieving mongodb databases...");
+  showStatusBarItem(localize("retrievingMongoDbDatabases", "Retrieving mongodb databases..."));
   const mongoDBResources = await client.mongoDBResources.listMongoDBDatabases(resourceGroup, accountName);
   hideStatusBarItem();
   const monitorArmClient = await createArmMonitorClient(connectionInfo);
@@ -538,7 +542,7 @@ const retrieveMongoDbCollectionInfoFromArm = async (
 
   let documentCount;
   try {
-    showStatusBarItem("Retrieving mongodb usage...");
+    showStatusBarItem(localize("retrievingMongoDbUsage", "Retrieving mongodb usage..."));
     const metricsResponse = await monitorARmClient.metrics.list(resourceUri, { filter, metricnames });
     hideStatusBarItem();
     documentCount = metricsResponse.value[0].timeseries?.[0].data?.[0]?.total;
@@ -561,7 +565,7 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
   const client = await createArmClient(connectionInfo);
   const accountName = getAccountName(connectionInfo);
   const { resourceGroup } = parsedAzureResourceId(connectionInfo.options["azureResourceId"]);
-  showStatusBarItem("Retrieving mongodb usage...");
+  showStatusBarItem(localize("retrievingMongoDbUsage", "Retrieving mongodb usage..."));
   const mongoDBResources = await client.mongoDBResources.listMongoDBCollections(
     resourceGroup,
     accountName,

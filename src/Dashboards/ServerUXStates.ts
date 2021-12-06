@@ -1,43 +1,44 @@
 // Mapping provisioning state to the same values displayed in portal (see DatabaseStatusUtility.getUxState())
+import * as nls from "vscode-nls";
+const localize = nls.loadMessageBundle();
 
 class DocumentServiceResourceStatus {
-  public static Initializing = "Initializing";
-  public static Creating = "Creating";
-  public static Verifying = "Verifying";
-  public static Online = "Online";
-  public static Offline = "Offline";
-  public static Offlining = "Offlining";
-  public static Deleting = "Deleting";
-  public static DeletionFailed = "DeletionFailed";
-  public static Updating = "Updating";
-  public static NotFound = "NotFound";
-  public static CreationFailed = "CreationFailed";
-  public static Restoring = "Restoring";
-  public static RestoreFailed = "RestoreFailed";
+  public static Initializing = localize("initializing", "Initializing");
+  public static Creating = localize("creating", "Creating");
+  public static Verifying = localize("verifying", "Verifying");
+  public static Online = localize("online", "Online");
+  public static Offline = localize("offline", "Offline");
+  public static Offlining = localize("offlining", "Offlining");
+  public static Deleting = localize("deleting", "Deleting");
+  public static DeletionFailed = localize("deletionFailed", "DeletionFailed");
+  public static Updating = localize("updating", "Updating");
+  public static NotFound = localize("notFound", "NotFound");
+  public static CreationFailed = localize("creationFailed", "CreationFailed");
+  public static Restoring = localize("restoring", "Restoring");
+  public static RestoreFailed = localize("restoreFailed", "RestoreFailed");
 }
 
 class ResourceProvisiningTerminalStates {
-  public static Succeeded = "Succeeded";
-  public static Failed = "Failed";
+  public static Succeeded = localize("succeeded", "Succeeded");
+  public static Failed = localize("failed", "Failed");
 }
 
-// TODO Translate this
 class GeneralResources {
-  public static dbSeverStatusOnline = "Online";
-  public static accountCreationFailed = "Account Creation Failed";
-  public static restoreFailed = "Restore Failed";
-  public static failed = "Failed";
-  public static dbServerStatusOffline = "Offline";
-  public static dbServerStatusCreating = "Creating";
-  public static dbServerStatusDeleting = "Deleting";
-  public static dbServerStatusUpdating = "Updating";
-  public static dbServerStatusRestoring = "Restoring";
-  public static dbServerStatusDeletionFailed = "Deletion Failed";
+  public static dbSeverStatusOnline = localize("online", "Online");
+  public static accountCreationFailed = localize("accountCreationFailed", "Account Creation Failed");
+  public static restoreFailed = localize("restoredFailed", "Restore Failed");
+  public static failed = localize("failed", "Failed");
+  public static dbServerStatusOffline = localize("offline", "Offline");
+  public static dbServerStatusCreating = localize("creating", "Creating");
+  public static dbServerStatusDeleting = localize("deleting", "Deleting");
+  public static dbServerStatusUpdating = localize("updating", "Updating");
+  public static dbServerStatusRestoring = localize("restoring", "Restoring");
+  public static dbServerStatusDeletionFailed = localize("deletionFailed", "Deletion Failed");
 }
 
 export const getServerState = (provisioningState: string | undefined): string => {
   if (!provisioningState) {
-    return "Unknown"; // TODO Translate
+    return localize("unknown", "Unknown");
   }
   switch (provisioningState.toUpperCase()) {
     case DocumentServiceResourceStatus.Online.toUpperCase():
