@@ -222,7 +222,7 @@ export function activate(context: vscode.ExtensionContext) {
       "cosmosdb-ads-extension.openDatabaseDashboard",
       (azureAccountId: string, databaseName: string) => {
         // TODO ask for database if databaseName not defined
-        databaseDashboard.openDatabaseDashboard(azureAccountId, databaseName, context);
+        databaseDashboard.openDatabaseDashboard(azureAccountId, databaseName, appContext, context);
       }
     )
   );

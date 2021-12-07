@@ -181,7 +181,8 @@ export class AppContext {
 
   public createMongoCollection(
     connectionInfo?: azdata.ConnectionInfo,
-    databaseName?: string
+    databaseName?: string,
+    collectionName?: string
   ): Promise<{ collection: Collection; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
       if (!connectionInfo) {
@@ -204,12 +205,14 @@ export class AppContext {
         });
       }
 
-      const collectionName = await vscode.window.showInputBox({
-        placeHolder: localize("collection", "Collection"),
-        prompt: localize("enterCollectionName", "Enter collection name"),
-        validateInput: validateMongoCollectionName,
-        ignoreFocusOut: true,
-      });
+      if (!collectionName) {
+        collectionName = await vscode.window.showInputBox({
+          placeHolder: localize("collection", "Collection"),
+          prompt: localize("enterCollectionName", "Enter collection name"),
+          validateInput: validateMongoCollectionName,
+          ignoreFocusOut: true,
+        });
+      }
 
       if (!collectionName) {
         // TODO handle error
@@ -265,6 +268,67 @@ export class AppContext {
     const client = this._mongoClients.get(server);
     this._mongoClients.delete(server);
     return client!.close();
+  }
+
+  /**
+   *
+   * @param server
+   * @param sampleData
+   * @returns Promise with inserted count
+   */
+  public async insertDocuments(server: string, sampleData: SampleData): Promise<number> {
+    return new Promise(async (resolve, reject) => {
+      if (sampleData.data.length < 1) {
+        reject(localize("noSampleDataProvided", "No sample data provided"));
+        return;
+      }
+
+      // should already be connected
+      const client = this._mongoClients.get(server);
+      if (!client) {
+        return Promise.reject(localize("notConnected", "Not connected"));
+      }
+
+      const response = await vscode.window.showInformationMessage(
+        localize(
+          "ingestSampleMongoDataConfirm",
+          "This will create a database '{0}' and a collection '{1}'. Are you sure?",
+          sampleData.databaseId,
+          sampleData.collectionId
+        ),
+        ...[localize("yes", "Yes"), localize("no", "No")]
+      );
+      if (response !== "Yes") {
+        return;
+      }
+
+      let collection = undefined;
+      if (sampleData.createNewDatabase) {
+        showStatusBarItem(localize("creatingCollection", "Creating collection {0}...", sampleData.collectionId));
+        collection = await client.db(sampleData.databaseId).createCollection(sampleData.collectionId);
+        hideStatusBarItem();
+        if (!collection) {
+          reject(localize("failCreateCollection", "Failed to create collection"));
+          return;
+        }
+      } else {
+        collection = await client.db(sampleData.databaseId).collection(sampleData.collectionId);
+        if (!collection) {
+          reject(localize("failGetCollection", "Failed to get collection"));
+          return;
+        }
+      }
+
+      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
+      const result = await collection.insert(sampleData.data);
+      hideStatusBarItem();
+      if (result.insertedCount < sampleData.data.length) {
+        reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
+        return;
+      }
+
+      return resolve(result.insertedCount);
+    });
   }
 }
 
@@ -420,9 +484,9 @@ export const retrieveDatabaseAccountInfoFromArm = async (
   hideStatusBarItem();
   return {
     serverStatus: getServerState(databaseAccount.provisioningState),
-    backupPolicy: databaseAccount.backupPolicy?.type ?? "None", // TODO Translate this
-    consistencyPolicy: databaseAccount.consistencyPolicy?.defaultConsistencyLevel ?? "None", // TODO Translate this
-    location: databaseAccount.location ?? "Unknown", // TODO Translate this
+    backupPolicy: databaseAccount.backupPolicy?.type ?? localize("none", "None"),
+    consistencyPolicy: databaseAccount.consistencyPolicy?.defaultConsistencyLevel ?? localize("none", "None"),
+    location: databaseAccount.location ?? localize("unknown", "Unknown"),
     readLocations: databaseAccount.readLocations ? databaseAccount.readLocations.map((l) => l.locationName ?? "") : [],
   };
 };
@@ -592,6 +656,20 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
 
   return await Promise.all(promises);
 };
+
+interface SampleData {
+  databaseId: string;
+  collectionId: string;
+  offerThroughput?: number;
+  data: any[];
+  databaseLevelThroughput?: boolean;
+  createNewDatabase?: boolean;
+  partitionKey?: {
+    kind: string;
+    paths: string[];
+    version: number;
+  };
+}
 
 export const isAzureconnection = (connectionInfo: azdata.ConnectionInfo): boolean =>
   connectionInfo.options["authenticationType"] === "AzureMFA";

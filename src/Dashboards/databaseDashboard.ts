@@ -6,8 +6,9 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
+import { AppContext, retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
+import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "./util";
 
 interface IButtonData {
@@ -54,6 +55,7 @@ const buildToolbar = (
 
 const buildWorkingWithDatabase = (
   view: azdata.ModelView,
+  appContext: AppContext,
   context: vscode.ExtensionContext,
   databaseName: string,
   connection: azdata.ConnectionInfo
@@ -77,7 +79,7 @@ const buildWorkingWithDatabase = (
       context.asAbsolutePath("images/AddDatabase.svg"),
       localize("sampleCollection", "Sample collection"),
       localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
-      () => {}
+      () => ingestSampleMongoData(appContext, context, connection, databaseName)
     ),
   ];
 
@@ -185,6 +187,7 @@ const buildCollectionsArea = async (
 export const openDatabaseDashboard = async (
   azureAccountId: string,
   databaseName: string,
+  appContext: AppContext,
   context: vscode.ExtensionContext
 ): Promise<void> => {
   const connectionInfo = (await azdata.connection.getConnections()).filter(
@@ -206,7 +209,7 @@ export const openDatabaseDashboard = async (
     const homeTabContainer = view.modelBuilder
       .flexContainer()
       .withItems([
-        buildWorkingWithDatabase(view, context, databaseName, connectionInfo),
+        buildWorkingWithDatabase(view, appContext, context, databaseName, connectionInfo),
         await buildCollectionsArea(databaseName, view, context, connectionInfo),
       ])
       .withLayout({ flexFlow: "column" })
