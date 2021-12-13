@@ -27,6 +27,7 @@ export interface ICosmosDbDatabaseAccountInfo {
   consistencyPolicy: string;
   readLocations: string[];
   location: string;
+  documentEndpoint: string | undefined;
 }
 
 export interface ICosmosDbDatabaseInfo {
@@ -112,24 +113,10 @@ export class AppContext {
     return await this._mongoClients.get(server)!.db(databaseName).dropCollection(collectionName);
   }
 
-  private async _askUserForConnectionProfile(): Promise<ConnectionPick | undefined> {
-    const connections = await azdata.connection.getConnections();
-    const picks: ConnectionPick[] = connections
-      .filter((c) => c.providerId === ProviderId)
-      .map((c) => ({
-        ...c,
-        label: c.connectionName,
-      }));
-
-    return vscode.window.showQuickPick<ConnectionPick>(picks, {
-      placeHolder: localize("selectMongoAccount", "Select mongo account"),
-    });
-  }
-
   public getMongoShellOptions(connectionInfo?: azdata.ConnectionInfo): Promise<IMongoShellOptions | undefined> {
     return new Promise(async (resolve, reject) => {
       if (!connectionInfo) {
-        const connectionProfile = await this._askUserForConnectionProfile();
+        const connectionProfile = await askUserForConnectionProfile();
         if (!connectionProfile) {
           // TODO Show error here
           resolve(undefined);
@@ -186,7 +173,7 @@ export class AppContext {
   ): Promise<{ collection: Collection; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
       if (!connectionInfo) {
-        const connectionProfile = await this._askUserForConnectionProfile();
+        const connectionProfile = await askUserForConnectionProfile();
         if (!connectionProfile) {
           // TODO Show error here
           reject(localize("missingConnectionProfile", "Missing ConnectionProfile"));
@@ -332,6 +319,20 @@ export class AppContext {
   }
 }
 
+const askUserForConnectionProfile = async (): Promise<ConnectionPick | undefined> => {
+  const connections = await azdata.connection.getConnections();
+  const picks: ConnectionPick[] = connections
+    .filter((c) => c.providerId === ProviderId)
+    .map((c) => ({
+      ...c,
+      label: c.connectionName,
+    }));
+
+  return vscode.window.showQuickPick<ConnectionPick>(picks, {
+    placeHolder: localize("selectMongoAccount", "Select mongo account"),
+  });
+};
+
 export const createStatusBarItem = (): void => {
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 200);
 };
@@ -379,7 +380,6 @@ function validateMongoDatabaseName(database: string): string | undefined | null 
 }
 
 const retrieveAzureAccount = async (accountId: string): Promise<azdata.Account> => {
-  const manyAccounts = await azdata.accounts.getAllAccounts();
   showStatusBarItem(localize("retrievingAzureAccount", "Retrieving Azure Account..."));
   const accounts = (await azdata.accounts.getAllAccounts()).filter((a) => a.key.accountId === accountId);
   hideStatusBarItem();
@@ -412,12 +412,15 @@ const retrieveAzureToken = async (
   return azureToken;
 };
 
-const parsedAzureResourceId = (azureResourceId: string): { subscriptionId: string; resourceGroup: string } => {
+const parsedAzureResourceId = (
+  azureResourceId: string
+): { subscriptionId: string; resourceGroup: string; dbAccountName: string } => {
   // TODO Add error handling
   const parsedAzureResourceId = azureResourceId.split("/");
   return {
     subscriptionId: parsedAzureResourceId[2],
     resourceGroup: parsedAzureResourceId[4],
+    dbAccountName: parsedAzureResourceId[8],
   };
 };
 
@@ -488,6 +491,7 @@ export const retrieveDatabaseAccountInfoFromArm = async (
     consistencyPolicy: databaseAccount.consistencyPolicy?.defaultConsistencyLevel ?? localize("none", "None"),
     location: databaseAccount.location ?? localize("unknown", "Unknown"),
     readLocations: databaseAccount.readLocations ? databaseAccount.readLocations.map((l) => l.locationName ?? "") : [],
+    documentEndpoint: databaseAccount.documentEndpoint,
   };
 };
 
@@ -655,6 +659,50 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
     );
 
   return await Promise.all(promises);
+};
+
+export interface NotebookServiceInfo {
+  cosmosEndpoint: string;
+  dbAccountName: string;
+  aadToken: string;
+  subscriptionId: string;
+  resourceGroup: string;
+  sessionToken: string | undefined;
+}
+
+/**
+ *
+ * @returns Only work for MFA
+ */
+export const getNbServiceInfo = async (): Promise<NotebookServiceInfo> => {
+  return new Promise(async (resolve, reject) => {
+    const connectionProfile = await askUserForConnectionProfile();
+    if (!connectionProfile || connectionProfile.options["authenticationType"] !== "AzureMFA") {
+      // TODO Show error here
+      reject(localize("notAzureAccount", "Not an Azure account"));
+      return;
+    }
+
+    const { subscriptionId, resourceGroup, dbAccountName } = parsedAzureResourceId(
+      connectionProfile.options["azureResourceId"]
+    );
+    const azureToken = await retrieveAzureToken(connectionProfile);
+    const accountInfo = await retrieveDatabaseAccountInfoFromArm(connectionProfile);
+
+    if (!accountInfo.documentEndpoint) {
+      reject(localize("missingDocumentEndpointFromAccountInfo", "Missing documentEndpoint from account information"));
+      return;
+    }
+
+    resolve({
+      cosmosEndpoint: accountInfo.documentEndpoint,
+      dbAccountName,
+      aadToken: azureToken.token,
+      subscriptionId,
+      resourceGroup,
+      sessionToken: "1234",
+    });
+  });
 };
 
 interface SampleData {

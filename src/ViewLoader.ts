@@ -2,14 +2,20 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import * as nls from "vscode-nls";
+import { NotebookServiceInfo } from "./appContext";
 
 const localize = nls.loadMessageBundle();
+
+interface ICommand {
+  action: "ready";
+}
+
 export default class ViewLoader {
   private readonly _panel: vscode.WebviewPanel | undefined;
   private readonly _extensionPath: string;
   private _disposables: vscode.Disposable[] = [];
 
-  constructor(extensionPath: string) {
+  constructor(extensionPath: string, callback: () => void) {
     this._extensionPath = extensionPath;
 
     this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", localize("query", "Query"), vscode.ViewColumn.One, {
@@ -22,21 +28,34 @@ export default class ViewLoader {
 
     this._panel.webview.html = this.getWebviewContent();
 
-    // this._panel.webview.onDidReceiveMessage(
-    //   (command: ICommand) => {
-    //     switch (command.action) {
-    //       case CommandAction.Save:
-    //         this.saveFileContent(fileUri, command.content);
-    //         return;
-    //     }
-    //   },
-    //   undefined,
-    //   this._disposables
-    // );
+    this._panel.webview.onDidReceiveMessage(
+      (command: ICommand) => {
+        switch (command.action) {
+          case "ready":
+            callback();
+            return;
+        }
+      },
+      undefined,
+      this._disposables
+    );
+  }
+
+  public sendInitializeMessage(initMsg: NotebookServiceInfo) {
+    console.log("sending message from webview", initMsg);
+    if (!this._panel) {
+      console.error("panel not ready, yet");
+      return;
+    }
+
+    this._panel!.webview.postMessage(initMsg);
   }
 
   private getWebviewContent(): string {
-    const site = "https://localhost:5001/notebookClient/dist/index.html";
+    const hostname = "https://localhost:5001";
+    // const hostname = "https://localhost:44329";
+    const site = `${hostname}/notebookClient/dist/index.html`;
+
     return `<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -53,11 +72,28 @@ export default class ViewLoader {
     </head>
     <body>
       <iframe
+				id="nbclient"
         title="nbclient"
         width="300"
         height="200"
         src="${site}">
       </iframe>
+			<script>
+				const iframe = document.getElementById('nbclient');
+        // Handle the message inside the webview
+        window.addEventListener('message', event => {
+            const message = event.data; // The JSON data our extension sent
+						console.log('Webview forwarding', message);
+						iframe.contentWindow.postMessage(message, '${hostname}');
+        });
+
+				iframe.onload = function (){
+					const vscode = window.acquireVsCodeApi();
+					vscode.postMessage({
+						action: 'ready'
+					});
+				};
+    </script>
     </body>
     </html>`;
   }

@@ -14,7 +14,14 @@ import * as azdata from "azdata";
 import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
 import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
-import { AppContext, createStatusBarItem, hideStatusBarItem, showStatusBarItem } from "./appContext";
+import {
+  AppContext,
+  createStatusBarItem,
+  getNbServiceInfo,
+  hideStatusBarItem,
+  NotebookServiceInfo,
+  showStatusBarItem,
+} from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
@@ -237,7 +244,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openQuery",
-      (azureAccountId: string, databaseName: string, collectionName: string) => {
+      async (azureAccountId: string, databaseName: string, collectionName: string) => {
         // const panel = vscode.window.createWebviewPanel(
         //   "cosmosDbQuery", // Identifies the type of the webview. Used internally
         //   "Query", // Title of the panel displayed to the user
@@ -265,7 +272,14 @@ export function activate(context: vscode.ExtensionContext) {
 
         // panel.webview.html = getWebviewContent();
 
-        const view = new ViewLoader(context.extensionPath);
+        try {
+          const initMsg: NotebookServiceInfo = await getNbServiceInfo();
+          const view = new ViewLoader(context.extensionPath, () => {
+            view.sendInitializeMessage(initMsg);
+          });
+        } catch (e) {
+          vscode.window.showErrorMessage(localize("failOpenNotebookClient", "Error opening notebook client"));
+        }
       }
     )
   );
