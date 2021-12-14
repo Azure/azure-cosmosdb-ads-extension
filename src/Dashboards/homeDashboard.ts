@@ -21,10 +21,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
       label: localize("newDatabase", "New Database"),
-      iconPath: {
-        light: context.asAbsolutePath("images/AddDatabase.svg"),
-        dark: context.asAbsolutePath("images/AddDatabase.svg"),
-      },
+      iconPath: context.asAbsolutePath("resources/fluent/new-database.svg"),
       onDidClick: () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
           connectionProfile: view.connection,
@@ -32,17 +29,14 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     },
     {
       label: localize("openMongoShell", "Open Mongo Shell"),
-      iconPath: {
-        light: context.asAbsolutePath("images/Hosted-Terminal.svg"),
-        dark: context.asAbsolutePath("images/Hosted-Terminal.svg"),
-      },
+      iconPath: context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
       onDidClick() {
         vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
           connectionProfile: view.connection,
         });
       },
     },
-    /* TODO Implement
+    /* TODO Implement and add icon
     {
       label: localize("refresh", "Refresh"),
       iconPath: {
@@ -56,10 +50,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
 		*/
     {
       label: localize("learnMore", "Learn more"),
-      iconPath: {
-        light: context.asAbsolutePath("images/Info.svg"),
-        dark: context.asAbsolutePath("images/Info.svg"),
-      },
+      iconPath: context.asAbsolutePath("resources/fluent/documentation.svg"),
       onDidClick() {
         console.log("Not implemented");
       },
@@ -115,7 +106,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
   const heroCards: azdata.ButtonComponent[] = [
     buildHeroCard(
       view,
-      context.asAbsolutePath("images/AddDatabase.svg"),
+      context.asAbsolutePath("resources/fluent/new-database.svg"),
       localize("newDatabase", "New Database"),
       localize("newDtabaseDescription", "Create database to store you data"),
       () =>
@@ -125,7 +116,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     ),
     buildHeroCard(
       view,
-      context.asAbsolutePath("images/Hosted-Terminal.svg"),
+      context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
       localize("openMongoShell", "Open Mongo Shell"),
       localize("mongoShellDescription", "Interact with data using Mongo shell"),
       () =>
@@ -135,14 +126,14 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     ),
     buildHeroCard(
       view,
-      context.asAbsolutePath("images/azure.svg"),
+      context.asAbsolutePath("resources/fluent/azure.svg"),
       localize("openInPortal", "Open in portal"),
       localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
       () => openInPortal(view.connection)
     ),
     buildHeroCard(
       view,
-      context.asAbsolutePath("images/Info.svg"),
+      context.asAbsolutePath("resources/fluent/documentation.svg"),
       localize("documentation", "Documentation"),
       localize("documentation", "Find quickstarts, how-to guides, and references."),
       () => {
@@ -250,10 +241,7 @@ const buildDatabasesAreaAzure = async (
       data: databasesInfo.map((db) => [
         <azdata.HyperlinkColumnCellValue>{
           title: db.name,
-          icon: {
-            light: context.asAbsolutePath("resources/light/database.svg"),
-            dark: context.asAbsolutePath("resources/dark/database-inverse.svg"),
-          },
+          icon: context.asAbsolutePath("resources/fluent/database.svg"),
         },
         db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
         db.nbCollections,

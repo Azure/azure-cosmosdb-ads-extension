@@ -28,10 +28,7 @@ const buildToolbar = (
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
       label: localize("newCollection", "New Collection"),
-      iconPath: {
-        light: context.asAbsolutePath("images/AddDatabase.svg"),
-        dark: context.asAbsolutePath("images/AddDatabase.svg"),
-      },
+      iconPath: context.asAbsolutePath("resources/fluent/new-collection.svg"),
       onDidClick: () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", {
           connectionProfile: connection,
@@ -63,7 +60,7 @@ const buildWorkingWithDatabase = (
   const heroCards: azdata.ButtonComponent[] = [
     buildHeroCard(
       view,
-      context.asAbsolutePath("images/AddDatabase.svg"),
+      context.asAbsolutePath("resources/fluent/new-collection.svg"),
       localize("newCollection", "New Collection"),
       localize("newCollectionDescription", "Create a new collection to store you data"),
       () =>
@@ -76,7 +73,7 @@ const buildWorkingWithDatabase = (
     ),
     buildHeroCard(
       view,
-      context.asAbsolutePath("images/AddDatabase.svg"),
+      context.asAbsolutePath("resources/fluent/new-database.svg"),
       localize("sampleCollection", "Sample collection"),
       localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
       () => ingestSampleMongoData(appContext, context, connection, databaseName)
@@ -145,10 +142,7 @@ const buildCollectionsArea = async (
       data: collectionsInfo.map((collection) => [
         <azdata.HyperlinkColumnCellValue>{
           title: collection.name,
-          icon: {
-            light: context.asAbsolutePath("resources/light/collection.svg"),
-            dark: context.asAbsolutePath("resources/dark/collection-inverse.svg"),
-          },
+          icon: context.asAbsolutePath("resources/fluent/collection.svg"),
         },
         collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
         collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
@@ -220,7 +214,7 @@ export const openDatabaseDashboard = async (
       toolbar: buildToolbar(view, context, databaseName, connectionInfo),
       content: homeTabContainer,
       title: "Home",
-      icon: context.asAbsolutePath("images/home.svg"), // icon can be the path of a svg file
+      icon: context.asAbsolutePath("resources/fluent/home.svg"), // icon can be the path of a svg file
     };
 
     // TODO Implement this tab
@@ -228,10 +222,7 @@ export const openDatabaseDashboard = async (
       id: "collections",
       content: input1,
       title: localize("collections", "Collections"),
-      icon: {
-        light: context.asAbsolutePath("resources/light/collection.svg"),
-        dark: context.asAbsolutePath("resources/dark/collection-inverse.svg"),
-      },
+      icon: context.asAbsolutePath("resources/fluent/collection.svg"),
     };
 
     return [homeTab /*, collectionsTab */];

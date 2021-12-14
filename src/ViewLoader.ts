@@ -52,8 +52,8 @@ export default class ViewLoader {
   }
 
   private getWebviewContent(): string {
-    const hostname = "https://localhost:5001";
-    // const hostname = "https://localhost:44329";
+    // const hostname = "https://localhost:5001";
+    const hostname = "https://localhost:44329";
     const site = `${hostname}/notebookClient/dist/index.html`;
 
     return `<!DOCTYPE html>

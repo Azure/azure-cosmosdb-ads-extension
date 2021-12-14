@@ -102,10 +102,7 @@
       {
         "id": "mongo-databases.tab",
         "title": "Databases",
-        "icon": {
-          "light": "./out/src/media/insights.svg",
-          "dark": "./out/src/media/insights_inverse.svg"
-        },
+        "icon": "resources/fluent/database.svg",
         "description": "Shows all account databases",
         "provider": "*",
         "container": {
@@ -122,8 +119,8 @@
         {
           "id": "cosmosdb",
           "path": {
-            "light": "images/Azure-Cosmos-DB.svg",
-            "dark": "images/Azure-Cosmos-DB.svg"
+            "light": "resources/light/cosmosdb.svg",
+            "dark": "resources/dark/cosmosdb-inverse.svg"
           },
           "default": true
         }
