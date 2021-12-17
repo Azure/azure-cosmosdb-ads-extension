@@ -337,6 +337,8 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const terminal = vscode.window.createTerminal(terminalOptions);
+        context.subscriptions.push(terminal);
+
         terminalMap.set(serverName, terminal);
         vscode.window.onDidCloseTerminal((t) => {
           if (t === terminal && t.exitStatus !== undefined) {

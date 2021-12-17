@@ -9,6 +9,7 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
   AppContext,
+  ICosmosDbDatabaseAccountInfo,
   isAzureconnection,
   retrieveDatabaseAccountInfoFromArm,
   retrieveMongoDbDatabasesInfoFromArm,
@@ -68,38 +69,54 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     .component();
 };
 
-const buildOverview = async (view: azdata.ModelView): Promise<azdata.Component> => {
-  const databaseAccountInfo = await retrieveDatabaseAccountInfoFromArm(view.connection);
-  const propertyItems: azdata.PropertiesContainerItem[] = [
-    {
-      displayName: localize("status", "Status"),
-      value: databaseAccountInfo.serverStatus,
-    },
-    {
-      displayName: localize("consistencyPolicy", "Consistency policy"),
-      value: databaseAccountInfo.consistencyPolicy,
-    },
-    {
-      displayName: localize("backupPolicy", "Backup policy"),
-      value: databaseAccountInfo.backupPolicy,
-    },
-    {
-      displayName: localize("readLocation", "Read location"),
-      value: databaseAccountInfo.readLocations.join(","),
-    },
-  ];
+const buildOverview = (view: azdata.ModelView): azdata.Component => {
+  retrieveDatabaseAccountInfoFromArm(view.connection).then((databaseAccountInfo) => {
+    const propertyItems: azdata.PropertiesContainerItem[] = [
+      {
+        displayName: localize("status", "Status"),
+        value: databaseAccountInfo.serverStatus,
+      },
+      {
+        displayName: localize("consistencyPolicy", "Consistency policy"),
+        value: databaseAccountInfo.consistencyPolicy,
+      },
+      {
+        displayName: localize("backupPolicy", "Backup policy"),
+        value: databaseAccountInfo.backupPolicy,
+      },
+      {
+        displayName: localize("readLocation", "Read location"),
+        value: databaseAccountInfo.readLocations.join(","),
+      },
+    ];
 
-  const properties = view.modelBuilder.propertiesContainer().withProperties({ propertyItems }).component();
-  return view.modelBuilder
+    properties.propertyItems = propertyItems;
+    component.loading = false;
+  });
+
+  const propertyItems: azdata.PropertiesContainerItem[] = [];
+  const properties = view.modelBuilder.propertiesContainer().withProps({ propertyItems }).component();
+
+  const overview = view.modelBuilder
     .divContainer()
     .withItems([properties])
-    .withProperties({
+    .withProps({
       CSSStyles: {
         padding: "10px",
         "border-bottom": "1px solid rgba(128, 128, 128, 0.35)",
       },
     })
     .component();
+
+  const component = view.modelBuilder
+    .loadingComponent()
+    .withItem(overview)
+    .withProps({
+      loading: true,
+    })
+    .component();
+
+  return component;
 };
 
 const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {
@@ -371,7 +388,7 @@ export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appC
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     const viewItems: azdata.Component[] = [buildToolbar(view, context)];
     if (isAzureconnection(view.connection)) {
-      viewItems.push(await buildOverview(view));
+      viewItems.push(buildOverview(view));
     }
     viewItems.push(buildGettingStarted(view, context));
 

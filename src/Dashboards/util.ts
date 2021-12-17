@@ -13,7 +13,7 @@ export const buildHeroCard = (
 ): azdata.ButtonComponent => {
   const button = view.modelBuilder
     .button()
-    .withProperties<azdata.ButtonProperties>({
+    .withProps({
       buttonType: azdata.ButtonType.Informational,
       description,
       height: 84,
