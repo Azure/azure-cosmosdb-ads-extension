@@ -39,7 +39,7 @@ const buildToolbar = (
     },
   ];
   const navElements: azdata.ButtonComponent[] = buttons.map((b) => {
-    const component = view.modelBuilder.button().withProperties(b).component();
+    const component = view.modelBuilder.button().withProps(b).component();
     component.onDidClick(b.onDidClick);
     return component;
   });
@@ -84,7 +84,7 @@ const buildWorkingWithDatabase = (
     .flexContainer()
     .withItems(heroCards)
     .withLayout({ flexFlow: "row", flexWrap: "wrap" })
-    .withProperties({ CSSStyles: { width: "100%" } })
+    .withProps({ CSSStyles: { width: "100%" } })
     .component();
 
   return view.modelBuilder
@@ -92,7 +92,7 @@ const buildWorkingWithDatabase = (
     .withItems([
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize("gettingStarted", "Getting started"),
           CSSStyles: { "font-family": "20px", "font-weight": "600" },
         })
@@ -100,7 +100,7 @@ const buildWorkingWithDatabase = (
       heroCardsContainer,
     ])
     .withLayout({ flexFlow: "column" })
-    .withProperties({
+    .withProps({
       CSSStyles: {
         padding: "10px",
       },
@@ -114,11 +114,23 @@ const buildCollectionsArea = async (
   context: vscode.ExtensionContext,
   connectionInfo: azdata.ConnectionInfo
 ): Promise<azdata.Component> => {
-  const collectionsInfo = await retrieveMongoDbCollectionsInfoFromArm(connectionInfo, databaseName);
+  retrieveMongoDbCollectionsInfoFromArm(connectionInfo, databaseName).then((collectionsInfo) => {
+    tableComponent.data = collectionsInfo.map((collection) => [
+      <azdata.HyperlinkColumnCellValue>{
+        title: collection.name,
+        icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+      },
+      collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
+      collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
+      collection.throughputSetting,
+    ]);
+
+    tableLoadingComponent.loading = false;
+  });
 
   const tableComponent = view.modelBuilder
     .table()
-    .withProperties<azdata.TableComponentProperties>({
+    .withProps({
       columns: [
         <azdata.HyperlinkColumn>{
           value: localize("collection", "Collection"),
@@ -139,19 +151,19 @@ const buildCollectionsArea = async (
           type: azdata.ColumnType.text,
         },
       ],
-      data: collectionsInfo.map((collection) => [
-        <azdata.HyperlinkColumnCellValue>{
-          title: collection.name,
-          icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-        },
-        collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
-        collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
-        collection.throughputSetting,
-      ]),
+      data: [],
       height: 500,
       CSSStyles: {
         padding: "20px",
       },
+    })
+    .component();
+
+  const tableLoadingComponent = view.modelBuilder
+    .loadingComponent()
+    .withItem(tableComponent)
+    .withProps({
+      loading: true,
     })
     .component();
 
@@ -160,21 +172,21 @@ const buildCollectionsArea = async (
     .withItems([
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize("collectionOverview", "Collection overview"),
           CSSStyles: { "font-size": "20px", "font-weight": "600" },
         })
         .component(),
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize("collectionOverviewDescription", "Click on a collection to work with the data"),
         })
         .component(),
-      tableComponent,
+      tableLoadingComponent,
     ])
     .withLayout({ flexFlow: "column" })
-    .withProperties({ CSSStyles: { padding: "10px" } })
+    .withProps({ CSSStyles: { padding: "10px" } })
     .component();
 };
 
@@ -195,10 +207,7 @@ export const openDatabaseDashboard = async (
 
   const dashboard = azdata.window.createModelViewDashboard(databaseName);
   dashboard.registerTabs(async (view: azdata.ModelView) => {
-    const input1 = view.modelBuilder
-      .inputBox()
-      .withProperties<azdata.InputBoxProperties>({ value: databaseName })
-      .component();
+    const input1 = view.modelBuilder.inputBox().withProps({ value: databaseName }).component();
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()

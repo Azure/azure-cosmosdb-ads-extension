@@ -58,7 +58,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     },
   ];
   const navElements: azdata.ButtonComponent[] = buttons.map((b) => {
-    const component = view.modelBuilder.button().withProperties(b).component();
+    const component = view.modelBuilder.button().withProps(b).component();
     component.onDidClick(b.onDidClick);
     return component;
   });
@@ -163,7 +163,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     .flexContainer()
     .withItems(heroCards)
     .withLayout({ flexFlow: "row", flexWrap: "wrap" })
-    .withProperties({ CSSStyles: { width: "100%" } })
+    .withProps({ CSSStyles: { width: "100%" } })
     .component();
 
   return view.modelBuilder
@@ -171,14 +171,14 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     .withItems([
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize("gettingStarted", "Getting started"),
           CSSStyles: { "font-size": "20px", "font-weight": "600" },
         })
         .component(),
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize(
             "gettingStartedDescription",
             "Getting started with creating a new database, using mongo shell, viewing documentation, and managing via portal"
@@ -188,7 +188,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       heroCardsContainer,
     ])
     .withLayout({ flexFlow: "column" })
-    .withProperties({
+    .withProps({
       CSSStyles: {
         padding: "10px",
       },
@@ -197,10 +197,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
 };
 
 const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {
-  const input2 = view.modelBuilder
-    .inputBox()
-    .withProperties<azdata.InputBoxProperties>({ value: "input 2" })
-    .component();
+  const input2 = view.modelBuilder.inputBox().withProps({ value: "input 2" }).component();
 
   const tabs: azdata.Tab[] = [
     {
@@ -230,11 +227,35 @@ const buildDatabasesAreaAzure = async (
   view: azdata.ModelView,
   context: vscode.ExtensionContext
 ): Promise<azdata.Component> => {
-  const databasesInfo = await retrieveMongoDbDatabasesInfoFromArm(view.connection);
+  retrieveMongoDbDatabasesInfoFromArm(view.connection).then((databasesInfo) => {
+    tableComponent.data = databasesInfo.map((db) => [
+      <azdata.HyperlinkColumnCellValue>{
+        title: db.name,
+        icon: context.asAbsolutePath("resources/fluent/database.svg"),
+      },
+      db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
+      db.nbCollections,
+      db.throughputSetting,
+    ]);
+
+    if (tableComponent.onCellAction) {
+      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+        const azureAccountId = view.connection.options["azureAccount"];
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openDatabaseDashboard",
+          azureAccountId,
+          databasesInfo[arg.row].name,
+          context
+        );
+      });
+    }
+
+    tableLoadingComponent.loading = false;
+  });
 
   const tableComponent = view.modelBuilder
     .table()
-    .withProperties<azdata.TableComponentProperties>({
+    .withProps({
       columns: [
         <azdata.HyperlinkColumn>{
           value: localize("database", "Database"),
@@ -255,15 +276,7 @@ const buildDatabasesAreaAzure = async (
           type: azdata.ColumnType.text,
         },
       ],
-      data: databasesInfo.map((db) => [
-        <azdata.HyperlinkColumnCellValue>{
-          title: db.name,
-          icon: context.asAbsolutePath("resources/fluent/database.svg"),
-        },
-        db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
-        db.nbCollections,
-        db.throughputSetting,
-      ]),
+      data: [],
       height: 500,
       CSSStyles: {
         padding: "20px",
@@ -271,38 +284,34 @@ const buildDatabasesAreaAzure = async (
     })
     .component();
 
-  if (tableComponent.onCellAction) {
-    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-      const azureAccountId = view.connection.options["azureAccount"];
-      vscode.commands.executeCommand(
-        "cosmosdb-ads-extension.openDatabaseDashboard",
-        azureAccountId,
-        databasesInfo[arg.row].name,
-        context
-      );
-    });
-  }
+  const tableLoadingComponent = view.modelBuilder
+    .loadingComponent()
+    .withItem(tableComponent)
+    .withProps({
+      loading: true,
+    })
+    .component();
 
   return view.modelBuilder
     .flexContainer()
     .withItems([
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize("databaseOverview", "Database overview"),
           CSSStyles: { "font-size": "20px", "font-weight": "600" },
         })
         .component(),
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize("databaseOverviewDescription", "Click on a database for more details"),
         })
         .component(),
-      tableComponent,
+      tableLoadingComponent,
     ])
     .withLayout({ flexFlow: "column" })
-    .withProperties({ CSSStyles: { padding: "10px" } })
+    .withProps({ CSSStyles: { padding: "10px" } })
     .component();
 };
 
@@ -311,21 +320,37 @@ const buildDatabasesAreaNonAzure = async (
   context: vscode.ExtensionContext,
   appContext: AppContext
 ): Promise<azdata.Component> => {
-  const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number }[] = [];
   const server = view.connection.options["server"];
-  for (const db of await appContext.listDatabases(server)) {
-    const name = db.name;
-    if (name !== undefined) {
-      const colls = await appContext.listCollections(server, name);
-      console.log(colls);
-      const nbCollections = (await appContext.listCollections(server, name)).length;
-      databasesInfo.push({ name, nbCollections, sizeOnDisk: db.sizeOnDisk });
+
+  appContext.listDatabases(server).then(async (dbs) => {
+    const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number }[] = [];
+    for (const db of dbs) {
+      const name = db.name;
+      if (name !== undefined) {
+        const nbCollections = (await appContext.listCollections(server, name)).length;
+        databasesInfo.push({ name, nbCollections, sizeOnDisk: db.sizeOnDisk });
+      }
     }
-  }
+    tableComponent.data = databasesInfo.map((db) => [db.name, db.sizeOnDisk, db.nbCollections]);
+
+    if (tableComponent.onCellAction) {
+      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+        const azureAccountId = view.connection.options["azureAccount"];
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openDatabaseDashboard",
+          azureAccountId,
+          databasesInfo[arg.row].name,
+          context
+        );
+      });
+    }
+
+    tableLoadingComponent.loading = false;
+  });
 
   const tableComponent = view.modelBuilder
     .table()
-    .withProperties<azdata.TableComponentProperties>({
+    .withProps({
       columns: [
         {
           value: localize("database", "Database"),
@@ -341,7 +366,7 @@ const buildDatabasesAreaNonAzure = async (
           type: azdata.ColumnType.text,
         },
       ],
-      data: databasesInfo.map((db) => [db.name, db.sizeOnDisk, db.nbCollections]),
+      data: [],
       height: 500,
       CSSStyles: {
         padding: "20px",
@@ -349,38 +374,34 @@ const buildDatabasesAreaNonAzure = async (
     })
     .component();
 
-  if (tableComponent.onCellAction) {
-    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-      const azureAccountId = view.connection.options["azureAccount"];
-      vscode.commands.executeCommand(
-        "cosmosdb-ads-extension.openDatabaseDashboard",
-        azureAccountId,
-        databasesInfo[arg.row].name,
-        context
-      );
-    });
-  }
+  const tableLoadingComponent = view.modelBuilder
+    .loadingComponent()
+    .withItem(tableComponent)
+    .withProps({
+      loading: true,
+    })
+    .component();
 
   return view.modelBuilder
     .flexContainer()
     .withItems([
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize("databaseOverview", "Database overview"),
           CSSStyles: { "font-size": "20px", "font-weight": "600" },
         })
         .component(),
       view.modelBuilder
         .text()
-        .withProperties({
+        .withProps({
           value: localize("clickOnDatabaseDescription", "Click on a database for more details"),
         })
         .component(),
-      tableComponent,
+      tableLoadingComponent,
     ])
     .withLayout({ flexFlow: "column" })
-    .withProperties({ CSSStyles: { padding: "10px" } })
+    .withProps({ CSSStyles: { padding: "10px" } })
     .component();
 };
 
