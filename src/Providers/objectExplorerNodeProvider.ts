@@ -130,7 +130,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
         nodePath: nodeInfo.nodePath || "unknown",
         nodes: databases.map((db) => ({
           nodePath: `${nodeInfo?.nodePath}/${db.name}`,
-          nodeType: "Database",
+          nodeType: "CosmosDbDatabase",
           icon: {
             light: this.context.asAbsolutePath("resources/light/database.svg"),
             dark: this.context.asAbsolutePath("resources/dark/database-inverse.svg"),

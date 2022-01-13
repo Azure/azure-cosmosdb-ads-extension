@@ -131,8 +131,8 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
-        const { serverName } = objectExplorerContext.connectionProfile;
 
+        const { serverName } = objectExplorerContext.connectionProfile;
         // TODO FIX THIS
         if (!objectExplorerContext.nodeInfo) {
           // TODO handle error;
@@ -227,8 +227,43 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openDatabaseDashboard",
-      (azureAccountId: string, databaseName: string) => {
+      (objectExplorerContext: azdata.ObjectExplorerContext, azureAccountId?: string, databaseName?: string) => {
+        if (objectExplorerContext?.connectionProfile) {
+          // Called from menu tree item context menu
+          azureAccountId = objectExplorerContext.connectionProfile["azureAccount"];
+          // TODO FIX THIS
+          if (!objectExplorerContext.nodeInfo) {
+            // TODO handle error;
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return;
+          }
+          const { nodePath } = objectExplorerContext.nodeInfo;
+          const mongoInfo = getMongoInfo(nodePath);
+          databaseName = mongoInfo.databaseName;
+        } else {
+          // Called from extension code
+          if (!azureAccountId) {
+            vscode.window.showErrorMessage(
+              localize("missingConnectionProfile", "Missing ConnectionProfile or azureAccountId")
+            );
+            return;
+          }
+        }
+
         // TODO ask for database if databaseName not defined
+
+        if (!azureAccountId) {
+          vscode.window.showErrorMessage(
+            localize("nonAzureDashboardNotImplemented", "Database dashboard only implemented for Azure accounts")
+          );
+          return;
+        }
+
+        if (!databaseName) {
+          vscode.window.showErrorMessage(localize("missingDatabaseName", "Database not specified"));
+          return;
+        }
+
         databaseDashboard.openDatabaseDashboard(azureAccountId, databaseName, appContext, context);
       }
     )

@@ -243,6 +243,7 @@ const buildDatabasesAreaAzure = async (
         const azureAccountId = view.connection.options["azureAccount"];
         vscode.commands.executeCommand(
           "cosmosdb-ads-extension.openDatabaseDashboard",
+          undefined,
           azureAccountId,
           databasesInfo[arg.row].name,
           context
@@ -338,6 +339,7 @@ const buildDatabasesAreaNonAzure = async (
         const azureAccountId = view.connection.options["azureAccount"];
         vscode.commands.executeCommand(
           "cosmosdb-ads-extension.openDatabaseDashboard",
+          undefined,
           azureAccountId,
           databasesInfo[arg.row].name,
           context

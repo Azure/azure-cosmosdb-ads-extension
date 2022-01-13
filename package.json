@@ -67,13 +67,18 @@
           "group": "cosmosdb"
         },
         {
+          "command": "cosmosdb-ads-extension.openDatabaseDashboard",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == CosmosDbDatabase",
+          "group": "cosmosdb"
+        },
+        {
           "command": "cosmosdb-ads-extension.createMongoCollection",
-          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Database",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == CosmosDbDatabase",
           "group": "cosmosdb"
         },
         {
           "command": "cosmosdb-ads-extension.deleteMongoDatabase",
-          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Database",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == CosmosDbDatabase",
           "group": "cosmosdb"
         },
         {
