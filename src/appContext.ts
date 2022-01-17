@@ -258,56 +258,30 @@ export class AppContext {
   }
 
   /**
-   *
+   * Insert collection using mongo client
    * @param server
    * @param sampleData
    * @returns Promise with inserted count
    */
-  public async insertDocuments(server: string, sampleData: SampleData): Promise<number> {
+  public async insertDocuments(server: string, sampleData: SampleData, databaseName?: string): Promise<number> {
     return new Promise(async (resolve, reject) => {
-      if (sampleData.data.length < 1) {
-        reject(localize("noSampleDataProvided", "No sample data provided"));
-        return;
-      }
-
       // should already be connected
       const client = this._mongoClients.get(server);
       if (!client) {
-        return Promise.reject(localize("notConnected", "Not connected"));
-      }
-
-      const response = await vscode.window.showInformationMessage(
-        localize(
-          "ingestSampleMongoDataConfirm",
-          "This will create a database '{0}' and a collection '{1}'. Are you sure?",
-          sampleData.databaseId,
-          sampleData.collectionId
-        ),
-        ...[localize("yes", "Yes"), localize("no", "No")]
-      );
-      if (response !== "Yes") {
+        reject(localize("notConnected", "Not connected"));
         return;
       }
 
-      let collection = undefined;
-      if (sampleData.createNewDatabase) {
-        showStatusBarItem(localize("creatingCollection", "Creating collection {0}...", sampleData.collectionId));
-        collection = await client.db(sampleData.databaseId).createCollection(sampleData.collectionId);
-        hideStatusBarItem();
-        if (!collection) {
-          reject(localize("failCreateCollection", "Failed to create collection"));
-          return;
-        }
-      } else {
-        collection = await client.db(sampleData.databaseId).collection(sampleData.collectionId);
-        if (!collection) {
-          reject(localize("failGetCollection", "Failed to get collection"));
-          return;
-        }
+      showStatusBarItem(localize("creatingCollection", "Creating collection {0}...", sampleData.collectionId));
+      const collection = await client.db(databaseName).createCollection(sampleData.collectionId);
+      hideStatusBarItem();
+      if (!collection) {
+        reject(localize("failCreateCollection", "Failed to create collection"));
+        return;
       }
 
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
-      const result = await collection.insert(sampleData.data);
+      const result = await collection.insertMany(sampleData.data);
       hideStatusBarItem();
       if (result.insertedCount < sampleData.data.length) {
         reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
