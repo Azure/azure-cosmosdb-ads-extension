@@ -14,6 +14,7 @@ import {
   retrieveDatabaseAccountInfoFromArm,
   retrieveMongoDbDatabasesInfoFromArm,
 } from "../appContext";
+import { COSMOSDB_DOC_URL } from "../constant";
 import { buildHeroCard } from "./util";
 
 const localize = nls.loadMessageBundle();
@@ -53,7 +54,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
       label: localize("learnMore", "Learn more"),
       iconPath: context.asAbsolutePath("resources/fluent/documentation.svg"),
       onDidClick() {
-        console.log("Not implemented");
+        vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL));
       },
     },
   ];
@@ -153,9 +154,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       context.asAbsolutePath("resources/fluent/documentation.svg"),
       localize("documentation", "Documentation"),
       localize("documentation", "Find quickstarts, how-to guides, and references."),
-      () => {
-        /* TODO NOT IMPLEMENTED */
-      }
+      () => vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL))
     ),
   ];
 
