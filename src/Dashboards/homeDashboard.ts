@@ -19,6 +19,9 @@ import { buildHeroCard } from "./util";
 
 const localize = nls.loadMessageBundle();
 
+let refreshProperties: () => void;
+let refreshDatabases: () => void;
+
 const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer => {
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
@@ -38,7 +41,6 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         });
       },
     },
-    /* TODO Implement and add icon
     {
       label: localize("refresh", "Refresh"),
       iconPath: {
@@ -46,10 +48,10 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         dark: context.asAbsolutePath("images/refresh-cosmos.svg"),
       },
       onDidClick() {
-        console.log("Not implemented");
+        refreshProperties && refreshProperties();
+        refreshDatabases && refreshDatabases();
       },
     },
-		*/
     {
       label: localize("learnMore", "Learn more"),
       iconPath: context.asAbsolutePath("resources/fluent/documentation.svg"),
@@ -71,29 +73,32 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
 };
 
 const buildOverview = (view: azdata.ModelView): azdata.Component => {
-  retrieveDatabaseAccountInfoFromArm(view.connection).then((databaseAccountInfo) => {
-    const propertyItems: azdata.PropertiesContainerItem[] = [
-      {
-        displayName: localize("status", "Status"),
-        value: databaseAccountInfo.serverStatus,
-      },
-      {
-        displayName: localize("consistencyPolicy", "Consistency policy"),
-        value: databaseAccountInfo.consistencyPolicy,
-      },
-      {
-        displayName: localize("backupPolicy", "Backup policy"),
-        value: databaseAccountInfo.backupPolicy,
-      },
-      {
-        displayName: localize("readLocation", "Read location"),
-        value: databaseAccountInfo.readLocations.join(","),
-      },
-    ];
+  refreshProperties = () => {
+    retrieveDatabaseAccountInfoFromArm(view.connection).then((databaseAccountInfo) => {
+      const propertyItems: azdata.PropertiesContainerItem[] = [
+        {
+          displayName: localize("status", "Status"),
+          value: databaseAccountInfo.serverStatus,
+        },
+        {
+          displayName: localize("consistencyPolicy", "Consistency policy"),
+          value: databaseAccountInfo.consistencyPolicy,
+        },
+        {
+          displayName: localize("backupPolicy", "Backup policy"),
+          value: databaseAccountInfo.backupPolicy,
+        },
+        {
+          displayName: localize("readLocation", "Read location"),
+          value: databaseAccountInfo.readLocations.join(","),
+        },
+      ];
 
-    properties.propertyItems = propertyItems;
-    component.loading = false;
-  });
+      properties.propertyItems = propertyItems;
+      component.loading = false;
+    });
+  };
+  refreshProperties();
 
   const propertyItems: azdata.PropertiesContainerItem[] = [];
   const properties = view.modelBuilder.propertiesContainer().withProps({ propertyItems }).component();
@@ -226,32 +231,35 @@ const buildDatabasesAreaAzure = async (
   view: azdata.ModelView,
   context: vscode.ExtensionContext
 ): Promise<azdata.Component> => {
-  retrieveMongoDbDatabasesInfoFromArm(view.connection).then((databasesInfo) => {
-    tableComponent.data = databasesInfo.map((db) => [
-      <azdata.HyperlinkColumnCellValue>{
-        title: db.name,
-        icon: context.asAbsolutePath("resources/fluent/database.svg"),
-      },
-      db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
-      db.nbCollections,
-      db.throughputSetting,
-    ]);
+  refreshDatabases = () => {
+    retrieveMongoDbDatabasesInfoFromArm(view.connection).then((databasesInfo) => {
+      tableComponent.data = databasesInfo.map((db) => [
+        <azdata.HyperlinkColumnCellValue>{
+          title: db.name,
+          icon: context.asAbsolutePath("resources/fluent/database.svg"),
+        },
+        db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
+        db.nbCollections,
+        db.throughputSetting,
+      ]);
 
-    if (tableComponent.onCellAction) {
-      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-        const azureAccountId = view.connection.options["azureAccount"];
-        vscode.commands.executeCommand(
-          "cosmosdb-ads-extension.openDatabaseDashboard",
-          undefined,
-          azureAccountId,
-          databasesInfo[arg.row].name,
-          context
-        );
-      });
-    }
+      if (tableComponent.onCellAction) {
+        tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+          const azureAccountId = view.connection.options["azureAccount"];
+          vscode.commands.executeCommand(
+            "cosmosdb-ads-extension.openDatabaseDashboard",
+            undefined,
+            azureAccountId,
+            databasesInfo[arg.row].name,
+            context
+          );
+        });
+      }
 
-    tableLoadingComponent.loading = false;
-  });
+      tableLoadingComponent.loading = false;
+    });
+  };
+  refreshDatabases();
 
   const tableComponent = view.modelBuilder
     .table()
