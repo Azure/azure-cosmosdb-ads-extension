@@ -322,7 +322,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoShell",
-      async (hasConnectionProfile?: HasConnectionProfile) => {
+      async (hasConnectionProfile?: HasConnectionProfile, databaseName?: string) => {
         const serverName = hasConnectionProfile?.connectionProfile?.options["server"];
         if (terminalMap.has(serverName)) {
           const terminal = terminalMap.get(serverName);
@@ -381,10 +381,9 @@ export function activate(context: vscode.ExtensionContext) {
           }
         });
 
-        // If account is known, skip the first prompt that asks for connection string
-        if (mongoShellOptions?.connectionInfo) {
-          terminal.sendText("\n");
-        }
+				if (databaseName !== undefined) {
+					terminal.sendText(`use ${databaseName}\n`);
+				}
         terminal.show();
       }
     )
