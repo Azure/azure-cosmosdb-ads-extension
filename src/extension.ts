@@ -381,9 +381,9 @@ export function activate(context: vscode.ExtensionContext) {
           }
         });
 
-				if (databaseName !== undefined) {
-					terminal.sendText(`use ${databaseName}\n`);
-				}
+        if (databaseName !== undefined) {
+          terminal.sendText(`use ${databaseName}\n`);
+        }
         terminal.show();
       }
     )

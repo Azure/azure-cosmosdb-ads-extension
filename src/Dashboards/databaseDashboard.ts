@@ -41,11 +41,15 @@ const buildToolbar = (
       label: localize("openMongoShell", "Open Mongo Shell"),
       iconPath: context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
       onDidClick() {
-        vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
-          connectionProfile: connection
-        }, databaseName);
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openMongoShell",
+          {
+            connectionProfile: connection,
+          },
+          databaseName
+        );
       },
-    }
+    },
   ];
   const navElements: azdata.ButtonComponent[] = buttons.map((b) => {
     const component = view.modelBuilder.button().withProps(b).component();
