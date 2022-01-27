@@ -39,8 +39,19 @@ export const ingestSampleMongoData = async (
       return;
     }
 
-    const count = await appContext.insertDocuments(connection.options["server"], sampleData, databaseName);
-    vscode.window.showInformationMessage(localize("successInsertDoc", "Successfully inserted {0} docs", count));
+    vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async (progress) => {
+        progress.report({
+          message: `Importing sample collection ...`,
+        });
+        const count = await appContext.insertDocuments(connection.options["server"], sampleData, databaseName);
+        vscode.window.showInformationMessage(localize("successInsertDoc", "Successfully inserted {0} docs", count));
+      }
+    );
   } catch (e) {
     vscode.window.showErrorMessage(e as string);
   }
