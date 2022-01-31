@@ -19,7 +19,8 @@ jobs:
         with:
           file-url: 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
           location: 'C:\Windows'
-      - run: dir ${{ github.workspace }}/..
+      - uses: actions/checkout@v2
+      - run: dir ${{ github.workspace }}
       - name: Install Component Detection
         run: nuget.exe install Microsoft.VisualStudio.Services.Governance.ComponentDetection -ConfigFile ${{ github.workspace }}/nuget.config
 
