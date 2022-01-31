@@ -18,7 +18,7 @@ jobs:
         uses: carlosperate/download-file-action@v1
         with:
           file-url: 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
-          # location: './new-folder-to-be-created'
+          location: 'C:\Windows'
       - name: Install Component Detection
-        run: echo $PATH
+        run: nuget.exe
 
