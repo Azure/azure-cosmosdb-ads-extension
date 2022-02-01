@@ -13,18 +13,6 @@ jobs:
   component-detection:
     runs-on: ubuntu-latest
     name: "Component Detection"
-    # steps:
-      # - name: Download nugget
-      #   uses: carlosperate/download-file-action@v1
-      #   with:
-      #     file-url: 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
-      #     location: 'C:\Windows'
-      # - uses: actions/checkout@v2
-      # # - name: Connect to Nuget feed
-      # #   run: nuget.exe sources add -name ComponentGovernance  -source https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json -StorePasswordInClearText  ${{ secrets.ADO_READER_PATH }} -Username languye
-      # - name: Install Component Detection
-      #   run: nuget.exe install Microsoft.VisualStudio.Services.Governance.ComponentDetection -ConfigFile ${{ github.workspace }}/nuget.config
-      #   # run: nuget.exe install Microsoft.VisualStudio.Services.Governance.ComponentDetection
     env:
       AZURE_DEVOPS_PAT: ${{ secrets.ADO_READER_PAT }}
     steps:
@@ -32,3 +20,5 @@ jobs:
       - run: nuget sources add -Name "ComponentGovernance" -Source "https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json" -UserName "GitHub" -Password "$AZURE_DEVOPS_PAT"
       - name: Install Component Detection
         run: nuget install Microsoft.VisualStudio.Services.Governance.ComponentDetection
+      - name: Execution scan
+        run: find . -name *Loader
