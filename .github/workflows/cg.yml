@@ -20,5 +20,21 @@ jobs:
       - run: nuget sources add -Name "ComponentGovernance" -Source "https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json" -UserName "GitHub" -Password "$AZURE_DEVOPS_PAT"
       - name: Install Component Detection
         run: nuget install Microsoft.VisualStudio.Services.Governance.ComponentDetection
-      - name: Execution scan
-        run: find . -name *Loader
+      - name: Execute scan
+        run: ./Microsoft.VisualStudio.Services.Governance.ComponentDetection.2022.1.25.1131/linux/MS.VS.Services.Governance.ComponentDetection.Loader \
+          detect \
+          --Output .\cg_output \
+          --Verbosity Verbose \
+          --SourceDirectory . \
+          --SourceFileRoot ./src \
+          --ScanType Register \
+          --BuildType github://Azure/azure-cosmosdb-ads-extension \
+          --BuildDisplayType azure-cosmosdb-ads-extension
+          --BuildDisplayIdentifier azure-cosmosdb-ads-extension \
+          --SourceType github:////Azure/azure-cosmosdb-ads-extension/refs/origin/main \
+          --SourceDisplayIdentifier 9fe98f89c779c5a789d53efbd24840650355bcde \
+          --Pat *** \
+          --Url https://cg-scus1.governance.visualstudio.com \ --Url https://msdata.governance.visualstudio.com/??
+          --GovernanceProjectId azure-cosmosdb-ads-extension \
+          --Timeout 120 \
+          --Verbosity Verbose
