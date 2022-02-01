@@ -3,7 +3,7 @@ name: "Component Detection"
 
 on:
   push:
-    branches:Conf
+    branches:
       - '*'
   pull_request:
     branches:
