@@ -13,7 +13,7 @@ jobs:
   component-detection:
     runs-on: ubuntu-latest
     name: "Component Detection"
-    steps:
+    # steps:
       # - name: Download nugget
       #   uses: carlosperate/download-file-action@v1
       #   with:
