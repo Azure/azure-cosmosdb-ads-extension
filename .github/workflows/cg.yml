@@ -31,4 +31,4 @@ jobs:
       - uses: nuget/setup-nuget@v1
       - run: nuget sources add -Name "ComponentGovernance" -Source "https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json" -UserName "GitHub" -Password "$AZURE_DEVOPS_PAT"
       - name: Install Component Detection
-        run: sudo nuget.exe install Microsoft.VisualStudio.Services.Governance.ComponentDetection
+        run: nuget install Microsoft.VisualStudio.Services.Governance.ComponentDetection
