@@ -34,7 +34,7 @@ jobs:
           --SourceType github:////Azure/azure-cosmosdb-ads-extension/refs/origin/main \
           --SourceDisplayIdentifier 9fe98f89c779c5a789d53efbd24840650355bcde \
           --Pat *** \
-          --Url https://msdata.governance.visualstudio.com/??
+          --Url https://msdata.governance.visualstudio.com \
           --GovernanceProjectId azure-cosmosdb-ads-extension \
           --Timeout 120 \
           --Verbosity Verbose
