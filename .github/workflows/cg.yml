@@ -21,7 +21,7 @@ jobs:
           location: 'C:\Windows'
       - uses: actions/checkout@v2
       - name: Connect to Nuget feed
-        run: nuget.exe sources add -name ComponentGovernance  -source https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json -username languye -password '${{ secrets.ADO_READER_PAT }}'
+        run: nuget.exe sources add -name ComponentGovernance  -source https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json -password ${{ secrets.TEST_SECRET }} -username languye
       - name: Install Component Detection
         # run: nuget.exe install Microsoft.VisualStudio.Services.Governance.ComponentDetection -ConfigFile ${{ github.workspace }}/nuget.config
         run: nuget.exe install Microsoft.VisualStudio.Services.Governance.ComponentDetection
