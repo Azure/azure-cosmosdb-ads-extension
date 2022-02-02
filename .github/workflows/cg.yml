@@ -20,15 +20,15 @@ jobs:
       - run: nuget sources add -Name "ComponentGovernance" -Source "https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json" -UserName "GitHub" -Password "$AZURE_DEVOPS_PAT"
       - name: Install Component Detection
         run: nuget install Microsoft.VisualStudio.Services.Governance.ComponentDetection
-      - run: echo ${{ env.GITHUB_ACTION_PATH }}
-      - run: ls -la ${{ env.GITHUB_ACTION_PATH }}
+      - run: echo ${{ github.workspace }}
+      - run: ls -la ${{ github.workspace }}
       - name: Execute scan
         run: ./Microsoft.VisualStudio.Services.Governance.ComponentDetection.2022.1.25.1131/linux/MS.VS.Services.Governance.ComponentDetection.Loader \
           detect \
           --Output .\cg_output \
           --Verbosity Verbose \
-          --SourceDirectory ${{ github.path }} \
-          --SourceFileRoot ${{ github.path }}/src \
+          --SourceDirectory ${{ github.workspace }} \
+          --SourceFileRoot ${{ github.workspace }}/src \
           --ScanType Register \
           --BuildType ${{ github.repositoryUrl }} \
           --BuildDisplayType ${{ github.repository }} \
