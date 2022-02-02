@@ -21,6 +21,7 @@ jobs:
       - name: Install Component Detection
         run: nuget install Microsoft.VisualStudio.Services.Governance.ComponentDetection
       - run: echo '${{ toJSON(github) }}'
+      - run: echo '${{ toJSON(job) }}'
       - name: Execute scan
         run: ./Microsoft.VisualStudio.Services.Governance.ComponentDetection.2022.1.25.1131/linux/MS.VS.Services.Governance.ComponentDetection.Loader \
           detect \
