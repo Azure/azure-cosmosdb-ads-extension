@@ -20,6 +20,7 @@ jobs:
       - run: nuget sources add -Name "ComponentGovernance" -Source "https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json" -UserName "GitHub" -Password "$AZURE_DEVOPS_PAT"
       - name: Install Component Detection
         run: nuget install Microsoft.VisualStudio.Services.Governance.ComponentDetection
+      - run: echo '${{ toJSON(github) }}'
       - name: Execute scan
         run: ./Microsoft.VisualStudio.Services.Governance.ComponentDetection.2022.1.25.1131/linux/MS.VS.Services.Governance.ComponentDetection.Loader \
           detect \
@@ -38,21 +39,3 @@ jobs:
           --GovernanceProjectId azure-cosmosdb-ads-extension \
           --Timeout 120 \
           --Verbosity Verbose
-
-  dump_contexts_to_log:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dump GitHub context
-        id: github_context_step
-        run: echo ${{ toJSON(github) }}
-      - name: Dump job context
-        run: echo ${{ toJSON(job) }}
-      - name: Dump steps context
-        run: echo ${{ toJSON(steps) }}
-      - name: Dump runner context
-        run: echo ${{ toJSON(runner) }}
-      - name: Dump strategy context
-        run: echo ${{ toJSON(strategy) }}
-      - name: Dump matrix context
-        run: echo ${{ toJSON(matrix) }}
-
