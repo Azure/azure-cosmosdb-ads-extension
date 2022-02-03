@@ -1,0 +1,39 @@
+# Component Detection
+name: "Component Detection"
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  component-detection:
+    runs-on: ubuntu-latest
+    name: "Component Detection"
+    env:
+      AZURE_DEVOPS_PAT: ${{ secrets.ADO_READER_PAT }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: nuget/setup-nuget@v1
+      - run: nuget sources add -Name "ComponentGovernance" -Source "https://pkgs.dev.azure.com/1esSharedAssets/_packaging/ComponentGovernance/nuget/v3/index.json" -UserName "GitHub" -Password "$AZURE_DEVOPS_PAT"
+      - name: Install Component Detection
+        run: nuget install Microsoft.VisualStudio.Services.Governance.ComponentDetection
+      - name: Execute scan
+        run: ./Microsoft.VisualStudio.Services.Governance.ComponentDetection.2022.1.25.1131/linux/MS.VS.Services.Governance.ComponentDetection.Loader \
+          detect \
+          --Output .\cg_output \
+          --Verbosity Verbose \
+          --SourceDirectory ${{ github.workspace }} \
+          --SourceFileRoot ${{ github.workspace }}/src \
+          --ScanType Register \
+          --BuildType ${{ github.repositoryUrl }} \
+          --BuildDisplayType ${{ github.repository }} \
+          --BuildDisplayIdentifier  ${{ github.repository }}_${{ github.ref}}_${{ github.run_id }} \
+          --SourceType github:////${{ github.repository }}/${{ github.ref }} \
+          --SourceDisplayIdentifier ${{ github.sha }} \
+          --Url https://msdata.governance.visualstudio.com \
+          --Timeout 120 \
+          --Verbosity Verbose
