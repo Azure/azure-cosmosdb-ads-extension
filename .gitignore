@@ -359,6 +359,3 @@ output/
 
 # Mongoshell download
 mongoshellexecutable/
-
-# Component detection output
-cgoutput
