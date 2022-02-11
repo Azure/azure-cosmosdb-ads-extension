@@ -165,8 +165,8 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
 
   const heroCardsContainer = view.modelBuilder
     .flexContainer()
-    .withItems(heroCards)
-    .withLayout({ flexFlow: "row", flexWrap: "wrap", justifyContent: "flex-start" })
+    .withItems(heroCards, { flex: "0 0 auto" })
+    .withLayout({ flexFlow: "row", flexWrap: "wrap" })
     .withProps({ CSSStyles: { width: "100%" } })
     .component();
 

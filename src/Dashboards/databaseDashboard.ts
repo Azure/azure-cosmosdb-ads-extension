@@ -95,7 +95,7 @@ const buildWorkingWithDatabase = (
 
   const heroCardsContainer = view.modelBuilder
     .flexContainer()
-    .withItems(heroCards)
+    .withItems(heroCards, { flex: "0 0 auto" })
     .withLayout({ flexFlow: "row", flexWrap: "wrap" })
     .withProps({ CSSStyles: { width: "100%" } })
     .component();

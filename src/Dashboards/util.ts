@@ -23,6 +23,10 @@ export const buildHeroCard = (
       label: title,
       title,
       width: 236,
+      CSSStyles: {
+        "box-shadow": "0px 1.6px 3.6px rgba(0, 0, 0, 0.132)",
+        margin: "10px",
+      },
     })
     .component();
   button.onDidClick(onClick); // TODO Make sure to manage disposable (unlisten)
