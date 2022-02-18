@@ -28,7 +28,7 @@ import { UriHandler } from "./protocol/UriHandler";
 
 import * as path from "path";
 import ViewLoader from "./ViewLoader";
-import { downloadMongoShell, installMongoShell } from "./MongoShell/MongoShellUtil";
+import { installMongoShell } from "./MongoShell/MongoShellUtil";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
