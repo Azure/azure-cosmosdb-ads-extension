@@ -3,8 +3,63 @@ import * as path from "path";
 import { promises as fs } from "fs";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
+import { PlatformInformation, Runtime } from "../BinaryInstallUtil/platform";
+import * as tar from "tar";
+import { Unzipper } from "../BinaryInstallUtil/zip";
 
 const localize = nls.loadMessageBundle();
+
+export const installMongoShell = async (extensionPath: string): Promise<string> => {
+  const zipDirectory = path.join(extensionPath, "resources", "mongoshell", "1.1.9");
+  const installDirectory = path.join(extensionPath, "mongoshellexecutable");
+
+  const linuxMongosh = { archiveFilename: "linux-x64.tgz", binaryFilename: "mongosh" };
+
+  const filenamesMap: Map<Runtime, { archiveFilename: string; binaryFilename: string }> = new Map([
+    [Runtime.Windows_64, { archiveFilename: "win32-x64.zip", binaryFilename: "mongosh.exe" }],
+    [Runtime.OSX, { archiveFilename: "darwin-x64.zip", binaryFilename: "mongosh" }],
+    [Runtime.CentOS_7, linuxMongosh],
+    [Runtime.Debian_8, linuxMongosh],
+    [Runtime.Fedora_23, linuxMongosh],
+    [Runtime.OpenSUSE_13_2, linuxMongosh],
+    [Runtime.RHEL_7, linuxMongosh],
+    [Runtime.SLES_12_2, linuxMongosh],
+    [Runtime.Ubuntu_14, linuxMongosh],
+    [Runtime.Ubuntu_16, linuxMongosh],
+  ]);
+
+  const platformInformation = await PlatformInformation.getCurrent();
+
+  if (!filenamesMap.has(platformInformation.runtimeId)) {
+    const errorMsg = localize("runtimeNotSupported", `Runtime not supported ${platformInformation.runtimeId}`);
+    vscode.window.showErrorMessage(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // TODO If exists already, don't extract!
+
+  let { archiveFilename, binaryFilename } = filenamesMap.get(platformInformation.runtimeId)!;
+  await extract(path.join(zipDirectory, archiveFilename), installDirectory);
+
+  // TODO Verify that file actually exists
+  return path.join(installDirectory, binaryFilename);
+};
+
+const extract = (archivePath: string, targetPath: string): Promise<void> => {
+  console.log(archivePath);
+  if (archivePath.match(/\.tar\.gz|\.tar|\.gz$/i)) {
+    let entryCount = 0;
+    return tar.x({
+      file: archivePath,
+      cwd: targetPath,
+      // Currently just output -1 as total entries as that value isn't easily available using tar without extra work
+      // onentry: (entry: tar.ReadEntry) => this.eventEmitter.emit(Events.ENTRY_EXTRACTED, entry.path, ++entryCount, -1)
+    });
+  } else {
+    // Default to zip extracting if it's not a tarball
+    return new Unzipper().extract(archivePath, targetPath);
+  }
+};
 
 export const downloadMongoShell = async (extensionPath: string): Promise<string> => {
   const rawConfig = await fs.readFile(path.join(extensionPath, "mongoShellConfig.json"));
