@@ -333,12 +333,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         // Download mongosh
-        showStatusBarItem(localize("downloadingMongoShell", "Downloading mongo shell..."));
         const executablePath = await installMongoShell(context.extensionPath);
-        hideStatusBarItem();
 
         if (!executablePath) {
-          vscode.window.showErrorMessage(localize("failDownloadMongoShell", "Unable to download mongo shell"));
+          vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));
           return;
         }
         const mongoShellOptions = await appContext.getMongoShellOptions(hasConnectionProfile?.connectionProfile);

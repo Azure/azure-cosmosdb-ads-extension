@@ -46,14 +46,14 @@ export const installMongoShell = async (extensionPath: string): Promise<string |
   const statusView = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
   statusView.show();
 
-  statusView.text = localize("installingMongoShellTo", "Installing MongoShell to {0}", installDirectory);
+  statusView.text = localize("installingMongoShellTo", "Installing MongoShell");
   await extract(path.join(zipDirectory, archiveFilename), installDirectory);
 
   if (!fs.existsSync(binaryFullPath)) {
     return undefined;
   }
 
-  statusView.text = localize("doneInstallingMongoShell", "Done installing MongoShell");
+  statusView.hide();
   return binaryFullPath;
 };
 
