@@ -9,6 +9,7 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
   AppContext,
+  getAccountName,
   ICosmosDbDatabaseAccountInfo,
   isAzureconnection,
   retrieveDatabaseAccountInfoFromArm,
@@ -74,7 +75,13 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
 
 const buildOverview = (view: azdata.ModelView): azdata.Component => {
   refreshProperties = () => {
-    retrieveDatabaseAccountInfoFromArm(view.connection).then((databaseAccountInfo) => {
+		const connectionInfo = view.connection;
+    retrieveDatabaseAccountInfoFromArm(
+      connectionInfo.options["azureAccount"],
+      connectionInfo.options["azureTenantId"],
+      connectionInfo.options["azureResourceId"],
+      connectionInfo.options["server"]
+    ).then((databaseAccountInfo) => {
       const propertyItems: azdata.PropertiesContainerItem[] = [
         {
           displayName: localize("status", "Status"),
@@ -232,7 +239,14 @@ const buildDatabasesAreaAzure = async (
   context: vscode.ExtensionContext
 ): Promise<azdata.Component> => {
   refreshDatabases = () => {
-    retrieveMongoDbDatabasesInfoFromArm(view.connection).then((databasesInfo) => {
+    const connectionInfo = view.connection;
+
+    retrieveMongoDbDatabasesInfoFromArm(
+      connectionInfo.options["azureAccount"],
+      connectionInfo.options["azureTenantId"],
+      connectionInfo.options["azureResourceId"],
+      getAccountName(connectionInfo)
+    ).then((databasesInfo) => {
       tableComponent.data = databasesInfo.map((db) => [
         <azdata.HyperlinkColumnCellValue>{
           title: db.name,

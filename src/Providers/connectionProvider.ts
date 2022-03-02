@@ -35,7 +35,12 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
 
     if (connectionInfo.options["authenticationType"] === "AzureMFA") {
       try {
-        password = await retrieveConnectionStringFromArm(connectionInfo);
+        password = await retrieveConnectionStringFromArm(
+					connectionInfo.options["azureAccount"],
+					connectionInfo.options["azureTenantId"],
+					connectionInfo.options["azureResourceId"],
+					connectionInfo.options["server"]
+				);
       } catch (e) {
         vscode.window.showErrorMessage((e as { message: string }).message);
         return false;
@@ -106,6 +111,8 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     console.log("ConnectionProvider.getConnectionString");
     return Promise.resolve("conn_string");
   }
+
+  // Called when something is pasted to Server field (Mongo account)
   buildConnectionInfo?(connectionString: string): Promise<azdata.ConnectionInfo> {
     console.log("ConnectionProvider.buildConnectionInfo");
     return Promise.resolve({

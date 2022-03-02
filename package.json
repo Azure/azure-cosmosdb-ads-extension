@@ -242,6 +242,7 @@
   "dependencies": {
     "@azure/arm-cosmosdb": "13.0.0",
     "@azure/arm-monitor": "6.1.1",
+    "@azure/arm-resourcegraph": "4.2.1",
     "mkdirp": "1.0.4",
     "mongodb": "3.6.10",
     "vscode-nls": "5.0.0",

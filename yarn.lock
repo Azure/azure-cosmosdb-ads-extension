@@ -28,6 +28,16 @@
     "@azure/ms-rest-js" "^2.2.0"
     tslib "^1.10.0"
 
+"@azure/arm-resourcegraph@4.2.1":
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/@azure/arm-resourcegraph/-/arm-resourcegraph-4.2.1.tgz#d529d5da40356393a22eb51a2af4ba91ef1ae1ec"
+  integrity sha512-PDuRJ6I7wpy/bu2dqX3OVvX6fpM3YzXkFLGnmYpevYFBQBgueNhHruBAk5r1xh2VRTv1M0lAdaYy6LmVHiCRTw==
+  dependencies:
+    "@azure/core-auth" "^1.1.4"
+    "@azure/ms-rest-azure-js" "^2.1.0"
+    "@azure/ms-rest-js" "^2.2.0"
+    tslib "^1.10.0"
+
 "@azure/core-auth@^1.1.4":
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/@azure/core-auth/-/core-auth-1.3.2.tgz#6a2c248576c26df365f6c7881ca04b7f6d08e3d0"

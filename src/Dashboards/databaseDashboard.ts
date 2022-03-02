@@ -6,7 +6,7 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { AppContext, retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
+import { AppContext, getAccountName, retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "./util";
@@ -127,7 +127,13 @@ const buildCollectionsArea = async (
   context: vscode.ExtensionContext,
   connectionInfo: azdata.ConnectionInfo
 ): Promise<azdata.Component> => {
-  retrieveMongoDbCollectionsInfoFromArm(connectionInfo, databaseName).then((collectionsInfo) => {
+  retrieveMongoDbCollectionsInfoFromArm(
+    connectionInfo.options["azureAccount"],
+    connectionInfo.options["azureTenantId"],
+    connectionInfo.options["azureResourceId"],
+    getAccountName(connectionInfo),
+    databaseName
+  ).then((collectionsInfo) => {
     tableComponent.data = collectionsInfo.map((collection) => [
       <azdata.HyperlinkColumnCellValue>{
         title: collection.name,
