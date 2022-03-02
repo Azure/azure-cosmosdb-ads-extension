@@ -75,7 +75,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
 
 const buildOverview = (view: azdata.ModelView): azdata.Component => {
   refreshProperties = () => {
-		const connectionInfo = view.connection;
+    const connectionInfo = view.connection;
     retrieveDatabaseAccountInfoFromArm(
       connectionInfo.options["azureAccount"],
       connectionInfo.options["azureTenantId"],

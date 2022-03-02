@@ -412,7 +412,7 @@ const createArmClient = async (
   azureAccountId: string,
   azureTenantId: string,
   azureResourceId: string,
-	cosmosDbAccountName: string
+  cosmosDbAccountName: string
 ): Promise<CosmosDBManagementClient> => {
   const azureAccount = await retrieveAzureAccount(azureAccountId);
   const armEndpoint = azureAccount.properties?.providerSettings?.settings?.armResource?.endpoint;
@@ -424,9 +424,9 @@ const createArmClient = async (
   const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
   const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
 
-	if (!azureResourceId) {
-		azureResourceId = await (await retrieveResourceInfofromArm(cosmosDbAccountName, credentials)).id;
-	}
+  if (!azureResourceId) {
+    azureResourceId = await (await retrieveResourceInfofromArm(cosmosDbAccountName, credentials)).id;
+  }
 
   const { subscriptionId } = parsedAzureResourceId(azureResourceId);
 
@@ -437,7 +437,7 @@ const createArmMonitorClient = async (
   azureAccountId: string,
   azureTenantId: string,
   azureResourceId: string,
-	cosmosDbAccountName: string
+  cosmosDbAccountName: string
 ): Promise<MonitorManagementClient> => {
   const azureAccount = await retrieveAzureAccount(azureAccountId);
   const armEndpoint = azureAccount.properties?.providerSettings?.settings?.armResource?.endpoint; // TODO Get the endpoint from the resource, not the aad account
@@ -446,12 +446,12 @@ const createArmMonitorClient = async (
     throw new Error(localize("failRetrieveArmEndpoint", "Unable to retrieve ARM endpoint"));
   }
 
-	const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
+  const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
   const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
 
-	if (!azureResourceId) {
-		azureResourceId = await (await retrieveResourceInfofromArm(cosmosDbAccountName, credentials)).id;
-	}
+  if (!azureResourceId) {
+    azureResourceId = await (await retrieveResourceInfofromArm(cosmosDbAccountName, credentials)).id;
+  }
 
   const { subscriptionId } = parsedAzureResourceId(azureResourceId);
 
@@ -506,7 +506,7 @@ export const retrieveDatabaseAccountInfoFromArm = async (
   }
   const { resourceGroup } = parsedAzureResourceId(azureResourceId);
 
-	showStatusBarItem(localize("retrievingDatabaseAccounts", "Retrieving database accounts..."));
+  showStatusBarItem(localize("retrievingDatabaseAccounts", "Retrieving database accounts..."));
   const databaseAccount = await client.databaseAccounts.get(resourceGroup, cosmosDbAccountName);
   hideStatusBarItem();
   return {
@@ -581,7 +581,7 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
 ): Promise<ICosmosDbDatabaseInfo[]> => {
   const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
-	if (!azureResourceId) {
+  if (!azureResourceId) {
     const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
     const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
     azureResourceId = (await retrieveResourceInfofromArm(cosmosDbAccountName, credentials)).id;
@@ -591,7 +591,12 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
   showStatusBarItem(localize("retrievingMongoDbDatabases", "Retrieving mongodb databases..."));
   const mongoDBResources = await client.mongoDBResources.listMongoDBDatabases(resourceGroup, cosmosDbAccountName);
   hideStatusBarItem();
-  const monitorArmClient = await createArmMonitorClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  const monitorArmClient = await createArmMonitorClient(
+    azureAccountId,
+    azureTenantId,
+    azureResourceId,
+    cosmosDbAccountName
+  );
 
   // TODO Error handling here for missing databaseName
   const promises = mongoDBResources
@@ -687,7 +692,7 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
 ): Promise<ICosmosDbCollectionInfo[]> => {
   const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
-	if (!azureResourceId) {
+  if (!azureResourceId) {
     const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
     const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
     azureResourceId = (await retrieveResourceInfofromArm(cosmosDbAccountName, credentials)).id;
@@ -702,7 +707,12 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
   );
   hideStatusBarItem();
 
-  const monitorArmClient = await createArmMonitorClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  const monitorArmClient = await createArmMonitorClient(
+    azureAccountId,
+    azureTenantId,
+    azureResourceId,
+    cosmosDbAccountName
+  );
 
   // TODO Error handling here for missing databaseName
   const promises = mongoDBResources
@@ -744,22 +754,19 @@ export const getNbServiceInfo = async (): Promise<NotebookServiceInfo> => {
       return;
     }
 
-		const azureAccountId = connectionProfile.options["azureAccount"];
-		const azureTenantId = connectionProfile.options["azureTenantId"];
-		const cosmosDbAccountName = getAccountName(connectionProfile);
-		let azureResourceId = connectionProfile.options["azureResourceId"];
+    const azureAccountId = connectionProfile.options["azureAccount"];
+    const azureTenantId = connectionProfile.options["azureTenantId"];
+    const cosmosDbAccountName = getAccountName(connectionProfile);
+    let azureResourceId = connectionProfile.options["azureResourceId"];
 
-		if (!azureResourceId) {
-			const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
-			const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
-			azureResourceId = (await retrieveResourceInfofromArm(cosmosDbAccountName, credentials)).id;
-		}
+    if (!azureResourceId) {
+      const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
+      const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+      azureResourceId = (await retrieveResourceInfofromArm(cosmosDbAccountName, credentials)).id;
+    }
 
     const { subscriptionId, resourceGroup, dbAccountName } = parsedAzureResourceId(azureResourceId);
-    const azureToken = await retrieveAzureToken(
-      azureTenantId,
-      azureAccountId
-    );
+    const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
     const accountInfo = await retrieveDatabaseAccountInfoFromArm(
       azureAccountId,
       azureTenantId,

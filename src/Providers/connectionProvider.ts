@@ -36,11 +36,11 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     if (connectionInfo.options["authenticationType"] === "AzureMFA") {
       try {
         password = await retrieveConnectionStringFromArm(
-					connectionInfo.options["azureAccount"],
-					connectionInfo.options["azureTenantId"],
-					connectionInfo.options["azureResourceId"],
-					connectionInfo.options["server"]
-				);
+          connectionInfo.options["azureAccount"],
+          connectionInfo.options["azureTenantId"],
+          connectionInfo.options["azureResourceId"],
+          connectionInfo.options["server"]
+        );
       } catch (e) {
         vscode.window.showErrorMessage((e as { message: string }).message);
         return false;
