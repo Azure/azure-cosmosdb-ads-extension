@@ -28,7 +28,7 @@ import { UriHandler } from "./protocol/UriHandler";
 
 import * as path from "path";
 import ViewLoader from "./ViewLoader";
-import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
+import { installMongoShell } from "./MongoShell/MongoShellUtil";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -333,12 +333,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         // Download mongosh
-        showStatusBarItem(localize("downloadingMongoShell", "Downloading mongo shell..."));
-        const executablePath = await downloadMongoShell(context.extensionPath);
-        hideStatusBarItem();
+        const executablePath = await installMongoShell(context.extensionPath);
 
         if (!executablePath) {
-          vscode.window.showErrorMessage(localize("failDownloadMongoShell", "Unable to download mongo shell"));
+          vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));
           return;
         }
         const mongoShellOptions = await appContext.getMongoShellOptions(hasConnectionProfile?.connectionProfile);
