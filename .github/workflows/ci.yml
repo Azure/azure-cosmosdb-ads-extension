@@ -6,7 +6,7 @@ on:
       - main
 jobs:
   compile:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     name: "Compile TypeScript"
     steps:
       - uses: actions/checkout@v2
@@ -17,7 +17,7 @@ jobs:
       - run: yarn
       - run: yarn run compile
   lint:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     name: "Format check and lint"
     steps:
       - uses: actions/checkout@v2
@@ -28,7 +28,7 @@ jobs:
       - run: yarn
       - run: yarn run format:check && yarn run lint
   unittest:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     name: "Unit Tests"
     steps:
       - uses: actions/checkout@v2
@@ -42,7 +42,7 @@ jobs:
       - run: yarn run test
         if: runner.os != 'Linux'
   publish:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     name: "Build vsix"
     steps:
       - uses: actions/checkout@v2
