@@ -18,4 +18,37 @@ jobs:
   - task: ComponentGovernanceComponentDetection@0
   - task: notice@0
     displayName: NOTICE File Generator
+- job: Job_2
+  displayName: Build job
+  - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+    inputs:
+      ConnectedServiceName: 'Code Signing'
+      FolderPath: '$(Build.SourcesDirectory)/.build'
+      Pattern: 'extensions/*.vsix,langpacks/*.vsix'
+      signConfigType: inlineSignParams
+      inlineOperation: |
+        [
+          {
+            "keyCode": "CP-233016",
+            "operationSetCode": "OpcSign",
+            "parameters": [
+              {
+                "parameterName": "FileDigest",
+                "parameterValue": "/fd \"SHA256\""
+              }
+            ],
+            "toolName": "sign",
+            "toolVersion": "1.0"
+          },
+          {
+            "keyCode": "CP-233016",
+            "operationSetCode": "OpcVerify",
+            "parameters": [],
+            "toolName": "sign",
+            "toolVersion": "1.0"
+          }
+        ]
+      SessionTimeout: 120
+    displayName: 'Signing Extensions and Langpacks'
+    condition: and(succeeded(), eq(variables['signed'], true))
 
