@@ -1,0 +1,20 @@
+trigger:
+  branches:
+    include:
+    - refs/heads/main
+resources:
+  repositories:
+  - repository: self
+    type: git
+    ref: refs/heads/main
+jobs:
+- job: Job_1
+  displayName: CELA job
+  pool:
+    vmImage: windows-2019
+  steps:
+  - checkout: self
+    clean: true
+  - task: notice@0
+    displayName: NOTICE File Generator
+
