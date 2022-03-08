@@ -15,6 +15,7 @@ jobs:
   steps:
   - checkout: self
     clean: true
+  - task: ComponentGovernanceComponentDetection@0
   - task: notice@0
     displayName: NOTICE File Generator
 
