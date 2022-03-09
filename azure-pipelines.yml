@@ -25,43 +25,43 @@ jobs:
   steps:
     - checkout: self
       clean: true
-  # - task: NodeTool@0
-  #   inputs:
-  #     versionSpec: '14.x'
-  #   displayName: 'Install Node.js'
-  # - script: |
-  #     yarn install
-  #     yarn run publish
-  #   displayName: 'Yarn publish'
-  # - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-  #   inputs:
-  #     ConnectedServiceName: 'ESRP Official CodeSigning 2021'
-  #     FolderPath: '$(Build.SourcesDirectory)'
-  #     Pattern: '*.vsix'
-  #     signConfigType: inlineSignParams
-  #     inlineOperation: |
-  #       [
-  #         {
-  #           "keyCode": "CP-233016",
-  #           "operationSetCode": "OpcSign",
-  #           "parameters": [
-  #             {
-  #               "parameterName": "FileDigest",
-  #               "parameterValue": "/fd \"SHA256\""
-  #             }
-  #           ],
-  #           "toolName": "sign",
-  #           "toolVersion": "1.0"
-  #         },
-  #         {
-  #           "keyCode": "CP-233016",
-  #           "operationSetCode": "OpcVerify",
-  #           "parameters": [],
-  #           "toolName": "sign",
-  #           "toolVersion": "1.0"
-  #         }
-  #       ]
-  #     SessionTimeout: 120
-  #   displayName: 'Signing extension'
-  #   condition: and(succeeded(), eq(variables['signed'], true))
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '14.x'
+      displayName: 'Install Node.js'
+    - script: |
+        yarn install
+        yarn run publish
+      displayName: 'Yarn publish'
+    # - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+    #   inputs:
+    #     ConnectedServiceName: 'ESRP Official CodeSigning 2021'
+    #     FolderPath: '$(Build.SourcesDirectory)'
+    #     Pattern: '*.vsix'
+    #     signConfigType: inlineSignParams
+    #     inlineOperation: |
+    #       [
+    #         {
+    #           "keyCode": "CP-233016",
+    #           "operationSetCode": "OpcSign",
+    #           "parameters": [
+    #             {
+    #               "parameterName": "FileDigest",
+    #               "parameterValue": "/fd \"SHA256\""
+    #             }
+    #           ],
+    #           "toolName": "sign",
+    #           "toolVersion": "1.0"
+    #         },
+    #         {
+    #           "keyCode": "CP-233016",
+    #           "operationSetCode": "OpcVerify",
+    #           "parameters": [],
+    #           "toolName": "sign",
+    #           "toolVersion": "1.0"
+    #         }
+    #       ]
+    #     SessionTimeout: 120
+    #   displayName: 'Signing extension'
+    #   condition: and(succeeded(), eq(variables['signed'], true))
 
