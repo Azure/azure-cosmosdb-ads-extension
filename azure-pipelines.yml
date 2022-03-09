@@ -63,5 +63,4 @@ jobs:
           ]
         SessionTimeout: 120
       displayName: 'Signing extension'
-      condition: and(succeeded(), eq(variables['signed'], true))
 
