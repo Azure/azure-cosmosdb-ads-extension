@@ -13,11 +13,11 @@ jobs:
   pool:
     vmImage: windows-2019
   steps:
-  - checkout: self
-    clean: true
-  - task: ComponentGovernanceComponentDetection@0
-  - task: notice@0
-    displayName: NOTICE File Generator
+    - checkout: self
+      clean: true
+    - task: ComponentGovernanceComponentDetection@0
+    - task: notice@0
+      displayName: NOTICE File Generator
 - job: Job_2
   displayName: Build job
   pool:
