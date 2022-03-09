@@ -18,6 +18,14 @@ jobs:
   - task: ComponentGovernanceComponentDetection@0
   - task: notice@0
     displayName: NOTICE File Generator
+jobs:
+- job: Job_2
+  displayName: Build job
+  pool:
+    vmImage: unbuntu-latest
+  steps:
+  - checkout: self
+    clean: true
   - task: NodeTool@0
     inputs:
       versionSpec: '14.x'
