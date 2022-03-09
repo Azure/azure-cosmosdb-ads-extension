@@ -22,9 +22,9 @@ jobs:
   displayName: Build job
   - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
     inputs:
-      ConnectedServiceName: 'Code Signing'
-      FolderPath: '$(Build.SourcesDirectory)/.build'
-      Pattern: 'extensions/*.vsix,langpacks/*.vsix'
+      ConnectedServiceName: 'ESRP Official CodeSigning 2021'
+      FolderPath: '$(Build.SourcesDirectory)'
+      Pattern: '*.vsix'
       signConfigType: inlineSignParams
       inlineOperation: |
         [
@@ -49,6 +49,6 @@ jobs:
           }
         ]
       SessionTimeout: 120
-    displayName: 'Signing Extensions and Langpacks'
+    displayName: 'Signing extension'
     condition: and(succeeded(), eq(variables['signed'], true))
 
