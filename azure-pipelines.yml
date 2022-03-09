@@ -23,8 +23,8 @@ jobs:
   pool:
     vmImage: unbuntu-latest
   steps:
-  - checkout: self
-    clean: true
+    - checkout: self
+      clean: true
   # - task: NodeTool@0
   #   inputs:
   #     versionSpec: '14.x'
