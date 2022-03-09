@@ -18,7 +18,6 @@ jobs:
   - task: ComponentGovernanceComponentDetection@0
   - task: notice@0
     displayName: NOTICE File Generator
-jobs:
 - job: Job_2
   displayName: Build job
   pool:
