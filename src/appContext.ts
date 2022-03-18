@@ -299,7 +299,6 @@ export class AppContext {
           },
         }))
       );
-      // const result = await collection.insertMany(sampleData.data);
       hideStatusBarItem();
       if (result.insertedCount === undefined || result.insertedCount < sampleData.data.length) {
         reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));

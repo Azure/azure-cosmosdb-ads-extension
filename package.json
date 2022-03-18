@@ -209,20 +209,6 @@
           "categoryValues": null,
           "isRequired": true,
           "isArray": false
-        },
-        {
-          "specialValueType": "appName",
-          "isIdentity": false,
-          "name": "applicationName",
-          "displayName": "Application Name",
-          "description": "",
-          "groupName": "Context",
-          "valueType": "string",
-          "defaultValue": null,
-          "objectType": null,
-          "categoryValues": null,
-          "isRequired": false,
-          "isArray": false
         }
       ]
     }

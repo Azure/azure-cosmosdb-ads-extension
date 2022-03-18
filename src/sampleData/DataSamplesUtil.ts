@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as azdata from "azdata";
 import * as nls from "vscode-nls";
-import { AppContext, isAzureconnection } from "../appContext";
+import { AppContext, isAzureconnection, validateMongoCollectionName } from "../appContext";
 import { promises as fs } from "fs";
 import * as path from "path";
 
@@ -26,12 +26,30 @@ export const ingestSampleMongoData = async (
       databaseName = sampleData.databaseId;
     }
 
+    const serverName = connection.options["server"];
+    let collectionToCreate = sampleData.collectionId;
+
+    // If collection already exists
+    const collections = await appContext.listCollections(serverName, databaseName);
+    if (collections.find((c) => c.collectionName === sampleData.collectionId)) {
+      collectionToCreate = await vscode.window.showInputBox({
+        placeHolder: localize("collectionName", "Collection name"),
+        prompt: localize("collectionExistEnterNewName", "Enter collection name to create"),
+        validateInput: validateMongoCollectionName,
+        ignoreFocusOut: true,
+      });
+    }
+
+    if (!collectionToCreate) {
+      return;
+    }
+
     const response = await vscode.window.showInformationMessage(
       localize(
         "ingestSampleMongoDataConfirm",
         "This will create a collection '{1}' inside database '{0}'. Are you sure?",
         databaseName,
-        sampleData.collectionId
+        collectionToCreate
       ),
       ...[localize("yes", "Yes"), localize("no", "No")]
     );
@@ -48,7 +66,7 @@ export const ingestSampleMongoData = async (
         progress.report({
           message: localize("importingSampleData", "Importing sample data..."),
         });
-        const count = await appContext.insertDocuments(connection.options["server"], sampleData, databaseName);
+        const count = await appContext.insertDocuments(serverName, sampleData, databaseName);
         vscode.window.showInformationMessage(localize("successInsertDoc", "Successfully inserted {0} docs", count));
       }
     );

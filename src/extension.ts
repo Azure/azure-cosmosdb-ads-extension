@@ -227,10 +227,10 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openDatabaseDashboard",
-      (objectExplorerContext: azdata.ObjectExplorerContext, azureAccountId?: string, databaseName?: string) => {
+      (objectExplorerContext: azdata.ObjectExplorerContext, cosmosDbAccountName?: string, databaseName?: string) => {
         if (objectExplorerContext?.connectionProfile) {
           // Called from menu tree item context menu
-          azureAccountId = objectExplorerContext.connectionProfile["azureAccount"];
+          cosmosDbAccountName = objectExplorerContext.connectionProfile.options["server"];
           // TODO FIX THIS
           if (!objectExplorerContext.nodeInfo) {
             // TODO handle error;
@@ -242,7 +242,7 @@ export function activate(context: vscode.ExtensionContext) {
           databaseName = mongoInfo.databaseName;
         } else {
           // Called from extension code
-          if (!azureAccountId) {
+          if (!cosmosDbAccountName) {
             vscode.window.showErrorMessage(
               localize("missingConnectionProfile", "Missing ConnectionProfile or azureAccountId")
             );
@@ -252,7 +252,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         // TODO ask for database if databaseName not defined
 
-        if (!azureAccountId) {
+        if (!cosmosDbAccountName) {
           vscode.window.showErrorMessage(
             localize("nonAzureDashboardNotImplemented", "Database dashboard only implemented for Azure accounts")
           );
@@ -264,7 +264,7 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        databaseDashboard.openDatabaseDashboard(azureAccountId, databaseName, appContext, context);
+        databaseDashboard.openDatabaseDashboard(cosmosDbAccountName, databaseName, appContext, context);
       }
     )
   );
