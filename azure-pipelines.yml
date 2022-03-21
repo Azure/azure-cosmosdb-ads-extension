@@ -16,6 +16,43 @@ jobs:
   - checkout: self
     clean: true
   - task: ComponentGovernanceComponentDetection@0
+  - task: EsrpCodeSigning@1
+    displayName: 'Sign'
+    inputs:
+      ConnectedServiceName: 'ESRP CodeSigning 2021'
+      FolderPath: '$(Build.ArtifactStagingDirectory)\Dist\azure-cosmosdb-emulator\PSModules\Microsoft.Azure.CosmosDB.Emulator'
+      Pattern: 'Microsoft.Azure.CosmosDB.Emulator.ps[dm]1'
+      UseMinimatch: true
+      signConfigType: inlineSignParams
+      inlineOperation: |
+       [{
+         "keyCode": "CP-230012",
+         "operationSetCode": "SigntoolSign",
+         "parameters": [{
+         "parameterName": "OpusName",
+         "parameterValue": "Microsoft"
+       }, {
+         "parameterName": "OpusInfo",
+         "parameterValue": "http://www.microsoft.com"
+       }, {
+         "parameterName": "FileDigest",
+         "parameterValue": "/fd \"SHA256\""
+       }, {
+         "parameterName": "PageHash",
+         "parameterValue": "/NPH"
+       }, {
+         "parameterName": "TimeStamp",
+         "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+       }],
+       "toolName": "sign",
+       "toolVersion": "1.0"
+       }, {
+         "keyCode": "CP-230012",
+         "operationSetCode": "SigntoolVerify",
+         "parameters": [],
+         "toolName": "sign",
+         "toolVersion": "1.0"
+       }]
   - task: notice@0
     displayName: NOTICE File Generator
 
