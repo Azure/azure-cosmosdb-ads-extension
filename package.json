@@ -120,6 +120,7 @@
       "languageMode": "cosmosdb",
       "displayName": "Mongo account",
       "isQueryProvider": false,
+      "showConnectionStringOption": true,
       "iconPath": [
         {
           "id": "cosmosdb",
@@ -149,8 +150,8 @@
           "specialValueType": "serverName",
           "isIdentity": true,
           "name": "server",
-          "displayName": "Mongo account",
-          "description": "Mongo account",
+          "displayName": "Host/Mongo Account",
+          "description": "Hostname(s) or Mongo Account",
           "groupName": "Source",
           "valueType": "string",
           "defaultValue": null,
@@ -177,6 +178,10 @@
             {
               "displayName": "Basic",
               "name": "SqlLogin"
+            },
+            {
+              "displayName": "No Auth",
+              "name": "Integrated"
             }
           ],
           "isRequired": true,
@@ -200,7 +205,7 @@
           "specialValueType": "password",
           "isIdentity": true,
           "name": "password",
-          "displayName": "Connection String",
+          "displayName": "Password",
           "description": "",
           "groupName": "Security",
           "valueType": "password",
@@ -208,6 +213,19 @@
           "objectType": null,
           "categoryValues": null,
           "isRequired": true,
+          "isArray": false
+        },
+        {
+          "specialValueType": null,
+          "isIdentity": false,
+          "name": "searchParams",
+          "displayName": "Options",
+          "description": "Connection options",
+          "groupName": "Connection",
+          "valueType": "string",
+          "defaultValue": null,
+          "objectType": null,
+          "isRequired": false,
           "isArray": false
         }
       ]
@@ -231,6 +249,7 @@
     "@azure/arm-resourcegraph": "4.2.1",
     "mkdirp": "1.0.4",
     "mongodb": "3.6.10",
+    "mongodb-connection-string-url": "2.5.2",
     "vscode-nls": "5.0.0",
     "tar": "6.1.11",
     "yauzl": "2.10.0"

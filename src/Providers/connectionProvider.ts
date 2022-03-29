@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { v4 as uuid } from "uuid";
 import { AppContext, retrieveConnectionStringFromArm } from "../appContext";
+import { parseMongoConnectionString } from "./connectionString";
 
 const localize = nls.loadMessageBundle();
 
@@ -52,7 +53,10 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
       return false;
     }
 
-    await this.appContext.connect(server, password);
+    if (!(await this.appContext.connect(server, password))) {
+      vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
+      return Promise.reject();
+    }
 
     this.onConnectionCompleteEmitter.fire({
       connectionId: uuid(),
@@ -115,9 +119,12 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   // Called when something is pasted to Server field (Mongo account)
   buildConnectionInfo?(connectionString: string): Promise<azdata.ConnectionInfo> {
     console.log("ConnectionProvider.buildConnectionInfo");
-    return Promise.resolve({
-      options: [],
-    });
+    const info = parseMongoConnectionString(connectionString);
+    if (!info) {
+      return Promise.reject("Could not parse connection string");
+    }
+
+    return Promise.resolve(info);
   }
   registerOnConnectionComplete(handler: (connSummary: azdata.ConnectionInfoSummary) => any): void {
     console.log("ConnectionProvider.registerOnConnectionComplete");
