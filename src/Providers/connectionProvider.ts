@@ -2,7 +2,7 @@ import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { v4 as uuid } from "uuid";
-import { AppContext, retrieveConnectionStringFromArm } from "../appContext";
+import { AppContext, retrieveConnectionStringFromConnectionOption } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
 
 const localize = nls.loadMessageBundle();
@@ -32,28 +32,14 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
     this.connectionUriToServerMap.set(connectionUri, server);
 
-    let password = connectionInfo.options["password"];
+    let connectionString = await retrieveConnectionStringFromConnectionOption(connectionInfo.options, false);
 
-    if (connectionInfo.options["authenticationType"] === "AzureMFA") {
-      try {
-        password = await retrieveConnectionStringFromArm(
-          connectionInfo.options["azureAccount"],
-          connectionInfo.options["azureTenantId"],
-          connectionInfo.options["azureResourceId"],
-          connectionInfo.options["server"]
-        );
-      } catch (e) {
-        vscode.window.showErrorMessage((e as { message: string }).message);
-        return false;
-      }
-    }
-
-    if (!password) {
+    if (!connectionString) {
       vscode.window.showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
       return false;
     }
 
-    if (!(await this.appContext.connect(server, password))) {
+    if (!(await this.appContext.connect(server, connectionString))) {
       vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
       return Promise.reject();
     }

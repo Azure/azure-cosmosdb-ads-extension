@@ -11,6 +11,7 @@ import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
+import { buildMongoConnectionString } from "./Providers/connectionString";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -127,34 +128,7 @@ export class AppContext {
         connectionInfo = connectionProfile;
       }
 
-      const serverName = connectionInfo.options["server"];
-      if (!serverName) {
-        reject(localize("missingServerName", "Missing serverName {0}", serverName));
-        return;
-      }
-
-      // TODO reduce code duplication with ConnectionProvider.connect
-      const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
-      if (connection.length < 1) {
-        reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
-        return;
-      }
-      const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
-      let connectionString = credentials["password"];
-
-      if (connectionInfo.options["authenticationType"] === "AzureMFA") {
-        try {
-          connectionString = await retrieveConnectionStringFromArm(
-            connectionInfo.options["azureAccount"],
-            connectionInfo.options["azureTenantId"],
-            connectionInfo.options["azureResourceId"],
-            connectionInfo.options["server"]
-          );
-        } catch (e) {
-          vscode.window.showErrorMessage((e as { message: string }).message);
-          return false;
-        }
-      }
+      const connectionString = await retrieveConnectionStringFromConnectionOption(connectionInfo.options, true);
 
       if (!connectionString) {
         reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
@@ -218,28 +192,7 @@ export class AppContext {
         reject(localize("missingServerName", "Missing serverName {0}", serverName));
       }
 
-      // TODO reduce code duplication with ConnectionProvider.connect
-      const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
-      if (connection.length < 1) {
-        reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
-        return;
-      }
-      const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
-      let connectionString = credentials["password"];
-
-      if (connectionInfo.options["authenticationType"] === "AzureMFA") {
-        try {
-          connectionString = await retrieveConnectionStringFromArm(
-            connectionInfo.options["azureAccount"],
-            connectionInfo.options["azureTenantId"],
-            connectionInfo.options["azureResourceId"],
-            connectionInfo.options["server"]
-          );
-        } catch (e) {
-          vscode.window.showErrorMessage((e as { message: string }).message);
-          return false;
-        }
-      }
+      const connectionString = await retrieveConnectionStringFromConnectionOption(connectionInfo.options, true);
 
       if (!connectionString) {
         reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
@@ -772,6 +725,58 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
   return await Promise.all(promises);
 };
 
+export const retrieveConnectionStringFromConnectionOption = async (
+  options: any,
+  retrievePasswordFromAzData: boolean
+): Promise<string | undefined> => {
+  const authenticationType = options["authenticationType"];
+
+  if (retrievePasswordFromAzData && (authenticationType === "SqlLogin" || authenticationType === "Integrated")) {
+    // Retrieve password
+    const serverName = options["server"];
+    if (!serverName) {
+      vscode.window.showErrorMessage(localize("missingServerName", "Missing serverName {0}", serverName));
+      return undefined;
+    }
+
+    const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
+    if (connection.length < 1) {
+      vscode.window.showErrorMessage(
+        localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName)
+      );
+      return undefined;
+    }
+    const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
+    options["password"] = credentials["password"];
+  }
+
+  switch (authenticationType) {
+    case "AzureMFA":
+      try {
+        return retrieveConnectionStringFromArm(
+          options["azureAccount"],
+          options["azureTenantId"],
+          options["azureResourceId"],
+          options["server"]
+        );
+      } catch (e) {
+        vscode.window.showErrorMessage((e as { message: string }).message);
+        return undefined;
+      }
+      break;
+    case "SqlLogin":
+    case "Integrated":
+      return buildMongoConnectionString(options);
+      break;
+    default:
+      // Should never happen
+      vscode.window.showErrorMessage(
+        localize("unsupportedAuthenticationType", "Unsupposed authentication type {0}", authenticationType)
+      );
+      return undefined;
+  }
+};
+
 export interface NotebookServiceInfo {
   cosmosEndpoint: string;
   dbAccountName: string;
@@ -783,7 +788,7 @@ export interface NotebookServiceInfo {
 
 /**
  *
- * @returns Only work for MFA
+ * @returns Only works for MFA
  */
 export const getNbServiceInfo = async (): Promise<NotebookServiceInfo> => {
   return new Promise(async (resolve, reject) => {

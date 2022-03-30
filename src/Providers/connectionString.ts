@@ -1,6 +1,5 @@
 import ConnectionString from "mongodb-connection-string-url";
 import * as azdata from "azdata";
-import { unwatchFile } from "fs";
 
 const COSMOS_AZURE_HOSTNAME = ".mongo.cosmos.azure.com";
 
@@ -41,11 +40,29 @@ export const parseMongoConnectionString = (connectionString: string): azdata.Con
       user: username,
       password: url.password,
       authenticationType,
-      searchParams: url.typedSearchParams.toString(),
+      pathname: url.pathname,
+      search: url.search,
+      isServer: url.isSRV,
     },
   };
 };
 
-export const buildMongoConnectionString = (connectionInfo: azdata.ConnectionInfo): string | undefined => {
-  return undefined;
+export const buildMongoConnectionString = (options: any): string | undefined => {
+  if (options.authenticationType === "AzureMFA") {
+    // No connection string with Azure MFA
+    return undefined;
+  }
+
+  const url = new ConnectionString(`mongodb${options.isServer ? "+srv" : ""}://placeholder`);
+  url.hosts = options["server"].split(",");
+
+  if (options.authenticationType === "SqlLogin") {
+    url.username = options["user"];
+    url.password = options["password"];
+  }
+
+  url.pathname = options["pathname"];
+  url.search = options["search"];
+
+  return url.toString();
 };
