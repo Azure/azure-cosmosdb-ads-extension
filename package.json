@@ -245,7 +245,7 @@
           "specialValueType": null,
           "isIdentity": false,
           "name": "isServer",
-          "displayName": "Is Server?",
+          "displayName": "Cluster Server",
           "description": "Mongo Atlas Cluster",
           "groupName": "Connection",
           "valueType": "boolean",
