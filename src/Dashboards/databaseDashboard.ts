@@ -210,13 +210,13 @@ const buildCollectionsArea = async (
 };
 
 export const openDatabaseDashboard = async (
-  azureAccountId: string,
+  cosmosDbAccountName: string,
   databaseName: string,
   appContext: AppContext,
   context: vscode.ExtensionContext
 ): Promise<void> => {
   const connectionInfo = (await azdata.connection.getConnections()).filter(
-    (connectionInfo) => connectionInfo.options["azureAccount"] === azureAccountId
+    (connectionInfo) => connectionInfo.options["server"] === cosmosDbAccountName
   )[0];
   if (!connectionInfo) {
     // TODO Handle error here

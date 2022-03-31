@@ -292,9 +292,15 @@ export class AppContext {
       }
 
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
-      const result = await collection.insertMany(sampleData.data);
+      const result = await collection.bulkWrite(
+        sampleData.data.map((doc) => ({
+          insertOne: {
+            document: doc,
+          },
+        }))
+      );
       hideStatusBarItem();
-      if (result.insertedCount < sampleData.data.length) {
+      if (result.insertedCount === undefined || result.insertedCount < sampleData.data.length) {
         reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
         return;
       }

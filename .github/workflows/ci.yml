@@ -52,3 +52,7 @@ jobs:
           node-version: 14.x
       - run: yarn
       - run: yarn run publish
+      - uses: actions/upload-artifact@v3
+        with:
+          name: azure-cosmosdb-ads-extension
+          path: ./azure-cosmosdb-ads-extension-0.0.1.vsix

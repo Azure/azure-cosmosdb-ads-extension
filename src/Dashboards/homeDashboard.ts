@@ -259,11 +259,11 @@ const buildDatabasesAreaAzure = async (
 
       if (tableComponent.onCellAction) {
         tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-          const azureAccountId = view.connection.options["azureAccount"];
+          const cosmosDbAccountName = view.connection.options["server"];
           vscode.commands.executeCommand(
             "cosmosdb-ads-extension.openDatabaseDashboard",
             undefined,
-            azureAccountId,
+            cosmosDbAccountName,
             databasesInfo[arg.row].name,
             context
           );
