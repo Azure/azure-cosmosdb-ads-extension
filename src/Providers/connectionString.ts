@@ -1,8 +1,6 @@
 import ConnectionString from "mongodb-connection-string-url";
 import * as azdata from "azdata";
 
-const COSMOS_AZURE_HOSTNAME = ".mongo.cosmos.azure.com";
-
 /**
  * Specs are here:
  * Examples from here: https://www.mongodb.com/docs/manual/reference/connection-string/#std-label-connections-connection-examples
@@ -25,8 +23,6 @@ export const parseMongoConnectionString = (connectionString: string): azdata.Con
   if (!hosts || hosts.length < 1) {
     return undefined;
   }
-
-  console.log(url);
 
   const username = url.username;
   let authenticationType = "SqlLogin";
