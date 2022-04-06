@@ -27,7 +27,10 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
       label: localize("newDatabase", "New Database"),
-      iconPath: context.asAbsolutePath("resources/fluent/new-database.svg"),
+      iconPath: {
+        light: context.asAbsolutePath("resources/light/add-database.svg"),
+        dark: context.asAbsolutePath("resources/dark/add-database-inverse.svg"),
+      },
       onDidClick: () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
           connectionProfile: view.connection,
@@ -35,7 +38,10 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     },
     {
       label: localize("openMongoShell", "Open Mongo Shell"),
-      iconPath: context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
+      iconPath: {
+        light: context.asAbsolutePath("resources/light/mongo-shell.svg"),
+        dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
+      },
       onDidClick() {
         vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
           connectionProfile: view.connection,
@@ -45,8 +51,8 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     {
       label: localize("refresh", "Refresh"),
       iconPath: {
-        light: context.asAbsolutePath("images/refresh-cosmos.svg"),
-        dark: context.asAbsolutePath("images/refresh-cosmos.svg"),
+        light: context.asAbsolutePath("resources/light/refresh.svg"),
+        dark: context.asAbsolutePath("resources/dark/refresh-inverse.svg"),
       },
       onDidClick() {
         refreshProperties && refreshProperties();
@@ -55,7 +61,10 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
     },
     {
       label: localize("learnMore", "Learn more"),
-      iconPath: context.asAbsolutePath("resources/fluent/documentation.svg"),
+      iconPath: {
+        light: context.asAbsolutePath("resources/light/learn-more.svg"),
+        dark: context.asAbsolutePath("resources/dark/learn-more-inverse.svg"),
+      },
       onDidClick() {
         vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL));
       },
