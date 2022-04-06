@@ -28,7 +28,10 @@ const buildToolbar = (
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
       label: localize("newCollection", "New Collection"),
-      iconPath: context.asAbsolutePath("resources/fluent/new-collection.svg"),
+      iconPath: {
+        light: context.asAbsolutePath("resources/light/add-database.svg"),
+        dark: context.asAbsolutePath("resources/dark/add-database-inverse.svg"),
+      },
       onDidClick: () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", {
           connectionProfile: connection,
@@ -39,7 +42,10 @@ const buildToolbar = (
     },
     {
       label: localize("openMongoShell", "Open Mongo Shell"),
-      iconPath: context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
+      iconPath: {
+        light: context.asAbsolutePath("resources/light/mongo-shell.svg"),
+        dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
+      },
       onDidClick() {
         vscode.commands.executeCommand(
           "cosmosdb-ads-extension.openMongoShell",
