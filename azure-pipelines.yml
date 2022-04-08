@@ -18,6 +18,10 @@ jobs:
   - task: ComponentGovernanceComponentDetection@0
   - task: notice@0
     displayName: NOTICE File Generator
+  - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+    displayName: 'SBOM'
+    inputs:
+      BuildDropPath: '$(System.ArtifactsDirectory)/buildOutput'
 - job: Job_2
   displayName: Build job
   pool:
@@ -63,7 +67,3 @@ jobs:
         ]
       SessionTimeout: 120
     displayName: 'Signing extension'
-  - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-    displayName: 'SBOM'
-    inputs:
-      BuildDropPath: '$(System.ArtifactsDirectory)/buildOutput'
