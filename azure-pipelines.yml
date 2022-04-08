@@ -21,7 +21,7 @@ jobs:
   - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
     displayName: 'SBOM'
     inputs:
-      BuildDropPath: '$(System.ArtifactsDirectory)/buildOutput'
+      BuildDropPath: '$(System.ArtifactsDirectory)'
 - job: Job_2
   displayName: Build job
   pool:
