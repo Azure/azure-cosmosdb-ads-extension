@@ -64,6 +64,6 @@ jobs:
       SessionTimeout: 120
     displayName: 'Signing extension'
   - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-      displayName: 'SBOM'
-      inputs:
-        BuildDropPath: '$(Build.SourcesDirectory)'
+    displayName: 'SBOM'
+    inputs:
+      BuildDropPath: '$(Build.SourcesDirectory)'
