@@ -7,6 +7,9 @@ resources:
   - repository: self
     type: git
     ref: refs/heads/main
+variables:
+  Packaging.EnableSBOMSigning: true
+
 jobs:
 - job: Job_1
   displayName: CELA job
@@ -18,6 +21,7 @@ jobs:
   - task: ComponentGovernanceComponentDetection@0
   - task: notice@0
     displayName: NOTICE File Generator
+
 - job: Job_2
   displayName: Build job
   pool:
