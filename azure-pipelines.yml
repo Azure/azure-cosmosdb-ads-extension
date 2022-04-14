@@ -7,6 +7,9 @@ resources:
   - repository: self
     type: git
     ref: refs/heads/main
+variables:
+  Packaging.EnableSBOMSigning: true
+
 jobs:
 - job: Job_1
   displayName: CELA job
@@ -18,6 +21,7 @@ jobs:
   - task: ComponentGovernanceComponentDetection@0
   - task: notice@0
     displayName: NOTICE File Generator
+
 - job: Job_2
   displayName: Build job
   pool:
@@ -63,4 +67,7 @@ jobs:
         ]
       SessionTimeout: 120
     displayName: 'Signing extension'
-
+  - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+    displayName: 'SBOM'
+    inputs:
+      BuildDropPath: '$(Build.SourcesDirectory)'
