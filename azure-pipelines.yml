@@ -72,8 +72,8 @@ jobs:
     inputs:
       BuildDropPath: '$(Build.SourcesDirectory)'
   - task: CopyFiles@2
-  inputs:
-    contents: '*.vsix'
+    inputs:
+      contents: '*.vsix'
     targetFolder: $(Build.ArtifactStagingDirectory)
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: drop'
