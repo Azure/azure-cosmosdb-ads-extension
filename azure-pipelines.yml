@@ -71,3 +71,5 @@ jobs:
     displayName: 'SBOM'
     inputs:
       BuildDropPath: '$(Build.SourcesDirectory)'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: drop'
