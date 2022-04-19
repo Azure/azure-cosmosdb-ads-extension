@@ -4,9 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as azdata from "azdata";
+import { CollStats } from "mongodb";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { AppContext, getAccountName, retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
+import { AppContext, getAccountName, isAzureconnection, retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "./util";
@@ -127,7 +128,7 @@ const buildWorkingWithDatabase = (
     .component();
 };
 
-const buildCollectionsArea = async (
+const buildCollectionsAreaAzure = async (
   databaseName: string,
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
@@ -215,6 +216,97 @@ const buildCollectionsArea = async (
     .component();
 };
 
+const buildCollectionsAreaNonAzure = async (
+  databaseName: string,
+  view: azdata.ModelView,
+  context: vscode.ExtensionContext,
+  appContext: AppContext,
+	connectionInfo: azdata.ConnectionInfo
+): Promise<azdata.Component> => {
+  const server = connectionInfo.options["server"];
+
+  appContext.listCollections(server, databaseName).then(async (collectionsInfo) => {
+    const statsMap = new Map<string, CollStats>();
+    // Retrieve all stats for each collection
+    await Promise.all(
+      collectionsInfo.map((collection) =>
+        collection.stats().then((stats) => statsMap.set(collection.collectionName, stats))
+      )
+    );
+
+    tableComponent.data = collectionsInfo.map((collection) => {
+      const stats = statsMap.get(collection.collectionName);
+      return [
+        <azdata.HyperlinkColumnCellValue>{
+          title: collection.collectionName,
+          icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+        },
+        stats?.storageSize,
+        stats?.count,
+      ];
+    });
+
+    tableLoadingComponent.loading = false;
+  });
+
+  const tableComponent = view.modelBuilder
+    .table()
+    .withProps({
+      columns: [
+        <azdata.HyperlinkColumn>{
+          value: localize("collection", "Collection"),
+          type: azdata.ColumnType.hyperlink,
+          name: "Collection",
+          width: 250,
+        },
+        {
+          value: localize("dataUsage", "Storage Size (bytes)"),
+          type: azdata.ColumnType.text,
+        },
+        {
+          value: localize("documents", "Documents"),
+          type: azdata.ColumnType.text,
+        },
+      ],
+      data: [],
+      height: 500,
+      CSSStyles: {
+        padding: "20px",
+      },
+    })
+    .component();
+
+  const tableLoadingComponent = view.modelBuilder
+    .loadingComponent()
+    .withItem(tableComponent)
+    .withProps({
+      loading: true,
+    })
+    .component();
+
+  return view.modelBuilder
+    .flexContainer()
+    .withItems([
+      view.modelBuilder
+        .text()
+        .withProps({
+          value: localize("collectionOverview", "Collection overview"),
+          CSSStyles: { "font-size": "20px", "font-weight": "600" },
+        })
+        .component(),
+      view.modelBuilder
+        .text()
+        .withProps({
+          value: localize("collectionOverviewDescription", "Click on a collection to work with the data"),
+        })
+        .component(),
+      tableLoadingComponent,
+    ])
+    .withLayout({ flexFlow: "column" })
+    .withProps({ CSSStyles: { padding: "10px" } })
+    .component();
+};
+
 export const openDatabaseDashboard = async (
   cosmosDbAccountName: string,
   databaseName: string,
@@ -234,12 +326,13 @@ export const openDatabaseDashboard = async (
   dashboard.registerTabs(async (view: azdata.ModelView) => {
     const input1 = view.modelBuilder.inputBox().withProps({ value: databaseName }).component();
 
+    const viewItem = isAzureconnection(connectionInfo)
+      ? await buildCollectionsAreaAzure(databaseName, view, context, connectionInfo)
+      : await buildCollectionsAreaNonAzure(databaseName, view, context, appContext, connectionInfo);
+
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([
-        buildWorkingWithDatabase(view, appContext, context, databaseName, connectionInfo),
-        await buildCollectionsArea(databaseName, view, context, connectionInfo),
-      ])
+      .withItems([buildWorkingWithDatabase(view, appContext, context, databaseName, connectionInfo), viewItem])
       .withLayout({ flexFlow: "column" })
       .component();
 
