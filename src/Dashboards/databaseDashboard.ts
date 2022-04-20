@@ -221,7 +221,7 @@ const buildCollectionsAreaNonAzure = async (
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
   appContext: AppContext,
-	connectionInfo: azdata.ConnectionInfo
+  connectionInfo: azdata.ConnectionInfo
 ): Promise<azdata.Component> => {
   const server = connectionInfo.options["server"];
 

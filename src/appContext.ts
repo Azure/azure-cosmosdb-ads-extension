@@ -15,8 +15,8 @@ import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
 export interface IDatabaseInfo {
-  name?: string;
-  sizeOnDisk: number;
+  name: string;
+  sizeOnDisk?: number;
   empty?: boolean;
 }
 

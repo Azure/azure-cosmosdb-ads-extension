@@ -354,7 +354,7 @@ const buildDatabasesAreaNonAzure = async (
   const server = view.connection.options["server"];
 
   appContext.listDatabases(server).then(async (dbs) => {
-    const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number }[] = [];
+    const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number | undefined }[] = [];
     for (const db of dbs) {
       const name = db.name;
       if (name !== undefined) {

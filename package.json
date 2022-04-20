@@ -230,18 +230,16 @@
     "@azure/arm-monitor": "6.1.1",
     "@azure/arm-resourcegraph": "4.2.1",
     "mkdirp": "1.0.4",
-    "mongodb": "3.6.10",
+    "mongodb": "4.5.0",
     "vscode-nls": "5.0.0",
     "tar": "6.1.11",
     "yauzl": "2.10.0"
   },
   "devDependencies": {
     "@types/azdata": "1.33.0",
-    "@types/bson": "4.2.0",
     "@types/glob": "7.2.0",
     "@types/mkdirp": "1.0.2",
     "@types/mocha": "7.0.2",
-    "@types/mongodb": "3.6.20",
     "@types/node": "13.13.52",
     "@types/tar": "6.1.1",
     "@types/tmp": "0.0.34",
@@ -254,7 +252,7 @@
     "glob": "7.2.0",
     "mocha": "7.2.0",
     "prettier": "2.3.2",
-    "typescript": "3.9.10",
+    "typescript": "4.6.3",
     "vscode-test": "1.6.1",
     "vsce": "2.5.0"
   },
