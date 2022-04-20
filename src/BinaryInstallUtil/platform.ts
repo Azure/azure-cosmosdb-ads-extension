@@ -23,6 +23,7 @@ export enum Runtime {
   RHEL_7 = <any>"RHEL_7",
   Ubuntu_14 = <any>"Ubuntu_14",
   Ubuntu_16 = <any>"Ubuntu_16",
+  Ubuntu_20 = <any>"Ubuntu_20",
   Linux_64 = <any>"Linux_64",
   Linux_86 = <any>"Linux-86",
 }

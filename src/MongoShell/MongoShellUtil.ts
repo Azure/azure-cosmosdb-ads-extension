@@ -12,7 +12,7 @@ export const installMongoShell = async (extensionPath: string): Promise<string |
   const zipDirectory = path.join(extensionPath, "resources", "mongoshell", "1.1.9");
   const installDirectory = path.join(extensionPath, "mongoshellexecutable");
 
-  const linuxMongosh = { archiveFilename: "linux-x64.tgz", binaryFilename: "mongosh" };
+  const linuxMongosh = { archiveFilename: "linux-x64.zip", binaryFilename: "mongosh" };
 
   const filenamesMap: Map<Runtime, { archiveFilename: string; binaryFilename: string }> = new Map([
     [Runtime.Windows_64, { archiveFilename: "win32-x64.zip", binaryFilename: "mongosh.exe" }],
@@ -25,6 +25,7 @@ export const installMongoShell = async (extensionPath: string): Promise<string |
     [Runtime.SLES_12_2, linuxMongosh],
     [Runtime.Ubuntu_14, linuxMongosh],
     [Runtime.Ubuntu_16, linuxMongosh],
+    [Runtime.Ubuntu_20, linuxMongosh],
   ]);
 
   const platformInformation = await PlatformInformation.getCurrent();
