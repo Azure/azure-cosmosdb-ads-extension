@@ -142,10 +142,12 @@ const buildCollectionsAreaAzure = async (
     databaseName
   ).then((collectionsInfo) => {
     tableComponent.data = collectionsInfo.map((collection) => [
-      <azdata.HyperlinkColumnCellValue>{
-        title: collection.name,
-        icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-      },
+      // TODO For now, no link until we get the query UI done
+      // <azdata.HyperlinkColumnCellValue>{
+      //   title: collection.name,
+      //   icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+      // },
+      collection.name,
       collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
       collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
       collection.throughputSetting,
@@ -158,11 +160,16 @@ const buildCollectionsAreaAzure = async (
     .table()
     .withProps({
       columns: [
-        <azdata.HyperlinkColumn>{
+        // TODO for now no link until we get the query UI done
+        // <azdata.HyperlinkColumn>{
+        //   value: localize("collection", "Collection"),
+        //   type: azdata.ColumnType.hyperlink,
+        //   name: "Collection",
+        //   width: 250,
+        // },
+        {
           value: localize("collection", "Collection"),
-          type: azdata.ColumnType.hyperlink,
-          name: "Collection",
-          width: 250,
+          type: azdata.ColumnType.text,
         },
         {
           value: localize("dataUsage", "Data Usage (KB)"),
@@ -237,10 +244,12 @@ const buildCollectionsAreaNonAzure = async (
     tableComponent.data = collectionsInfo.map((collection) => {
       const stats = statsMap.get(collection.collectionName);
       return [
-        <azdata.HyperlinkColumnCellValue>{
-          title: collection.collectionName,
-          icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-        },
+        // TODO for now no link until we get the query UI done
+        // <azdata.HyperlinkColumnCellValue>{
+        //   title: collection.collectionName,
+        //   icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+        // },
+        collection.collectionName,
         stats?.storageSize,
         stats?.count,
       ];
@@ -253,11 +262,16 @@ const buildCollectionsAreaNonAzure = async (
     .table()
     .withProps({
       columns: [
-        <azdata.HyperlinkColumn>{
+        // TODO for now no link until we get the query UI done
+        // <azdata.HyperlinkColumn>{
+        //   value: localize("collection", "Collection"),
+        //   type: azdata.ColumnType.hyperlink,
+        //   name: "Collection",
+        //   width: 250,
+        // },
+        {
           value: localize("collection", "Collection"),
-          type: azdata.ColumnType.hyperlink,
-          name: "Collection",
-          width: 250,
+          type: azdata.ColumnType.text,
         },
         {
           value: localize("dataUsage", "Storage Size (bytes)"),
