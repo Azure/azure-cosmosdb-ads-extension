@@ -572,7 +572,7 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
     databaseName
   );
 
-  let throughputSetting = "N/A";
+  let throughputSetting = "";
   try {
     showStatusBarItem(localize("retrievingMongoDbDatabaseThroughput", "Retrieving mongodb database throughput..."));
     const rpResponse = await client.mongoDBResources.getMongoDBDatabaseThroughput(
@@ -678,7 +678,7 @@ const retrieveMongoDbCollectionInfoFromArm = async (
   monitorARmClient: MonitorManagementClient,
   resourceUri: string
 ): Promise<ICosmosDbCollectionInfo> => {
-  let throughputSetting = "N/A";
+  let throughputSetting = "";
   try {
     const rpResponse = await client.mongoDBResources.getMongoDBCollectionThroughput(
       resourceGroupName,
