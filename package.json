@@ -23,35 +23,43 @@
     "commands": [
       {
         "command": "cosmosdb-ads-extension.createMongoDatabase",
-        "title": "Create Mongo Database..."
+        "title": "Create Database...",
+        "category": "CosmosDB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.createMongoCollection",
-        "title": "Create Mongo Collection..."
+        "title": "Create Collection...",
+        "category": "CosmosDB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.deleteMongoCollection",
-        "title": "Delete Collection"
+        "title": "Delete Collection",
+        "category": "CosmosDB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.deleteMongoDatabase",
-        "title": "Delete Database"
+        "title": "Delete Database",
+        "category": "CosmosDB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.openDatabaseDashboard",
-        "title": "Open Database"
+        "title": "Open Database",
+        "category": "CosmosDB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.openCollection",
-        "title": "Open Collection"
+        "title": "Open Collection",
+        "category": "CosmosDB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.openQuery",
-        "title": "Open Query"
+        "title": "Open Query",
+        "category": "CosmosDB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.openMongoShell",
-        "title": "Open Mongo Shell"
+        "title": "Open Mongo Shell",
+        "category": "CosmosDB Mongo"
       }
     ],
     "menus": {
