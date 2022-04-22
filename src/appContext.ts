@@ -7,7 +7,10 @@ import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { ResourceGraphClient } from "@azure/arm-resourcegraph";
 import { TokenCredentials } from "@azure/ms-rest-js";
-import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
+import {
+  DatabaseAccountConnectionString,
+  ThroughputSettingsGetPropertiesResource,
+} from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
@@ -21,6 +24,7 @@ export interface IDatabaseInfo {
 }
 
 type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem;
+type ConnectionStringPick = DatabaseAccountConnectionString & vscode.QuickPickItem;
 
 export interface ICosmosDbDatabaseAccountInfo {
   serverStatus: string;
@@ -78,6 +82,10 @@ export class AppContext {
       console.error(error);
       return undefined;
     }
+  }
+
+  public hasConnection(server: string): boolean {
+    return this._mongoClients.has(server);
   }
 
   public async listDatabases(server: string): Promise<IDatabaseInfo[]> {
@@ -218,38 +226,43 @@ export class AppContext {
         reject(localize("missingServerName", "Missing serverName {0}", serverName));
       }
 
-      // TODO reduce code duplication with ConnectionProvider.connect
-      const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
-      if (connection.length < 1) {
-        reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
-        return;
-      }
-      const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
-      let connectionString = credentials["password"];
-
-      if (connectionInfo.options["authenticationType"] === "AzureMFA") {
-        try {
-          connectionString = await retrieveConnectionStringFromArm(
-            connectionInfo.options["azureAccount"],
-            connectionInfo.options["azureTenantId"],
-            connectionInfo.options["azureResourceId"],
-            connectionInfo.options["server"]
-          );
-        } catch (e) {
-          vscode.window.showErrorMessage((e as { message: string }).message);
-          return false;
+      let mongoClient;
+      if (this._mongoClients.has(serverName)) {
+        mongoClient = this._mongoClients.get(serverName);
+      } else {
+        // TODO reduce code duplication with ConnectionProvider.connect
+        const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
+        if (connection.length < 1) {
+          reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
+          return;
         }
+        const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
+        let connectionString = credentials["password"];
+
+        if (connectionInfo.options["authenticationType"] === "AzureMFA") {
+          try {
+            connectionString = await retrieveConnectionStringFromArm(
+              connectionInfo.options["azureAccount"],
+              connectionInfo.options["azureTenantId"],
+              connectionInfo.options["azureResourceId"],
+              connectionInfo.options["server"]
+            );
+          } catch (e) {
+            vscode.window.showErrorMessage((e as { message: string }).message);
+            return false;
+          }
+        }
+
+        if (!connectionString) {
+          reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
+          return;
+        }
+
+        mongoClient = await this.connect(serverName, connectionString);
       }
 
-      if (!connectionString) {
-        reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
-        return;
-      }
-
-      const client = await this.connect(serverName, connectionString);
-
-      if (client) {
-        const collection = await client.db(databaseName).createCollection(collectionName);
+      if (mongoClient) {
+        const collection = await mongoClient.db(databaseName).createCollection(collectionName);
         resolve({ collection, databaseName: databaseName! });
       } else {
         reject(localize("failConnectTo", "Could not connect to {0}", serverName));
@@ -506,11 +519,23 @@ export const retrieveConnectionStringFromArm = async (
     cosmosDbAccountName
   );
   hideStatusBarItem();
-  const connectionString = connectionStringsResponse.connectionStrings?.[0]?.connectionString;
-  if (!connectionString) {
+
+  if (!connectionStringsResponse.connectionStrings) {
+    throw new Error(localize("noConnectionStringsFound", "No Connection strings found for this account"));
+  }
+
+  const connectionStringsPicks: ConnectionStringPick[] = connectionStringsResponse.connectionStrings.map(
+    (cs, index) => ({ ...cs, label: cs.description ?? "", description: undefined, picked: index === 0 })
+  );
+
+  const connectionStringPick = await vscode.window.showQuickPick<ConnectionStringPick>(connectionStringsPicks, {
+    placeHolder: localize("SelectConnectionString", "Select connection string"),
+  });
+
+  if (!connectionStringPick || !connectionStringPick.connectionString) {
     throw new Error(localize("missingConnectionString", "Missing connection string"));
   }
-  return connectionString;
+  return connectionStringPick.connectionString;
 };
 
 export const retrieveDatabaseAccountInfoFromArm = async (

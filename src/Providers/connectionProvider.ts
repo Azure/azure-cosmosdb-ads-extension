@@ -31,29 +31,30 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
     this.connectionUriToServerMap.set(connectionUri, server);
 
-    let password = connectionInfo.options["password"];
+    if (!this.appContext.hasConnection(server)) {
+      let password = connectionInfo.options["password"];
 
-    if (connectionInfo.options["authenticationType"] === "AzureMFA") {
-      try {
-        password = await retrieveConnectionStringFromArm(
-          connectionInfo.options["azureAccount"],
-          connectionInfo.options["azureTenantId"],
-          connectionInfo.options["azureResourceId"],
-          connectionInfo.options["server"]
-        );
-      } catch (e) {
-        vscode.window.showErrorMessage((e as { message: string }).message);
+      if (connectionInfo.options["authenticationType"] === "AzureMFA") {
+        try {
+          password = await retrieveConnectionStringFromArm(
+            connectionInfo.options["azureAccount"],
+            connectionInfo.options["azureTenantId"],
+            connectionInfo.options["azureResourceId"],
+            connectionInfo.options["server"]
+          );
+        } catch (e) {
+          vscode.window.showErrorMessage((e as { message: string }).message);
+          return false;
+        }
+      }
+
+      if (!password) {
+        vscode.window.showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
         return false;
       }
+
+      await this.appContext.connect(server, password);
     }
-
-    if (!password) {
-      vscode.window.showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
-      return false;
-    }
-
-    await this.appContext.connect(server, password);
-
     this.onConnectionCompleteEmitter.fire({
       connectionId: uuid(),
       ownerUri: connectionUri,
