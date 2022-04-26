@@ -262,7 +262,9 @@ export class AppContext {
       }
 
       if (mongoClient) {
+        showStatusBarItem(localize("creatingMongoCollection", "Creating Mongo collection"));
         const collection = await mongoClient.db(databaseName).createCollection(collectionName);
+        hideStatusBarItem();
         resolve({ collection, databaseName: databaseName! });
       } else {
         reject(localize("failConnectTo", "Could not connect to {0}", serverName));
@@ -611,8 +613,9 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
     }
   } catch (e) {
     // Entity with the specified id does not exist in the system. More info: https://aka.ms/cosmosdb-tsg-not-found
+  } finally {
+    hideStatusBarItem();
   }
-  hideStatusBarItem();
 
   const usageSizeKB = await getUsageSizeInKB(monitorARmClient, resourceUri, databaseName);
 
@@ -728,10 +731,11 @@ const retrieveMongoDbCollectionInfoFromArm = async (
   try {
     showStatusBarItem(localize("retrievingMongoDbUsage", "Retrieving mongodb usage..."));
     const metricsResponse = await monitorARmClient.metrics.list(resourceUri, { filter, metricnames });
-    hideStatusBarItem();
     documentCount = metricsResponse.value[0].timeseries?.[0].data?.[0]?.total;
   } catch (e) {
     console.error(e);
+  } finally {
+    hideStatusBarItem();
   }
 
   return {
