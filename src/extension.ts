@@ -152,16 +152,22 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        if (await appContext.removeDatabase(serverName, mongoInfo.databaseName!)) {
-          // update parent node
-          const parentNode = { ...objectExplorerContext, isConnectionNode: true };
-          await objectExplorer.updateNode(parentNode);
-          vscode.window.showInformationMessage(
-            localize("successDeleteDatabase", "Successfully deleted database {0}", mongoInfo.databaseName)
-          );
-        } else {
+        try {
+          if (await appContext.removeDatabase(serverName, mongoInfo.databaseName!)) {
+            // update parent node
+            const parentNode = { ...objectExplorerContext, isConnectionNode: true };
+            await objectExplorer.updateNode(parentNode);
+            vscode.window.showInformationMessage(
+              localize("successDeleteDatabase", "Successfully deleted database {0}", mongoInfo.databaseName)
+            );
+          } else {
+            vscode.window.showErrorMessage(
+              localize("failedDeleteDatabase", "Failed to delete database {0}", mongoInfo.databaseName)
+            );
+          }
+        } catch (e) {
           vscode.window.showErrorMessage(
-            localize("failedDeleteDatabase", "Failed to delete database {0}", mongoInfo.databaseName)
+            localize("failedDeleteDatabase", `Failed to delete database {0}: ${e as string}`, mongoInfo.databaseName)
           );
         }
       }
@@ -201,21 +207,31 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        if (await appContext.removeCollection(serverName, mongoInfo.databaseName!, mongoInfo.collectionName!)) {
-          // Find parent node to update
-          const { serverName, databaseName } = getMongoInfo(objectExplorerContext.nodeInfo.nodePath);
-          const newNodePath = createNodePath(serverName, databaseName);
-          const parentNode = {
-            ...objectExplorerContext,
-            nodeInfo: { ...objectExplorerContext.nodeInfo, nodePath: newNodePath },
-          };
-          await objectExplorer.updateNode(parentNode);
-          vscode.window.showInformationMessage(
-            localize("successDeleteCollection", "Successfully deleted collection {0}", mongoInfo.collectionName)
-          );
-        } else {
+        try {
+          if (await appContext.removeCollection(serverName, mongoInfo.databaseName!, mongoInfo.collectionName!)) {
+            // Find parent node to update
+            const { serverName, databaseName } = getMongoInfo(objectExplorerContext.nodeInfo.nodePath);
+            const newNodePath = createNodePath(serverName, databaseName);
+            const parentNode = {
+              ...objectExplorerContext,
+              nodeInfo: { ...objectExplorerContext.nodeInfo, nodePath: newNodePath },
+            };
+            await objectExplorer.updateNode(parentNode);
+            vscode.window.showInformationMessage(
+              localize("successDeleteCollection", "Successfully deleted collection {0}", mongoInfo.collectionName)
+            );
+          } else {
+            vscode.window.showErrorMessage(
+              localize("failDeleteCollection", "Failed to delete collection {0}", mongoInfo.collectionName)
+            );
+          }
+        } catch (e) {
           vscode.window.showErrorMessage(
-            localize("failDeleteCollection", "Failed to delete collection {0}", mongoInfo.collectionName)
+            localize(
+              "failDeleteCollection",
+              `Failed to delete collection {0}: ${e as string}`,
+              mongoInfo.collectionName
+            )
           );
         }
       }
