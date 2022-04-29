@@ -127,8 +127,7 @@ export class AppContext {
       if (!connectionInfo) {
         const connectionProfile = await askUserForConnectionProfile();
         if (!connectionProfile) {
-          // TODO Show error here
-          resolve(undefined);
+          reject("Failed to retrieve connection profile");
           return;
         }
 
@@ -224,13 +223,13 @@ export class AppContext {
       const serverName = connectionInfo.options["server"];
       if (!serverName) {
         reject(localize("missingServerName", "Missing serverName {0}", serverName));
+        return;
       }
 
       let mongoClient;
       if (this._mongoClients.has(serverName)) {
         mongoClient = this._mongoClients.get(serverName);
       } else {
-        // TODO reduce code duplication with ConnectionProvider.connect
         const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
         if (connection.length < 1) {
           reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
@@ -248,8 +247,8 @@ export class AppContext {
               connectionInfo.options["server"]
             );
           } catch (e) {
-            vscode.window.showErrorMessage((e as { message: string }).message);
-            return false;
+            reject(e);
+            return;
           }
         }
 
@@ -527,15 +526,24 @@ export const retrieveConnectionStringFromArm = async (
   }
 
   const connectionStringsPicks: ConnectionStringPick[] = connectionStringsResponse.connectionStrings.map(
-    (cs, index) => ({ ...cs, label: cs.description ?? "", description: undefined, picked: index === 0 })
+    (cs, index) => ({
+      ...cs,
+      label: `${cs.description ?? ""} (${cosmosDbAccountName})`,
+      description: undefined,
+      picked: index === 0,
+    })
   );
 
-  const connectionStringPick = await vscode.window.showQuickPick<ConnectionStringPick>(connectionStringsPicks, {
-    placeHolder: localize("SelectConnectionString", "Select connection string"),
-  });
+  let connectionStringPick;
+  // Enforce a choice
+  while (!connectionStringPick && connectionStringsPicks && connectionStringsPicks.length > 0) {
+    connectionStringPick = await vscode.window.showQuickPick<ConnectionStringPick>(connectionStringsPicks, {
+      placeHolder: localize("SelectConnectionString", "Select connection string"),
+    });
+  }
 
   if (!connectionStringPick || !connectionStringPick.connectionString) {
-    throw new Error(localize("missingConnectionString", "Missing connection string"));
+    throw new Error(localize("missingConnectionString", "Error: missing connection string"));
   }
   return connectionStringPick.connectionString;
 };
