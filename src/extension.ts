@@ -397,6 +397,29 @@ export function activate(context: vscode.ExtensionContext) {
           terminal.sendText(`use ${databaseName}\n`);
         }
         terminal.show();
+
+        // Maximize panel
+        const response = await vscode.window.showInformationMessage<{
+          title: string;
+          iscloseAffordance?: boolean;
+          value: string;
+        }>(
+          localize("maximizeMongoShell", "Would like to use Mongo Shell maximized?"),
+          ...[
+            {
+              title: localize("yesMaximize", "Yes, maximize terminal window"),
+              value: "yes",
+            },
+            {
+              title: localize("noDoNotMaximize", "No, leave as terminal window as is"),
+              iscloseAffordance: true,
+              value: "no",
+            },
+          ]
+        );
+        if (response?.value === "yes") {
+          vscode.commands.executeCommand("workbench.action.toggleMaximizedPanel");
+        }
       }
     )
   );
