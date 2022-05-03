@@ -24,6 +24,13 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   onConnectionChanged: vscode.Event<azdata.ChangedConnectionInfo> = this.onConnectionChangedEmitter.event;
 
   async connect(connectionUri: string, connectionInfo: azdata.ConnectionInfo): Promise<boolean> {
+    const showErrorMessage = (errorMessage: string) => {
+      this.onConnectionCompleteEmitter.fire({
+        ownerUri: connectionUri,
+        errorMessage,
+      } as any);
+    };
+
     console.log(`ConnectionProvider.connect ${connectionUri}`);
     // For now, pass connection string in password
     console.log("connectionInfo", connectionInfo);
@@ -43,13 +50,13 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
             connectionInfo.options["server"]
           );
         } catch (e) {
-          vscode.window.showErrorMessage((e as { message: string }).message);
+          showErrorMessage((e as { message: string }).message);
           return false;
         }
       }
 
       if (!password) {
-        vscode.window.showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
+        showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
         return false;
       }
 
