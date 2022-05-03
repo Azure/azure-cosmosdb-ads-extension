@@ -14,6 +14,7 @@ import {
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
+import { PICK_MAX_ATTEMPTS } from "./constant";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -535,11 +536,18 @@ export const retrieveConnectionStringFromArm = async (
   );
 
   let connectionStringPick;
+  let attempts = 0;
   // Enforce a choice
-  while (!connectionStringPick && connectionStringsPicks && connectionStringsPicks.length > 0) {
+  while (
+    !connectionStringPick &&
+    connectionStringsPicks &&
+    connectionStringsPicks.length > 0 &&
+    attempts < PICK_MAX_ATTEMPTS
+  ) {
     connectionStringPick = await vscode.window.showQuickPick<ConnectionStringPick>(connectionStringsPicks, {
       placeHolder: localize("SelectConnectionString", "Select connection string"),
     });
+    attempts++;
   }
 
   if (!connectionStringPick || !connectionStringPick.connectionString) {
