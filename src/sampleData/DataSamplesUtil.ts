@@ -66,8 +66,14 @@ export const ingestSampleMongoData = async (
         progress.report({
           message: localize("importingSampleData", "Importing sample data..."),
         });
-        const count = await appContext.insertDocuments(serverName, sampleData, databaseName);
-        vscode.window.showInformationMessage(localize("successInsertDoc", "Successfully inserted {0} docs", count));
+        const { count, elapsedTimeMS } = await appContext.insertDocuments(serverName, sampleData, databaseName);
+        vscode.window.showInformationMessage(
+          localize(
+            "successInsertDoc",
+            `Successfully inserted {0} documents (took ${Math.floor(elapsedTimeMS / 1000)}s)`,
+            count
+          )
+        );
       }
     );
   } catch (e) {

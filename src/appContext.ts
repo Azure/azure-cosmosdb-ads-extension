@@ -289,7 +289,11 @@ export class AppContext {
    * @param sampleData
    * @returns Promise with inserted count
    */
-  public async insertDocuments(server: string, sampleData: SampleData, databaseName?: string): Promise<number> {
+  public async insertDocuments(
+    server: string,
+    sampleData: SampleData,
+    databaseName?: string
+  ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected
       const client = this._mongoClients.get(server);
@@ -307,6 +311,7 @@ export class AppContext {
       }
 
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
+      const startMS = new Date().getTime();
       const result = await collection.bulkWrite(
         sampleData.data.map((doc) => ({
           insertOne: {
@@ -314,13 +319,18 @@ export class AppContext {
           },
         }))
       );
+      const endMS = new Date().getTime();
+
       hideStatusBarItem();
       if (result.insertedCount === undefined || result.insertedCount < sampleData.data.length) {
         reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
         return;
       }
 
-      return resolve(result.insertedCount);
+      return resolve({
+        count: result.insertedCount,
+        elapsedTimeMS: endMS - startMS,
+      });
     });
   }
 }
