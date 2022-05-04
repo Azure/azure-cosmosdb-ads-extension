@@ -385,6 +385,9 @@ function validateMongoDatabaseName(database: string): string | undefined | null 
   return undefined;
 }
 
+export const retrievePortalEndpoint = async (accountId: string): Promise<string> =>
+  (await retrieveAzureAccount(accountId)).properties?.providerSettings?.settings?.portalEndpoint;
+
 const retrieveAzureAccount = async (accountId: string): Promise<azdata.Account> => {
   showStatusBarItem(localize("retrievingAzureAccount", "Retrieving Azure Account..."));
   const accounts = (await azdata.accounts.getAllAccounts()).filter((a) => a.key.accountId === accountId);
@@ -427,6 +430,35 @@ const parsedAzureResourceId = (
     resourceGroup: parsedAzureResourceId[4],
     dbAccountName: parsedAzureResourceId[8],
   };
+};
+
+/**
+ * If AzureResourceId is not defined, retrieve from ARM
+ * @param azureAccountId
+ * @param azureTenantId
+ * @param azureResourceId
+ * @param cosmosDbAccountName
+ * @returns
+ */
+export const retrieveResourceId = async (
+  azureAccountId: string,
+  azureTenantId: string,
+  azureResourceId: string,
+  cosmosDbAccountName: string
+): Promise<string> => {
+  if (!azureResourceId) {
+    const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
+    const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+
+    const azureResource = await retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
+    if (!azureResource) {
+      throw new Error(localize("azureResourceNotFound", "Azure Resource not found"));
+    } else {
+      azureResourceId = azureResource.id;
+    }
+  }
+
+  return azureResourceId;
 };
 
 const createArmClient = async (
@@ -500,17 +532,7 @@ export const retrieveConnectionStringFromArm = async (
 ): Promise<string> => {
   const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
-  if (!azureResourceId) {
-    const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
-    const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
-
-    const azureResource = await retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
-    if (!azureResource) {
-      throw new Error(localize("azureResourceNotFound", "Azure Resource not found"));
-    } else {
-      azureResourceId = azureResource.id;
-    }
-  }
+  azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
   // TODO: check resourceGroup here
   const { resourceGroup } = parsedAzureResourceId(azureResourceId);
@@ -653,17 +675,8 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
 ): Promise<ICosmosDbDatabaseInfo[]> => {
   const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
-  if (!azureResourceId) {
-    const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
-    const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+  azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
-    const azureResource = await retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
-    if (!azureResource) {
-      throw new Error(localize("azureResourceNotFound", "Azure Resource not found"));
-    } else {
-      azureResourceId = azureResource.id;
-    }
-  }
   const { resourceGroup } = parsedAzureResourceId(azureResourceId);
 
   showStatusBarItem(localize("retrievingMongoDbDatabases", "Retrieving mongodb databases..."));
@@ -844,17 +857,7 @@ export const getNbServiceInfo = async (): Promise<NotebookServiceInfo> => {
     const cosmosDbAccountName = getAccountName(connectionProfile);
     let azureResourceId = connectionProfile.options["azureResourceId"];
 
-    if (!azureResourceId) {
-      const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);
-      const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
-
-      const azureResource = await retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
-      if (!azureResource) {
-        throw new Error(localize("azureResourceNotFound", "Azure Resource not found"));
-      } else {
-        azureResourceId = azureResource.id;
-      }
-    }
+    azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
     const { subscriptionId, resourceGroup, dbAccountName } = parsedAzureResourceId(azureResourceId);
     const azureToken = await retrieveAzureToken(azureTenantId, azureAccountId);

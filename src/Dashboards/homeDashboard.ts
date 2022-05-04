@@ -14,6 +14,8 @@ import {
   isAzureconnection,
   retrieveDatabaseAccountInfoFromArm,
   retrieveMongoDbDatabasesInfoFromArm,
+  retrievePortalEndpoint,
+  retrieveResourceId,
 } from "../appContext";
 import { COSMOSDB_DOC_URL } from "../constant";
 import { buildHeroCard } from "./util";
@@ -142,6 +144,26 @@ const buildOverview = (view: azdata.ModelView): azdata.Component => {
 };
 
 const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {
+  const addOpenInPortalButton = async (connectionInfo: azdata.ConnectionInfo) => {
+    const portalEndpoint = await retrievePortalEndpoint(connectionInfo.options["azureAccount"]);
+    const resourceId = await retrieveResourceId(
+      connectionInfo.options["azureAccount"],
+      connectionInfo.options["azureTenantId"],
+      connectionInfo.options["azureResourceId"],
+      getAccountName(connectionInfo)
+    );
+    heroCardsContainer.addItem(
+      buildHeroCard(
+        view,
+        context.asAbsolutePath("resources/fluent/azure.svg"),
+        localize("openInPortal", "Open in portal"),
+        localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
+        () => openInPortal(portalEndpoint, resourceId)
+      ),
+      { flex: "0 0 auto" }
+    );
+  };
+
   const heroCards: azdata.ButtonComponent[] = [
     buildHeroCard(
       view,
@@ -165,13 +187,6 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     ),
     buildHeroCard(
       view,
-      context.asAbsolutePath("resources/fluent/azure.svg"),
-      localize("openInPortal", "Open in portal"),
-      localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
-      () => openInPortal(view.connection)
-    ),
-    buildHeroCard(
-      view,
       context.asAbsolutePath("resources/fluent/documentation.svg"),
       localize("documentation", "Documentation"),
       localize("documentation", "Find quickstarts, how-to guides, and references."),
@@ -185,6 +200,10 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     .withLayout({ flexFlow: "row", flexWrap: "wrap" })
     .withProps({ CSSStyles: { width: "100%" } })
     .component();
+
+  if (isAzureconnection(view.connection)) {
+    addOpenInPortalButton(view.connection);
+  }
 
   return view.modelBuilder
     .flexContainer()
@@ -476,9 +495,7 @@ export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appC
   });
 };
 
-const openInPortal = (connection: azdata.connection.Connection) => {
-  const azurePortalEndpoint = connection?.options?.azurePortalEndpoint;
-  const azureResourceId = connection?.options?.azureResourceId;
+const openInPortal = (azurePortalEndpoint: string, azureResourceId: string) => {
   if (!azurePortalEndpoint || !azureResourceId) {
     vscode.window.showErrorMessage(localize("missingAzureInformation", "Missing azure information from connection"));
     return;
