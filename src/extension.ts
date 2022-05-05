@@ -383,6 +383,15 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
 
+        // Make sure no terminal is already set
+        if (terminalMap.has(serverName)) {
+          const terminal = terminalMap.get(serverName);
+          if (terminal!.exitStatus === undefined) {
+            terminal!.show();
+            return;
+          }
+        }
+
         const terminal = vscode.window.createTerminal(terminalOptions);
         context.subscriptions.push(terminal);
 
@@ -398,27 +407,15 @@ export function activate(context: vscode.ExtensionContext) {
         }
         terminal.show();
 
-        // Maximize panel
-        const response = await vscode.window.showInformationMessage<{
-          title: string;
-          iscloseAffordance?: boolean;
-          value: string;
-        }>(
-          localize("maximizeMongoShell", "Would like to use Mongo Shell maximized?"),
-          ...[
-            {
-              title: localize("yesMaximize", "Yes, maximize terminal window"),
-              value: "yes",
-            },
-            {
-              title: localize("noDoNotMaximize", "No, leave as terminal window as is"),
-              iscloseAffordance: true,
-              value: "no",
-            },
-          ]
-        );
-        if (response?.value === "yes") {
-          vscode.commands.executeCommand("workbench.action.toggleMaximizedPanel");
+        if (terminalMap.size === 1) {
+          // Wait for it to settle, then make terminal bigger on first mongoshell
+          // TODO: Consider maximizing? "workbench.action.toggleMaximizedPanel"
+          setTimeout(() => {
+            vscode.commands.executeCommand("workbench.action.terminal.resizePaneUp");
+            vscode.commands.executeCommand(
+              "workbench.action.terminal.resizePaneUp" /*"workbench.action.toggleMaximizedPanel"*/
+            );
+          }, 1000);
         }
       }
     )
