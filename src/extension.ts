@@ -409,12 +409,10 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (terminalMap.size === 1) {
           // Wait for it to settle, then make terminal bigger on first mongoshell
-          // TODO: Consider maximizing? "workbench.action.toggleMaximizedPanel"
+          // TODO: Consider maximize? "workbench.action.toggleMaximizedPanel"
           setTimeout(() => {
             vscode.commands.executeCommand("workbench.action.terminal.resizePaneUp");
-            vscode.commands.executeCommand(
-              "workbench.action.terminal.resizePaneUp" /*"workbench.action.toggleMaximizedPanel"*/
-            );
+            vscode.commands.executeCommand("workbench.action.terminal.resizePaneUp");
           }, 1000);
         }
       }
