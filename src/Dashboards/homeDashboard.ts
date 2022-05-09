@@ -488,7 +488,7 @@ export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appC
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([viewItem])
+      .withItems([buildToolbar(view, context), viewItem])
       .withLayout({ flexFlow: "column" })
       .component();
     await view.initializeModel(homeTabContainer);
