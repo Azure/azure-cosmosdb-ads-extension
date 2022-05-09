@@ -178,7 +178,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     buildHeroCard(
       view,
       context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
-      localize("openMongoShell", "Open Mongo Shell"),
+      localize("openMongoShell", "Query Data with Mongo Shell"),
       localize("mongoShellDescription", "Interact with data using Mongo shell"),
       () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
