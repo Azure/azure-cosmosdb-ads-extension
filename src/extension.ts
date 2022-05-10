@@ -19,6 +19,7 @@ import {
   createStatusBarItem,
   getNbServiceInfo,
   hideStatusBarItem,
+  ICreateMongoCollectionInfo,
   NotebookServiceInfo,
   showStatusBarItem,
 } from "./appContext";
@@ -38,6 +39,12 @@ export interface HasConnectionProfile {
   connectionProfile: azdata.IConnectionProfile;
 }
 
+// Used to update the node tree
+export interface IAccountConnectionNodeInfo extends ICreateMongoCollectionInfo {
+  connectionId: string;
+  server: string;
+}
+
 /**
  * Check if this context is a node tree item
  * @param context
@@ -51,21 +58,37 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.createMongoDatabase",
-      async (objectExplorerContext: azdata.ObjectExplorerContext) => {
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        accountConnectionNodeInfo: IAccountConnectionNodeInfo
+      ) => {
         console.log(objectExplorerContext);
-        if (!objectExplorerContext.connectionProfile) {
+
+        if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
 
+        if (objectExplorerContext) {
+          const connectionProfile = objectExplorerContext.connectionProfile!;
+          accountConnectionNodeInfo = {
+            connectionId: connectionProfile.id,
+            server: connectionProfile.options["server"],
+            authenticationType: connectionProfile.options["authenticationType"],
+            azureAccount: connectionProfile.options["azureAccount"],
+            azureTenantId: connectionProfile.options["azureTenantId"],
+            azureResourceId: connectionProfile.options["azureResourceId"],
+          };
+        }
+
         try {
           // Creating a database requires creating a collection inside
-          const { databaseName } = await appContext.createMongoCollection(objectExplorerContext.connectionProfile);
+          const { databaseName } = await appContext.createMongoCollection(accountConnectionNodeInfo);
           if (databaseName) {
             vscode.window.showInformationMessage(
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
             );
-            objectExplorer.updateNode(objectExplorerContext);
+            objectExplorer.updateNode(accountConnectionNodeInfo.connectionId, accountConnectionNodeInfo.server);
           }
         } catch (e) {
           vscode.window.showErrorMessage(
@@ -86,7 +109,6 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
-        const { serverName } = objectExplorerContext.connectionProfile;
 
         // TODO FIX THIS
         if (!objectExplorerContext.nodeInfo) {
@@ -98,8 +120,15 @@ export function activate(context: vscode.ExtensionContext) {
         const mongoInfo = getMongoInfo(nodePath);
 
         try {
+          const connectionProfile = objectExplorerContext.connectionProfile!;
           const { collection: newCollection } = await appContext.createMongoCollection(
-            objectExplorerContext.connectionProfile,
+            {
+              server: connectionProfile.options["server"],
+              authenticationType: connectionProfile.options["authenticationType"],
+              azureAccount: connectionProfile.options["azureAccount"],
+              azureTenantId: connectionProfile.options["azureTenantId"],
+              azureResourceId: connectionProfile.options["azureResourceId"],
+            },
             mongoInfo.databaseName
           );
           if (newCollection) {
@@ -107,7 +136,7 @@ export function activate(context: vscode.ExtensionContext) {
               localize("successCreateCollection", "Successfully created: {0}", newCollection.collectionName)
             );
             if (isNodeTreeItem(objectExplorerContext)) {
-              objectExplorer.updateNode(objectExplorerContext);
+              objectExplorer.updateNode(connectionProfile.id, objectExplorerContext.nodeInfo!.nodePath);
             }
           }
         } catch (e) {
@@ -155,8 +184,10 @@ export function activate(context: vscode.ExtensionContext) {
         try {
           if (await appContext.removeDatabase(serverName, mongoInfo.databaseName!)) {
             // update parent node
-            const parentNode = { ...objectExplorerContext, isConnectionNode: true };
-            await objectExplorer.updateNode(parentNode);
+            await objectExplorer.updateNode(
+              objectExplorerContext.connectionProfile.id,
+              objectExplorerContext.connectionProfile.serverName
+            );
             vscode.window.showInformationMessage(
               localize("successDeleteDatabase", "Successfully deleted database {0}", mongoInfo.databaseName)
             );
@@ -212,11 +243,7 @@ export function activate(context: vscode.ExtensionContext) {
             // Find parent node to update
             const { serverName, databaseName } = getMongoInfo(objectExplorerContext.nodeInfo.nodePath);
             const newNodePath = createNodePath(serverName, databaseName);
-            const parentNode = {
-              ...objectExplorerContext,
-              nodeInfo: { ...objectExplorerContext.nodeInfo, nodePath: newNodePath },
-            };
-            await objectExplorer.updateNode(parentNode);
+            await objectExplorer.updateNode(objectExplorerContext.connectionProfile.id, newNodePath);
             vscode.window.showInformationMessage(
               localize("successDeleteCollection", "Successfully deleted collection {0}", mongoInfo.collectionName)
             );

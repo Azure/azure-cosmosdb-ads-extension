@@ -63,6 +63,14 @@ export interface IMongoShellOptions {
     | undefined;
 }
 
+export interface ICreateMongoCollectionInfo {
+  server: string;
+  authenticationType: string;
+  azureAccount: string;
+  azureTenantId: string;
+  azureResourceId: string;
+}
+
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
 
@@ -181,12 +189,12 @@ export class AppContext {
   }
 
   public createMongoCollection(
-    connectionInfo?: azdata.ConnectionInfo,
+    createMongoCollectionInfo?: ICreateMongoCollectionInfo,
     databaseName?: string,
     collectionName?: string
   ): Promise<{ collection: Collection; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
-      if (!connectionInfo) {
+      if (!createMongoCollectionInfo) {
         const connectionProfile = await askUserForConnectionProfile();
         if (!connectionProfile) {
           // TODO Show error here
@@ -194,7 +202,13 @@ export class AppContext {
           return;
         }
 
-        connectionInfo = connectionProfile;
+        createMongoCollectionInfo = {
+          server: connectionProfile.options["server"],
+          authenticationType: connectionProfile.options["authenticationType"],
+          azureAccount: connectionProfile.options["azureAccount"],
+          azureTenantId: connectionProfile.options["azureTenantId"],
+          azureResourceId: connectionProfile.options["azureResourceId"],
+        };
       }
 
       if (!databaseName) {
@@ -221,31 +235,38 @@ export class AppContext {
         return;
       }
 
-      const serverName = connectionInfo.options["server"];
-      if (!serverName) {
-        reject(localize("missingServerName", "Missing serverName {0}", serverName));
+      if (!createMongoCollectionInfo.server) {
+        reject(localize("missingServerName", "Missing serverName {0}", createMongoCollectionInfo.server));
         return;
       }
 
       let mongoClient;
-      if (this._mongoClients.has(serverName)) {
-        mongoClient = this._mongoClients.get(serverName);
+      if (this._mongoClients.has(createMongoCollectionInfo.server)) {
+        mongoClient = this._mongoClients.get(createMongoCollectionInfo.server);
       } else {
-        const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
+        const connection = (await azdata.connection.getConnections()).filter(
+          (c) => c.serverName === createMongoCollectionInfo!.server
+        );
         if (connection.length < 1) {
-          reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
+          reject(
+            localize(
+              "failRetrieveCredentials",
+              "Unable to retrieve credentials for {0}",
+              createMongoCollectionInfo.server
+            )
+          );
           return;
         }
         const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
         let connectionString = credentials["password"];
 
-        if (connectionInfo.options["authenticationType"] === "AzureMFA") {
+        if (createMongoCollectionInfo.authenticationType === "AzureMFA") {
           try {
             connectionString = await retrieveConnectionStringFromArm(
-              connectionInfo.options["azureAccount"],
-              connectionInfo.options["azureTenantId"],
-              connectionInfo.options["azureResourceId"],
-              connectionInfo.options["server"]
+              createMongoCollectionInfo.azureAccount,
+              createMongoCollectionInfo.azureTenantId,
+              createMongoCollectionInfo.azureResourceId,
+              createMongoCollectionInfo.server
             );
           } catch (e) {
             reject(e);
@@ -258,7 +279,7 @@ export class AppContext {
           return;
         }
 
-        mongoClient = await this.connect(serverName, connectionString);
+        mongoClient = await this.connect(createMongoCollectionInfo.server, connectionString);
       }
 
       if (mongoClient) {
@@ -267,7 +288,7 @@ export class AppContext {
         hideStatusBarItem();
         resolve({ collection, databaseName: databaseName! });
       } else {
-        reject(localize("failConnectTo", "Could not connect to {0}", serverName));
+        reject(localize("failConnectTo", "Could not connect to {0}", createMongoCollectionInfo.server));
         return;
       }
     });

@@ -18,6 +18,7 @@ import {
   retrieveResourceId,
 } from "../appContext";
 import { COSMOSDB_DOC_URL } from "../constant";
+import { IAccountConnectionNodeInfo } from "../extension";
 import { buildHeroCard } from "./util";
 
 const localize = nls.loadMessageBundle();
@@ -33,10 +34,17 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         light: context.asAbsolutePath("resources/light/add-database.svg"),
         dark: context.asAbsolutePath("resources/dark/add-database-inverse.svg"),
       },
-      onDidClick: () =>
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
-          connectionProfile: view.connection,
-        }),
+      onDidClick: () => {
+        const param: IAccountConnectionNodeInfo = {
+          connectionId: view.connection.connectionId,
+          server: view.connection.options["server"],
+          authenticationType: view.connection.options["authenticationType"],
+          azureAccount: view.connection.options["azureAccount"],
+          azureTenantId: view.connection.options["azureTenantId"],
+          azureResourceId: view.connection.options["azureResourceId"],
+        };
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param);
+      },
     },
     {
       label: localize("openMongoShell", "Open Mongo Shell"),
@@ -170,10 +178,18 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       context.asAbsolutePath("resources/fluent/new-database.svg"),
       localize("newDatabase", "New Database"),
       localize("newDtabaseDescription", "Create database to store you data"),
-      () =>
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
-          connectionProfile: view.connection,
-        })
+      () => {
+        // The command implemented as being executed from the connection tree, so we must adapt the parameters to emulate the same call
+        const param: IAccountConnectionNodeInfo = {
+          connectionId: view.connection.connectionId,
+          server: view.connection.options["server"],
+          authenticationType: view.connection.options["authenticationType"],
+          azureAccount: view.connection.options["azureAccount"],
+          azureTenantId: view.connection.options["azureTenantId"],
+          azureResourceId: view.connection.options["azureResourceId"],
+        };
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param);
+      }
     ),
     buildHeroCard(
       view,
