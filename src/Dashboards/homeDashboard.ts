@@ -9,16 +9,17 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
   AppContext,
+  convertToConnectionOptions,
   getAccountName,
   ICosmosDbDatabaseAccountInfo,
-  isAzureconnection,
+  isAzureConnection,
   retrieveDatabaseAccountInfoFromArm,
   retrieveMongoDbDatabasesInfoFromArm,
   retrievePortalEndpoint,
   retrieveResourceId,
 } from "../appContext";
 import { COSMOSDB_DOC_URL } from "../constant";
-import { IAccountConnectionNodeInfo } from "../extension";
+import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { buildHeroCard } from "./util";
 
 const localize = nls.loadMessageBundle();
@@ -35,7 +36,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         dark: context.asAbsolutePath("resources/dark/add-database-inverse.svg"),
       },
       onDidClick: () => {
-        const param: IAccountConnectionNodeInfo = {
+        const param: IConnectionNodeInfo = {
           connectionId: view.connection.connectionId,
           server: view.connection.options["server"],
           authenticationType: view.connection.options["authenticationType"],
@@ -179,8 +180,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       localize("newDatabase", "New Database"),
       localize("newDtabaseDescription", "Create database to store you data"),
       () => {
-        // The command implemented as being executed from the connection tree, so we must adapt the parameters to emulate the same call
-        const param: IAccountConnectionNodeInfo = {
+        const param: IConnectionNodeInfo = {
           connectionId: view.connection.connectionId,
           server: view.connection.options["server"],
           authenticationType: view.connection.options["authenticationType"],
@@ -217,7 +217,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     .withProps({ CSSStyles: { width: "100%" } })
     .component();
 
-  if (isAzureconnection(view.connection)) {
+  if (isAzureConnection(view.connection)) {
     addOpenInPortalButton(view.connection);
   }
 
@@ -283,13 +283,13 @@ const buildDatabasesAreaAzure = async (
   context: vscode.ExtensionContext
 ): Promise<azdata.Component> => {
   refreshDatabases = () => {
-    const connectionInfo = view.connection;
+    const connection = view.connection;
 
     retrieveMongoDbDatabasesInfoFromArm(
-      connectionInfo.options["azureAccount"],
-      connectionInfo.options["azureTenantId"],
-      connectionInfo.options["azureResourceId"],
-      getAccountName(connectionInfo)
+      connection.options["azureAccount"],
+      connection.options["azureTenantId"],
+      connection.options["azureResourceId"],
+      getAccountName(connection)
     ).then((databasesInfo) => {
       tableComponent.data = databasesInfo.map((db) => [
         <azdata.HyperlinkColumnCellValue>{
@@ -303,13 +303,15 @@ const buildDatabasesAreaAzure = async (
 
       if (tableComponent.onCellAction) {
         tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-          const cosmosDbAccountName = view.connection.options["server"];
+          const databaseDashboardInfo: IDatabaseDashboardInfo = {
+            databaseName: databasesInfo[arg.row].name,
+            connectionId: connection.connectionId,
+            ...convertToConnectionOptions(connection),
+          };
           vscode.commands.executeCommand(
             "cosmosdb-ads-extension.openDatabaseDashboard",
             undefined,
-            cosmosDbAccountName,
-            databasesInfo[arg.row].name,
-            context
+            databaseDashboardInfo
           );
         });
       }
@@ -483,7 +485,7 @@ const buildDatabasesAreaNonAzure = async (
 export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     const viewItems: azdata.Component[] = [buildToolbar(view, context)];
-    if (isAzureconnection(view.connection)) {
+    if (isAzureConnection(view.connection)) {
       viewItems.push(buildOverview(view));
     }
     viewItems.push(buildGettingStarted(view, context));
@@ -498,7 +500,7 @@ export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appC
   });
 
   azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
-    const viewItem = isAzureconnection(view.connection)
+    const viewItem = isAzureConnection(view.connection)
       ? await buildDatabasesAreaAzure(view, context)
       : await buildDatabasesAreaNonAzure(view, context, appContext);
 

@@ -63,13 +63,21 @@ export interface IMongoShellOptions {
     | undefined;
 }
 
-export interface ICreateMongoCollectionInfo {
+export interface IConnectionOptions {
   server: string;
   authenticationType: string;
   azureAccount: string;
   azureTenantId: string;
   azureResourceId: string;
 }
+
+export const convertToConnectionOptions = (connectionInfo: azdata.ConnectionInfo): IConnectionOptions => ({
+  server: connectionInfo.options["server"],
+  authenticationType: connectionInfo.options["authenticationType"],
+  azureAccount: connectionInfo.options["azureAccount"],
+  azureResourceId: connectionInfo.options["azureResourceId"],
+  azureTenantId: connectionInfo.options["azureTenantId"],
+});
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -131,19 +139,18 @@ export class AppContext {
     return await this._mongoClients.get(server)!.db(databaseName).dropCollection(collectionName);
   }
 
-  public getMongoShellOptions(connectionInfo?: azdata.ConnectionInfo): Promise<IMongoShellOptions | undefined> {
+  public getMongoShellOptions(connectionOptions?: IConnectionOptions): Promise<IMongoShellOptions | undefined> {
     return new Promise(async (resolve, reject) => {
-      if (!connectionInfo) {
+      if (!connectionOptions) {
         const connectionProfile = await askUserForConnectionProfile();
         if (!connectionProfile) {
           reject("Failed to retrieve connection profile");
           return;
         }
-
-        connectionInfo = connectionProfile;
+        connectionOptions = convertToConnectionOptions(connectionProfile);
       }
 
-      const serverName = connectionInfo.options["server"];
+      const serverName = connectionOptions.server;
       if (!serverName) {
         reject(localize("missingServerName", "Missing serverName {0}", serverName));
         return;
@@ -158,13 +165,13 @@ export class AppContext {
       const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
       let connectionString = credentials["password"];
 
-      if (connectionInfo.options["authenticationType"] === "AzureMFA") {
+      if (connectionOptions.authenticationType === "AzureMFA") {
         try {
           connectionString = await retrieveConnectionStringFromArm(
-            connectionInfo.options["azureAccount"],
-            connectionInfo.options["azureTenantId"],
-            connectionInfo.options["azureResourceId"],
-            connectionInfo.options["server"]
+            connectionOptions.azureAccount,
+            connectionOptions.azureTenantId,
+            connectionOptions.azureResourceId,
+            connectionOptions.server
           );
         } catch (e) {
           vscode.window.showErrorMessage((e as { message: string }).message);
@@ -189,12 +196,12 @@ export class AppContext {
   }
 
   public createMongoCollection(
-    createMongoCollectionInfo?: ICreateMongoCollectionInfo,
+    connectionOptions?: IConnectionOptions,
     databaseName?: string,
     collectionName?: string
   ): Promise<{ collection: Collection; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
-      if (!createMongoCollectionInfo) {
+      if (!connectionOptions) {
         const connectionProfile = await askUserForConnectionProfile();
         if (!connectionProfile) {
           // TODO Show error here
@@ -202,13 +209,7 @@ export class AppContext {
           return;
         }
 
-        createMongoCollectionInfo = {
-          server: connectionProfile.options["server"],
-          authenticationType: connectionProfile.options["authenticationType"],
-          azureAccount: connectionProfile.options["azureAccount"],
-          azureTenantId: connectionProfile.options["azureTenantId"],
-          azureResourceId: connectionProfile.options["azureResourceId"],
-        };
+        connectionOptions = convertToConnectionOptions(connectionProfile);
       }
 
       if (!databaseName) {
@@ -235,38 +236,34 @@ export class AppContext {
         return;
       }
 
-      if (!createMongoCollectionInfo.server) {
-        reject(localize("missingServerName", "Missing serverName {0}", createMongoCollectionInfo.server));
+      if (!connectionOptions.server) {
+        reject(localize("missingServerName", "Missing serverName {0}", connectionOptions.server));
         return;
       }
 
       let mongoClient;
-      if (this._mongoClients.has(createMongoCollectionInfo.server)) {
-        mongoClient = this._mongoClients.get(createMongoCollectionInfo.server);
+      if (this._mongoClients.has(connectionOptions.server)) {
+        mongoClient = this._mongoClients.get(connectionOptions.server);
       } else {
         const connection = (await azdata.connection.getConnections()).filter(
-          (c) => c.serverName === createMongoCollectionInfo!.server
+          (c) => c.serverName === connectionOptions!.server
         );
         if (connection.length < 1) {
           reject(
-            localize(
-              "failRetrieveCredentials",
-              "Unable to retrieve credentials for {0}",
-              createMongoCollectionInfo.server
-            )
+            localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", connectionOptions.server)
           );
           return;
         }
         const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
         let connectionString = credentials["password"];
 
-        if (createMongoCollectionInfo.authenticationType === "AzureMFA") {
+        if (connectionOptions.authenticationType === "AzureMFA") {
           try {
             connectionString = await retrieveConnectionStringFromArm(
-              createMongoCollectionInfo.azureAccount,
-              createMongoCollectionInfo.azureTenantId,
-              createMongoCollectionInfo.azureResourceId,
-              createMongoCollectionInfo.server
+              connectionOptions.azureAccount,
+              connectionOptions.azureTenantId,
+              connectionOptions.azureResourceId,
+              connectionOptions.server
             );
           } catch (e) {
             reject(e);
@@ -279,7 +276,7 @@ export class AppContext {
           return;
         }
 
-        mongoClient = await this.connect(createMongoCollectionInfo.server, connectionString);
+        mongoClient = await this.connect(connectionOptions.server, connectionString);
       }
 
       if (mongoClient) {
@@ -288,7 +285,7 @@ export class AppContext {
         hideStatusBarItem();
         resolve({ collection, databaseName: databaseName! });
       } else {
-        reject(localize("failConnectTo", "Could not connect to {0}", createMongoCollectionInfo.server));
+        reject(localize("failConnectTo", "Could not connect to {0}", connectionOptions.server));
         return;
       }
     });
@@ -929,5 +926,7 @@ interface SampleData {
   };
 }
 
-export const isAzureconnection = (connectionInfo: azdata.ConnectionInfo): boolean =>
-  connectionInfo.options["authenticationType"] === "AzureMFA";
+export const isAzureConnection = (connectionInfo: azdata.ConnectionInfo): boolean =>
+  isAzureAuthType(connectionInfo.options["authenticationType"]);
+
+export const isAzureAuthType = (authenticationType: string | undefined): boolean => authenticationType === "AzureMFA";

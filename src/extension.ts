@@ -16,18 +16,17 @@ import { IconProvider } from "./Providers/iconProvider";
 import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
 import {
   AppContext,
+  convertToConnectionOptions,
   createStatusBarItem,
   getNbServiceInfo,
   hideStatusBarItem,
-  ICreateMongoCollectionInfo,
+  IConnectionOptions,
   NotebookServiceInfo,
   showStatusBarItem,
 } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
-
-import * as path from "path";
 import ViewLoader from "./ViewLoader";
 import { installMongoShell } from "./MongoShell/MongoShellUtil";
 
@@ -40,17 +39,15 @@ export interface HasConnectionProfile {
 }
 
 // Used to update the node tree
-export interface IAccountConnectionNodeInfo extends ICreateMongoCollectionInfo {
+export interface IConnectionNodeInfo extends IConnectionOptions {
   connectionId: string;
-  server: string;
+  nodePath?: string;
 }
 
-/**
- * Check if this context is a node tree item
- * @param context
- * @returns
- */
-const isNodeTreeItem = (context: azdata.ObjectExplorerContext) => !!context.nodeInfo;
+export interface IDatabaseDashboardInfo extends IConnectionOptions {
+  databaseName: string | undefined;
+  connectionId: string;
+}
 
 export function activate(context: vscode.ExtensionContext) {
   const terminalMap = new Map<string, vscode.Terminal>(); // servername <-> terminal
@@ -58,10 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.createMongoDatabase",
-      async (
-        objectExplorerContext: azdata.ObjectExplorerContext,
-        accountConnectionNodeInfo: IAccountConnectionNodeInfo
-      ) => {
+      async (objectExplorerContext: azdata.ObjectExplorerContext, connectionNodeInfo: IConnectionNodeInfo) => {
         console.log(objectExplorerContext);
 
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
@@ -71,24 +65,21 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (objectExplorerContext) {
           const connectionProfile = objectExplorerContext.connectionProfile!;
-          accountConnectionNodeInfo = {
+          connectionNodeInfo = {
             connectionId: connectionProfile.id,
-            server: connectionProfile.options["server"],
-            authenticationType: connectionProfile.options["authenticationType"],
-            azureAccount: connectionProfile.options["azureAccount"],
-            azureTenantId: connectionProfile.options["azureTenantId"],
-            azureResourceId: connectionProfile.options["azureResourceId"],
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: objectExplorerContext.nodeInfo?.nodePath,
           };
         }
 
         try {
           // Creating a database requires creating a collection inside
-          const { databaseName } = await appContext.createMongoCollection(accountConnectionNodeInfo);
+          const { databaseName } = await appContext.createMongoCollection(connectionNodeInfo);
           if (databaseName) {
             vscode.window.showInformationMessage(
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
             );
-            objectExplorer.updateNode(accountConnectionNodeInfo.connectionId, accountConnectionNodeInfo.server);
+            objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.server);
           }
         } catch (e) {
           vscode.window.showErrorMessage(
@@ -102,42 +93,38 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.createMongoCollection",
-      async (objectExplorerContext: azdata.ObjectExplorerContext) => {
+      async (objectExplorerContext: azdata.ObjectExplorerContext, connectionNodeInfo: IConnectionNodeInfo) => {
         console.log("createMongoCollection");
-        if (!objectExplorerContext.connectionProfile) {
-          // TODO handle error;
+        if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
 
-        // TODO FIX THIS
-        if (!objectExplorerContext.nodeInfo) {
-          // TODO handle error;
+        if (objectExplorerContext && !objectExplorerContext.nodeInfo) {
           vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
           return;
         }
-        const { nodePath } = objectExplorerContext.nodeInfo;
-        const mongoInfo = getMongoInfo(nodePath);
+
+        if (objectExplorerContext) {
+          const connectionProfile = objectExplorerContext.connectionProfile!;
+          connectionNodeInfo = {
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: objectExplorerContext.nodeInfo?.nodePath,
+          };
+        }
+        const mongoInfo = getMongoInfo(connectionNodeInfo.nodePath!);
 
         try {
-          const connectionProfile = objectExplorerContext.connectionProfile!;
           const { collection: newCollection } = await appContext.createMongoCollection(
-            {
-              server: connectionProfile.options["server"],
-              authenticationType: connectionProfile.options["authenticationType"],
-              azureAccount: connectionProfile.options["azureAccount"],
-              azureTenantId: connectionProfile.options["azureTenantId"],
-              azureResourceId: connectionProfile.options["azureResourceId"],
-            },
+            connectionNodeInfo,
             mongoInfo.databaseName
           );
           if (newCollection) {
             vscode.window.showInformationMessage(
               localize("successCreateCollection", "Successfully created: {0}", newCollection.collectionName)
             );
-            if (isNodeTreeItem(objectExplorerContext)) {
-              objectExplorer.updateNode(connectionProfile.id, objectExplorerContext.nodeInfo!.nodePath);
-            }
+            objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
           }
         } catch (e) {
           vscode.window.showErrorMessage(
@@ -268,22 +255,26 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openDatabaseDashboard",
-      (objectExplorerContext: azdata.ObjectExplorerContext, cosmosDbAccountName?: string, databaseName?: string) => {
+      (objectExplorerContext: azdata.ObjectExplorerContext, databaseDashboardInfo?: IDatabaseDashboardInfo) => {
         if (objectExplorerContext?.connectionProfile) {
           // Called from menu tree item context menu
-          cosmosDbAccountName = objectExplorerContext.connectionProfile.options["server"];
-          // TODO FIX THIS
+
           if (!objectExplorerContext.nodeInfo) {
             // TODO handle error;
             vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
             return;
           }
-          const { nodePath } = objectExplorerContext.nodeInfo;
-          const mongoInfo = getMongoInfo(nodePath);
-          databaseName = mongoInfo.databaseName;
+
+          const mongoInfo = getMongoInfo(objectExplorerContext.nodeInfo.nodePath);
+          const connectionProfile = objectExplorerContext.connectionProfile;
+          databaseDashboardInfo = {
+            databaseName: mongoInfo.databaseName,
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+          };
         } else {
           // Called from extension code
-          if (!cosmosDbAccountName) {
+          if (!databaseDashboardInfo) {
             vscode.window.showErrorMessage(
               localize("missingConnectionProfile", "Missing ConnectionProfile or azureAccountId")
             );
@@ -293,19 +284,12 @@ export function activate(context: vscode.ExtensionContext) {
 
         // TODO ask for database if databaseName not defined
 
-        if (!cosmosDbAccountName) {
-          vscode.window.showErrorMessage(
-            localize("nonAzureDashboardNotImplemented", "Database dashboard only implemented for Azure accounts")
-          );
-          return;
-        }
-
-        if (!databaseName) {
+        if (!databaseDashboardInfo.databaseName) {
           vscode.window.showErrorMessage(localize("missingDatabaseName", "Database not specified"));
           return;
         }
 
-        databaseDashboard.openDatabaseDashboard(cosmosDbAccountName, databaseName, appContext, context);
+        databaseDashboard.openDatabaseDashboard(databaseDashboardInfo, appContext, context);
       }
     )
   );
@@ -363,8 +347,13 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoShell",
-      async (hasConnectionProfile?: HasConnectionProfile, databaseName?: string) => {
-        const serverName = hasConnectionProfile?.connectionProfile?.options["server"];
+      async (connectionOptions?: IConnectionOptions, databaseName?: string) => {
+        const serverName = connectionOptions?.server;
+        if (!serverName) {
+          vscode.window.showErrorMessage(localize("noServerSpecified", "No server specified"));
+          return;
+        }
+
         if (terminalMap.has(serverName)) {
           const terminal = terminalMap.get(serverName);
           if (terminal!.exitStatus === undefined) {
@@ -380,7 +369,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));
           return;
         }
-        const mongoShellOptions = await appContext.getMongoShellOptions(hasConnectionProfile?.connectionProfile);
+        const mongoShellOptions = await appContext.getMongoShellOptions(connectionOptions);
 
         const terminalOptions: vscode.TerminalOptions = {
           name: `Mongo Shell: ${serverName}`,

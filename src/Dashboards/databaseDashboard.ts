@@ -7,7 +7,14 @@ import * as azdata from "azdata";
 import { CollStats } from "mongodb";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { AppContext, getAccountName, isAzureconnection, retrieveMongoDbCollectionsInfoFromArm } from "../appContext";
+import {
+  AppContext,
+  getAccountName,
+  isAzureAuthType,
+  isAzureConnection,
+  retrieveMongoDbCollectionsInfoFromArm,
+} from "../appContext";
+import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "./util";
@@ -23,23 +30,22 @@ const localize = nls.loadMessageBundle();
 const buildToolbar = (
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
-  databaseName: string,
-  connection: azdata.ConnectionInfo
+  databaseDashboardInfo: IDatabaseDashboardInfo
 ): azdata.ToolbarContainer => {
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
       label: localize("newCollection", "New Collection"),
       iconPath: {
-        light: context.asAbsolutePath("resources/light/add-database.svg"),
-        dark: context.asAbsolutePath("resources/dark/add-database-inverse.svg"),
+        light: context.asAbsolutePath("resources/light/add-collection.svg"),
+        dark: context.asAbsolutePath("resources/dark/add-collection-inverse.svg"),
       },
-      onDidClick: () =>
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", {
-          connectionProfile: connection,
-          nodeInfo: {
-            nodePath: createNodePath("server", databaseName),
-          },
-        }),
+      onDidClick: () => {
+        const param: IConnectionNodeInfo = {
+          ...databaseDashboardInfo,
+          nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
+        };
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param);
+      },
     },
     {
       label: localize("openMongoShell", "Open Mongo Shell"),
@@ -50,10 +56,8 @@ const buildToolbar = (
       onDidClick() {
         vscode.commands.executeCommand(
           "cosmosdb-ads-extension.openMongoShell",
-          {
-            connectionProfile: connection,
-          },
-          databaseName
+          { ...databaseDashboardInfo },
+          databaseDashboardInfo.databaseName
         );
       },
     },
@@ -74,8 +78,8 @@ const buildWorkingWithDatabase = (
   view: azdata.ModelView,
   appContext: AppContext,
   context: vscode.ExtensionContext,
-  databaseName: string,
-  connection: azdata.ConnectionInfo
+  databaseDashboardInfo: IDatabaseDashboardInfo
+  // connection: azdata.IConnectionProfile
 ): azdata.Component => {
   const heroCards: azdata.ButtonComponent[] = [
     buildHeroCard(
@@ -83,20 +87,20 @@ const buildWorkingWithDatabase = (
       context.asAbsolutePath("resources/fluent/new-collection.svg"),
       localize("newCollection", "New Collection"),
       localize("newCollectionDescription", "Create a new collection to store you data"),
-      () =>
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", {
-          connectionProfile: connection,
-          nodeInfo: {
-            nodePath: createNodePath("server", databaseName),
-          },
-        })
+      () => {
+        const param: IConnectionNodeInfo = {
+          ...databaseDashboardInfo,
+          nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
+        };
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param);
+      }
     ),
     buildHeroCard(
       view,
-      context.asAbsolutePath("resources/fluent/new-database.svg"),
+      context.asAbsolutePath("resources/fluent/new-collection.svg"),
       localize("importSampleData", "Import Sample Data"),
       localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
-      () => ingestSampleMongoData(appContext, context, connection, databaseName)
+      () => ingestSampleMongoData(appContext, context, databaseDashboardInfo.server, databaseDashboardInfo.databaseName)
     ),
   ];
 
@@ -132,13 +136,17 @@ const buildCollectionsAreaAzure = async (
   databaseName: string,
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
-  connectionInfo: azdata.ConnectionInfo
+  azureAccount: string,
+  azureTenantId: string,
+  azureResourceId: string,
+  cosmosDBAccountName: string
+  // connectionInfo: azdata.ConnectionInfo
 ): Promise<azdata.Component> => {
   retrieveMongoDbCollectionsInfoFromArm(
-    connectionInfo.options["azureAccount"],
-    connectionInfo.options["azureTenantId"],
-    connectionInfo.options["azureResourceId"],
-    getAccountName(connectionInfo),
+    azureAccount,
+    azureTenantId,
+    azureResourceId,
+    cosmosDBAccountName,
     databaseName
   ).then((collectionsInfo) => {
     tableComponent.data = collectionsInfo.map((collection) => [
@@ -228,10 +236,8 @@ const buildCollectionsAreaNonAzure = async (
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
   appContext: AppContext,
-  connectionInfo: azdata.ConnectionInfo
+  server: string
 ): Promise<azdata.Component> => {
-  const server = connectionInfo.options["server"];
-
   appContext.listCollections(server, databaseName).then(async (collectionsInfo) => {
     const statsMap = new Map<string, CollStats>();
     // Retrieve all stats for each collection
@@ -322,37 +328,36 @@ const buildCollectionsAreaNonAzure = async (
 };
 
 export const openDatabaseDashboard = async (
-  cosmosDbAccountName: string,
-  databaseName: string,
+  databaseDashboardInfo: IDatabaseDashboardInfo,
   appContext: AppContext,
   context: vscode.ExtensionContext
 ): Promise<void> => {
-  const connectionInfo = (await azdata.connection.getConnections()).filter(
-    (connectionInfo) => connectionInfo.options["server"] === cosmosDbAccountName
-  )[0];
-  if (!connectionInfo) {
-    // TODO Handle error here
-    vscode.window.showErrorMessage(localize("noValidConnection", "No valid connection found"));
-    return;
-  }
-
+  const databaseName = databaseDashboardInfo.databaseName ?? "Unknown Database";
   const dashboard = azdata.window.createModelViewDashboard(databaseName);
   dashboard.registerTabs(async (view: azdata.ModelView) => {
-    const input1 = view.modelBuilder.inputBox().withProps({ value: databaseName }).component();
+    const input1 = view.modelBuilder.inputBox().withProps({ value: databaseDashboardInfo.databaseName }).component();
 
-    const viewItem = isAzureconnection(connectionInfo)
-      ? await buildCollectionsAreaAzure(databaseName, view, context, connectionInfo)
-      : await buildCollectionsAreaNonAzure(databaseName, view, context, appContext, connectionInfo);
+    const viewItem = isAzureAuthType(databaseDashboardInfo.authenticationType)
+      ? await buildCollectionsAreaAzure(
+          databaseName,
+          view,
+          context,
+          databaseDashboardInfo.azureAccount,
+          databaseDashboardInfo.azureTenantId,
+          databaseDashboardInfo.azureResourceId,
+          databaseDashboardInfo.server
+        )
+      : await buildCollectionsAreaNonAzure(databaseName, view, context, appContext, databaseDashboardInfo.server);
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([buildWorkingWithDatabase(view, appContext, context, databaseName, connectionInfo), viewItem])
+      .withItems([buildWorkingWithDatabase(view, appContext, context, databaseDashboardInfo), viewItem])
       .withLayout({ flexFlow: "column" })
       .component();
 
     const homeTab: azdata.DashboardTab = {
       id: "home",
-      toolbar: buildToolbar(view, context, databaseName, connectionInfo),
+      toolbar: buildToolbar(view, context, databaseDashboardInfo),
       content: homeTabContainer,
       title: "Home",
       icon: context.asAbsolutePath("resources/fluent/home.svg"), // icon can be the path of a svg file

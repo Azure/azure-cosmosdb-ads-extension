@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as azdata from "azdata";
 import * as nls from "vscode-nls";
-import { AppContext, isAzureconnection, validateMongoCollectionName } from "../appContext";
+import { AppContext, isAzureConnection, validateMongoCollectionName } from "../appContext";
 import { promises as fs } from "fs";
 import * as path from "path";
 
@@ -10,8 +10,8 @@ const localize = nls.loadMessageBundle();
 export const ingestSampleMongoData = async (
   appContext: AppContext,
   context: vscode.ExtensionContext,
-  connection: azdata.ConnectionInfo,
-  databaseName: string
+  serverName: string,
+  databaseName: string | undefined
 ): Promise<void> => {
   try {
     const rawData = await fs.readFile(path.join(context.extensionPath, "resources", "sampleData", "customer.json"));
@@ -26,11 +26,10 @@ export const ingestSampleMongoData = async (
       databaseName = sampleData.databaseId;
     }
 
-    const serverName = connection.options["server"];
     let collectionToCreate = sampleData.collectionId;
 
     // If collection already exists
-    const collections = await appContext.listCollections(serverName, databaseName);
+    const collections = await appContext.listCollections(serverName, databaseName!);
     if (collections.find((c) => c.collectionName === sampleData.collectionId)) {
       collectionToCreate = await vscode.window.showInputBox({
         placeHolder: localize("collectionName", "Collection name"),
