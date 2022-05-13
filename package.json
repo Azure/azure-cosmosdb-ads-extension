@@ -120,7 +120,10 @@
       "languageMode": "cosmosdb",
       "displayName": "Mongo account",
       "isQueryProvider": false,
-      "showConnectionStringOption": true,
+      "connectionStringOptions": {
+        "isEnabled": true,
+        "isDefault": true
+      },
       "iconPath": [
         {
           "id": "cosmosdb",
