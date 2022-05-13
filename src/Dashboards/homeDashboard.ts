@@ -54,9 +54,10 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
       },
       onDidClick() {
-        vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
-          connectionProfile: view.connection,
-        });
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openMongoShell",
+          convertToConnectionOptions(view.connection)
+        );
       },
     },
     {
