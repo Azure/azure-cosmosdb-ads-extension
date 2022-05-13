@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as azdata from "azdata";
+import { ICellActionEventArgs } from "azdata";
 import { CollStats } from "mongodb";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
   AppContext,
-  getAccountName,
+  getAccountNameFromOptions,
   isAzureAuthType,
-  isAzureConnection,
   retrieveMongoDbCollectionsInfoFromArm,
 } from "../appContext";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
@@ -136,30 +136,34 @@ const buildCollectionsAreaAzure = async (
   databaseName: string,
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
-  azureAccount: string,
-  azureTenantId: string,
-  azureResourceId: string,
-  cosmosDBAccountName: string
-  // connectionInfo: azdata.ConnectionInfo
+  databaseDashboardInfo: IDatabaseDashboardInfo
 ): Promise<azdata.Component> => {
   retrieveMongoDbCollectionsInfoFromArm(
-    azureAccount,
-    azureTenantId,
-    azureResourceId,
-    cosmosDBAccountName,
+    databaseDashboardInfo.azureAccount,
+    databaseDashboardInfo.azureTenantId,
+    databaseDashboardInfo.azureResourceId,
+    getAccountNameFromOptions(databaseDashboardInfo),
     databaseName
   ).then((collectionsInfo) => {
     tableComponent.data = collectionsInfo.map((collection) => [
-      // TODO For now, no link until we get the query UI done
-      // <azdata.HyperlinkColumnCellValue>{
-      //   title: collection.name,
-      //   icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-      // },
-      collection.name,
+      <azdata.HyperlinkColumnCellValue>{
+        title: collection.name,
+        icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+      },
       collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
       collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
       collection.throughputSetting,
     ]);
+
+    if (tableComponent.onCellAction) {
+      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openMongoShell",
+          { ...databaseDashboardInfo },
+          databaseDashboardInfo.databaseName
+        );
+      });
+    }
 
     tableLoadingComponent.loading = false;
   });
@@ -168,16 +172,11 @@ const buildCollectionsAreaAzure = async (
     .table()
     .withProps({
       columns: [
-        // TODO for now no link until we get the query UI done
-        // <azdata.HyperlinkColumn>{
-        //   value: localize("collection", "Collection"),
-        //   type: azdata.ColumnType.hyperlink,
-        //   name: "Collection",
-        //   width: 250,
-        // },
-        {
+        <azdata.HyperlinkColumn>{
           value: localize("collection", "Collection"),
-          type: azdata.ColumnType.text,
+          type: azdata.ColumnType.hyperlink,
+          name: "Collection",
+          width: 250,
         },
         {
           value: localize("dataUsage", "Data Usage (KB)"),
@@ -236,9 +235,9 @@ const buildCollectionsAreaNonAzure = async (
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
   appContext: AppContext,
-  server: string
+  databaseDashboardInfo: IDatabaseDashboardInfo
 ): Promise<azdata.Component> => {
-  appContext.listCollections(server, databaseName).then(async (collectionsInfo) => {
+  appContext.listCollections(databaseDashboardInfo.server, databaseName).then(async (collectionsInfo) => {
     const statsMap = new Map<string, CollStats>();
     // Retrieve all stats for each collection
     await Promise.all(
@@ -247,15 +246,23 @@ const buildCollectionsAreaNonAzure = async (
       )
     );
 
+    if (tableComponent.onCellAction) {
+      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openMongoShell",
+          { ...databaseDashboardInfo },
+          databaseDashboardInfo.databaseName
+        );
+      });
+    }
+
     tableComponent.data = collectionsInfo.map((collection) => {
       const stats = statsMap.get(collection.collectionName);
       return [
-        // TODO for now no link until we get the query UI done
-        // <azdata.HyperlinkColumnCellValue>{
-        //   title: collection.collectionName,
-        //   icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-        // },
-        collection.collectionName,
+        <azdata.HyperlinkColumnCellValue>{
+          title: collection.collectionName,
+          icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+        },
         stats?.storageSize,
         stats?.count,
       ];
@@ -268,16 +275,11 @@ const buildCollectionsAreaNonAzure = async (
     .table()
     .withProps({
       columns: [
-        // TODO for now no link until we get the query UI done
-        // <azdata.HyperlinkColumn>{
-        //   value: localize("collection", "Collection"),
-        //   type: azdata.ColumnType.hyperlink,
-        //   name: "Collection",
-        //   width: 250,
-        // },
-        {
+        <azdata.HyperlinkColumn>{
           value: localize("collection", "Collection"),
-          type: azdata.ColumnType.text,
+          type: azdata.ColumnType.hyperlink,
+          name: "Collection",
+          width: 250,
         },
         {
           value: localize("dataUsage", "Storage Size (bytes)"),
@@ -338,16 +340,8 @@ export const openDatabaseDashboard = async (
     const input1 = view.modelBuilder.inputBox().withProps({ value: databaseDashboardInfo.databaseName }).component();
 
     const viewItem = isAzureAuthType(databaseDashboardInfo.authenticationType)
-      ? await buildCollectionsAreaAzure(
-          databaseName,
-          view,
-          context,
-          databaseDashboardInfo.azureAccount,
-          databaseDashboardInfo.azureTenantId,
-          databaseDashboardInfo.azureResourceId,
-          databaseDashboardInfo.server
-        )
-      : await buildCollectionsAreaNonAzure(databaseName, view, context, appContext, databaseDashboardInfo.server);
+      ? await buildCollectionsAreaAzure(databaseName, view, context, databaseDashboardInfo)
+      : await buildCollectionsAreaNonAzure(databaseName, view, context, appContext, databaseDashboardInfo);
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()

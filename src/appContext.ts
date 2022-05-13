@@ -7,10 +7,7 @@ import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { ResourceGraphClient } from "@azure/arm-resourcegraph";
 import { TokenCredentials } from "@azure/ms-rest-js";
-import {
-  DatabaseAccountConnectionString,
-  ThroughputSettingsGetPropertiesResource,
-} from "@azure/arm-cosmosdb/esm/models";
+import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
@@ -690,7 +687,9 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   };
 };
 
+// TODO Find a better way to express this
 export const getAccountName = (connectionInfo: azdata.ConnectionInfo): string => connectionInfo.options["server"];
+export const getAccountNameFromOptions = (connectionOptions: IConnectionOptions): string => connectionOptions.server;
 
 export const retrieveMongoDbDatabasesInfoFromArm = async (
   azureAccountId: string,

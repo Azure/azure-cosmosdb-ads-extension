@@ -19,10 +19,8 @@ import {
   convertToConnectionOptions,
   createStatusBarItem,
   getNbServiceInfo,
-  hideStatusBarItem,
   IConnectionOptions,
   NotebookServiceInfo,
-  showStatusBarItem,
 } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";

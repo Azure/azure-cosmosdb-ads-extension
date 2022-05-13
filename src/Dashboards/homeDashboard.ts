@@ -11,7 +11,6 @@ import {
   AppContext,
   convertToConnectionOptions,
   getAccountName,
-  ICosmosDbDatabaseAccountInfo,
   isAzureConnection,
   retrieveDatabaseAccountInfoFromArm,
   retrieveMongoDbDatabasesInfoFromArm,
