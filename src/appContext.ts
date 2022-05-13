@@ -14,7 +14,6 @@ import {
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
-import { PICK_MAX_ATTEMPTS } from "./constant";
 
 // import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
 
@@ -25,7 +24,6 @@ export interface IDatabaseInfo {
 }
 
 type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem;
-type ConnectionStringPick = DatabaseAccountConnectionString & vscode.QuickPickItem;
 
 export interface ICosmosDbDatabaseAccountInfo {
   serverStatus: string;
@@ -576,34 +574,13 @@ export const retrieveConnectionStringFromArm = async (
     throw new Error(localize("noConnectionStringsFound", "No Connection strings found for this account"));
   }
 
-  const connectionStringsPicks: ConnectionStringPick[] = connectionStringsResponse.connectionStrings.map(
-    (cs, index) => ({
-      ...cs,
-      label: `${cs.description ?? ""} (${cosmosDbAccountName})`,
-      description: undefined,
-      picked: index === 0,
-    })
-  );
+  // Pick first connection string
+  const connectionString = connectionStringsResponse.connectionStrings[0].connectionString;
 
-  let connectionStringPick;
-  let attempts = 0;
-  // Enforce a choice
-  while (
-    !connectionStringPick &&
-    connectionStringsPicks &&
-    connectionStringsPicks.length > 0 &&
-    attempts < PICK_MAX_ATTEMPTS
-  ) {
-    connectionStringPick = await vscode.window.showQuickPick<ConnectionStringPick>(connectionStringsPicks, {
-      placeHolder: localize("SelectConnectionString", "Select connection string"),
-    });
-    attempts++;
-  }
-
-  if (!connectionStringPick || !connectionStringPick.connectionString) {
+  if (!connectionString) {
     throw new Error(localize("missingConnectionString", "Error: missing connection string"));
   }
-  return connectionStringPick.connectionString;
+  return connectionString;
 };
 
 export const retrieveDatabaseAccountInfoFromArm = async (
