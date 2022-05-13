@@ -83,7 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
         } catch (e) {
           vscode.window.showErrorMessage(
-            localize("failedCreatedDatabase", "Failed to create mongo database {0}", e as string)
+            `${localize("failedCreatedDatabase", "Failed to create mongo database")}: ${e})`
           );
         }
       }
@@ -127,9 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
             objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
           }
         } catch (e) {
-          vscode.window.showErrorMessage(
-            localize("failedCreateCollection", "Failed to create collection {0}", e as string)
-          );
+          vscode.window.showErrorMessage(`${localize("failedCreateCollection", "Failed to create collection")}: ${e}`);
         }
       }
     )
@@ -185,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
         } catch (e) {
           vscode.window.showErrorMessage(
-            localize("failedDeleteDatabase", `Failed to delete database {0}: ${e as string}`, mongoInfo.databaseName)
+            `${localize("failedDeleteDatabase", "Failed to delete database {0}", mongoInfo.databaseName)}: ${e}`
           );
         }
       }
@@ -241,11 +239,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
         } catch (e) {
           vscode.window.showErrorMessage(
-            localize(
-              "failDeleteCollection",
-              `Failed to delete collection {0}: ${e as string}`,
-              mongoInfo.collectionName
-            )
+            `${localize("failDeleteCollection", "Failed to delete collection {0}:", mongoInfo.collectionName)}: ${e}`
           );
         }
       }

@@ -279,9 +279,17 @@ export class AppContext {
 
       if (mongoClient) {
         showStatusBarItem(localize("creatingMongoCollection", "Creating Mongo collection"));
-        const collection = await mongoClient.db(databaseName).createCollection(collectionName);
-        hideStatusBarItem();
-        resolve({ collection, databaseName: databaseName! });
+        try {
+          let collection;
+          collection = await mongoClient.db(databaseName).createCollection(collectionName);
+          resolve({ collection, databaseName: databaseName! });
+        } catch (e) {
+          reject(e);
+          return;
+        } finally {
+          hideStatusBarItem();
+          return;
+        }
       } else {
         reject(localize("failConnectTo", "Could not connect to {0}", connectionOptions.server));
         return;
@@ -319,34 +327,46 @@ export class AppContext {
       }
 
       showStatusBarItem(localize("creatingCollection", "Creating collection {0}...", sampleData.collectionId));
-      const collection = await client.db(databaseName).createCollection(sampleData.collectionId);
-      hideStatusBarItem();
-      if (!collection) {
+      let collection;
+      try {
+        collection = await client.db(databaseName).createCollection(sampleData.collectionId);
+        if (!collection) {
+          reject(localize("failCreateCollection", "Failed to create collection"));
+          return;
+        }
+      } catch (e) {
         reject(localize("failCreateCollection", "Failed to create collection"));
         return;
+      } finally {
+        hideStatusBarItem();
       }
 
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
-      const startMS = new Date().getTime();
-      const result = await collection.bulkWrite(
-        sampleData.data.map((doc) => ({
-          insertOne: {
-            document: doc,
-          },
-        }))
-      );
-      const endMS = new Date().getTime();
+      try {
+        const startMS = new Date().getTime();
+        const result = await collection.bulkWrite(
+          sampleData.data.map((doc) => ({
+            insertOne: {
+              document: doc,
+            },
+          }))
+        );
+        const endMS = new Date().getTime();
+        if (result.insertedCount === undefined || result.insertedCount < sampleData.data.length) {
+          reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
+          return;
+        }
 
-      hideStatusBarItem();
-      if (result.insertedCount === undefined || result.insertedCount < sampleData.data.length) {
+        return resolve({
+          count: result.insertedCount,
+          elapsedTimeMS: endMS - startMS,
+        });
+      } catch (e) {
         reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
         return;
+      } finally {
+        hideStatusBarItem();
       }
-
-      return resolve({
-        count: result.insertedCount,
-        elapsedTimeMS: endMS - startMS,
-      });
     });
   }
 }
