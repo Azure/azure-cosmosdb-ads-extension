@@ -9,7 +9,6 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
   AppContext,
-  convertToConnectionOptions,
   getAccountName,
   isAzureConnection,
   retrieveDatabaseAccountInfoFromArm,
@@ -19,6 +18,7 @@ import {
 } from "../appContext";
 import { COSMOSDB_DOC_URL } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
+import { convertToConnectionOptions } from "../models";
 import { buildHeroCard } from "./util";
 
 const localize = nls.loadMessageBundle();
@@ -37,11 +37,7 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
       onDidClick: () => {
         const param: IConnectionNodeInfo = {
           connectionId: view.connection.connectionId,
-          server: view.connection.options["server"],
-          authenticationType: view.connection.options["authenticationType"],
-          azureAccount: view.connection.options["azureAccount"],
-          azureTenantId: view.connection.options["azureTenantId"],
-          azureResourceId: view.connection.options["azureResourceId"],
+          ...convertToConnectionOptions(view.connection),
         };
         vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param);
       },
@@ -182,11 +178,7 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       () => {
         const param: IConnectionNodeInfo = {
           connectionId: view.connection.connectionId,
-          server: view.connection.options["server"],
-          authenticationType: view.connection.options["authenticationType"],
-          azureAccount: view.connection.options["azureAccount"],
-          azureTenantId: view.connection.options["azureTenantId"],
-          azureResourceId: view.connection.options["azureResourceId"],
+          ...convertToConnectionOptions(view.connection),
         };
         vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param);
       }
@@ -410,13 +402,15 @@ const buildDatabasesAreaNonAzure = async (
 
     if (tableComponent.onCellAction) {
       tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-        const server = view.connection.options["server"];
+        const databaseDashboardInfo: IDatabaseDashboardInfo = {
+          databaseName: databasesInfo[arg.row].name,
+          connectionId: view.connection.connectionId,
+          ...convertToConnectionOptions(view.connection),
+        };
         vscode.commands.executeCommand(
           "cosmosdb-ads-extension.openDatabaseDashboard",
           undefined,
-          server,
-          databasesInfo[arg.row].name,
-          context
+          databaseDashboardInfo
         );
       });
     }

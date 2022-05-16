@@ -11,71 +11,21 @@ import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
-
-// import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
-
-export interface IDatabaseInfo {
-  name: string;
-  sizeOnDisk?: number;
-  empty?: boolean;
-}
-
-type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem;
-
-export interface ICosmosDbDatabaseAccountInfo {
-  serverStatus: string;
-  backupPolicy: string;
-  consistencyPolicy: string;
-  readLocations: string[];
-  location: string;
-  documentEndpoint: string | undefined;
-}
-
-export interface ICosmosDbDatabaseInfo {
-  name: string;
-  nbCollections: number;
-  throughputSetting: string;
-  usageSizeKB: number | undefined;
-}
-
-export interface ICosmosDbCollectionInfo {
-  name: string;
-  documentCount: number | undefined;
-  throughputSetting: string;
-  usageSizeKB: number | undefined;
-}
-
-export interface IMongoShellOptions {
-  isCosmosDB: boolean;
-  connectionString: string | undefined;
-  connectionInfo:
-    | {
-        hostname: string;
-        port: string | undefined;
-        username: string | undefined;
-        password: string | undefined;
-      }
-    | undefined;
-}
-
-export interface IConnectionOptions {
-  server: string;
-  authenticationType: string;
-  azureAccount: string;
-  azureTenantId: string;
-  azureResourceId: string;
-}
-
-export const convertToConnectionOptions = (connectionInfo: azdata.ConnectionInfo): IConnectionOptions => ({
-  server: connectionInfo.options["server"],
-  authenticationType: connectionInfo.options["authenticationType"],
-  azureAccount: connectionInfo.options["azureAccount"],
-  azureResourceId: connectionInfo.options["azureResourceId"],
-  azureTenantId: connectionInfo.options["azureTenantId"],
-});
+import { buildMongoConnectionString } from "./Providers/connectionString";
+import {
+  convertToConnectionOptions,
+  IConnectionOptions,
+  ICosmosDbCollectionInfo,
+  ICosmosDbDatabaseAccountInfo,
+  ICosmosDbDatabaseInfo,
+  IDatabaseInfo,
+  IMongoShellOptions,
+} from "./models";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
+
+type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem;
 
 /**
  * Global context for app
@@ -145,34 +95,7 @@ export class AppContext {
         connectionOptions = convertToConnectionOptions(connectionProfile);
       }
 
-      const serverName = connectionOptions.server;
-      if (!serverName) {
-        reject(localize("missingServerName", "Missing serverName {0}", serverName));
-        return;
-      }
-
-      // TODO reduce code duplication with ConnectionProvider.connect
-      const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
-      if (connection.length < 1) {
-        reject(localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName));
-        return;
-      }
-      const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
-      let connectionString = credentials["password"];
-
-      if (connectionOptions.authenticationType === "AzureMFA") {
-        try {
-          connectionString = await retrieveConnectionStringFromArm(
-            connectionOptions.azureAccount,
-            connectionOptions.azureTenantId,
-            connectionOptions.azureResourceId,
-            connectionOptions.server
-          );
-        } catch (e) {
-          vscode.window.showErrorMessage((e as { message: string }).message);
-          return false;
-        }
-      }
+      const connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, true);
 
       if (!connectionString) {
         reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
@@ -240,31 +163,7 @@ export class AppContext {
       if (this._mongoClients.has(connectionOptions.server)) {
         mongoClient = this._mongoClients.get(connectionOptions.server);
       } else {
-        const connection = (await azdata.connection.getConnections()).filter(
-          (c) => c.serverName === connectionOptions!.server
-        );
-        if (connection.length < 1) {
-          reject(
-            localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", connectionOptions.server)
-          );
-          return;
-        }
-        const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
-        let connectionString = credentials["password"];
-
-        if (connectionOptions.authenticationType === "AzureMFA") {
-          try {
-            connectionString = await retrieveConnectionStringFromArm(
-              connectionOptions.azureAccount,
-              connectionOptions.azureTenantId,
-              connectionOptions.azureResourceId,
-              connectionOptions.server
-            );
-          } catch (e) {
-            reject(e);
-            return;
-          }
-        }
+        const connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, true);
 
         if (!connectionString) {
           reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
@@ -854,6 +753,57 @@ export const retrieveMongoDbCollectionsInfoFromArm = async (
   return await Promise.all(promises);
 };
 
+export const retrieveConnectionStringFromConnectionOptions = async (
+  connectionOptions: IConnectionOptions,
+  retrievePasswordFromAzData: boolean
+): Promise<string | undefined> => {
+  const authenticationType = connectionOptions.authenticationType;
+
+  if (retrievePasswordFromAzData && (authenticationType === "SqlLogin" || authenticationType === "Integrated")) {
+    // Retrieve password
+    const serverName = connectionOptions.server;
+    if (!serverName) {
+      vscode.window.showErrorMessage(localize("missingServerName", "Missing serverName {0}", serverName));
+      return undefined;
+    }
+
+    const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
+    if (connection.length < 1) {
+      vscode.window.showErrorMessage(
+        localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName)
+      );
+      return undefined;
+    }
+    const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
+    connectionOptions.password = credentials["password"];
+  }
+
+  switch (authenticationType) {
+    case "AzureMFA":
+      try {
+        return retrieveConnectionStringFromArm(
+          connectionOptions.azureAccount,
+          connectionOptions.azureTenantId,
+          connectionOptions.azureResourceId,
+          connectionOptions.server
+        );
+      } catch (e) {
+        vscode.window.showErrorMessage((e as { message: string }).message);
+        return undefined;
+      }
+      break;
+    case "SqlLogin":
+    case "Integrated":
+      return buildMongoConnectionString(connectionOptions);
+    default:
+      // Should never happen
+      vscode.window.showErrorMessage(
+        localize("unsupportedAuthenticationType", "Unsupposed authentication type {0}", authenticationType)
+      );
+      return undefined;
+  }
+};
+
 export interface NotebookServiceInfo {
   cosmosEndpoint: string;
   dbAccountName: string;
@@ -865,7 +815,7 @@ export interface NotebookServiceInfo {
 
 /**
  *
- * @returns Only work for MFA
+ * @returns Only works for MFA
  */
 export const getNbServiceInfo = async (): Promise<NotebookServiceInfo> => {
   return new Promise(async (resolve, reject) => {

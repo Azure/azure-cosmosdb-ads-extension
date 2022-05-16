@@ -2,7 +2,9 @@ import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { v4 as uuid } from "uuid";
-import { AppContext, retrieveConnectionStringFromArm } from "../appContext";
+import { AppContext, retrieveConnectionStringFromConnectionOptions } from "../appContext";
+import { parseMongoConnectionString } from "./connectionString";
+import { convertToConnectionOptions } from "../models";
 
 const localize = nls.loadMessageBundle();
 
@@ -36,32 +38,32 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     console.log("connectionInfo", connectionInfo);
 
     const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
+    const connectionOptions = convertToConnectionOptions(connectionInfo);
     this.connectionUriToServerMap.set(connectionUri, server);
 
-    if (!this.appContext.hasConnection(server)) {
-      let password = connectionInfo.options["password"];
+    let connectionString;
+    try {
+      connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
+    } catch (e) {
+      showErrorMessage((e as { message: string }).message);
+      return false;
+    }
 
-      if (connectionInfo.options["authenticationType"] === "AzureMFA") {
-        try {
-          password = await retrieveConnectionStringFromArm(
-            connectionInfo.options["azureAccount"],
-            connectionInfo.options["azureTenantId"],
-            connectionInfo.options["azureResourceId"],
-            connectionInfo.options["server"]
-          );
-        } catch (e) {
-          showErrorMessage((e as { message: string }).message);
-          return false;
-        }
-      }
+    if (!connectionString) {
+      showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
+      return false;
+    }
 
-      if (!password) {
-        showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
+    try {
+      if (!(await this.appContext.connect(server, connectionString))) {
+        vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
         return false;
       }
-
-      await this.appContext.connect(server, password);
+    } catch (e) {
+      showErrorMessage((e as { message: string }).message);
+      return false;
     }
+
     this.onConnectionCompleteEmitter.fire({
       connectionId: uuid(),
       ownerUri: connectionUri,
@@ -123,9 +125,12 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   // Called when something is pasted to Server field (Mongo account)
   buildConnectionInfo?(connectionString: string): Promise<azdata.ConnectionInfo> {
     console.log("ConnectionProvider.buildConnectionInfo");
-    return Promise.resolve({
-      options: [],
-    });
+    const info = parseMongoConnectionString(connectionString);
+    if (!info) {
+      return Promise.reject("Could not parse connection string");
+    }
+
+    return Promise.resolve(info);
   }
   registerOnConnectionComplete(handler: (connSummary: azdata.ConnectionInfoSummary) => any): void {
     console.log("ConnectionProvider.registerOnConnectionComplete");

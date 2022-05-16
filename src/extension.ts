@@ -10,23 +10,16 @@ import * as fs from "fs";
 // Import the module and reference it with the alias azdata in your code below
 
 import * as azdata from "azdata";
-// import { MongoObjectExplorerNodeProvider } from './objectExplorerNodeProvider';
 import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
 import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
-import {
-  AppContext,
-  convertToConnectionOptions,
-  createStatusBarItem,
-  getNbServiceInfo,
-  IConnectionOptions,
-  NotebookServiceInfo,
-} from "./appContext";
+import { AppContext, createStatusBarItem, getNbServiceInfo, NotebookServiceInfo } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
 import ViewLoader from "./ViewLoader";
 import { installMongoShell } from "./MongoShell/MongoShellUtil";
+import { convertToConnectionOptions, IConnectionOptions } from "./models";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test

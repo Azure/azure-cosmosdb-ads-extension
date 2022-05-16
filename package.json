@@ -128,6 +128,10 @@
       "languageMode": "cosmosdb",
       "displayName": "Mongo account",
       "isQueryProvider": false,
+      "connectionStringOptions": {
+        "isEnabled": true,
+        "isDefault": true
+      },
       "iconPath": [
         {
           "id": "cosmosdb",
@@ -157,8 +161,8 @@
           "specialValueType": "serverName",
           "isIdentity": true,
           "name": "server",
-          "displayName": "Mongo account",
-          "description": "Mongo account",
+          "displayName": "Host/Mongo Account",
+          "description": "Hostname(s) or Mongo Account",
           "groupName": "Source",
           "valueType": "string",
           "defaultValue": null,
@@ -185,6 +189,10 @@
             {
               "displayName": "Basic",
               "name": "SqlLogin"
+            },
+            {
+              "displayName": "No Auth",
+              "name": "Integrated"
             }
           ],
           "isRequired": true,
@@ -208,7 +216,7 @@
           "specialValueType": "password",
           "isIdentity": true,
           "name": "password",
-          "displayName": "Connection String",
+          "displayName": "Password",
           "description": "",
           "groupName": "Security",
           "valueType": "password",
@@ -216,6 +224,45 @@
           "objectType": null,
           "categoryValues": null,
           "isRequired": true,
+          "isArray": false
+        },
+        {
+          "specialValueType": null,
+          "isIdentity": false,
+          "name": "pathname",
+          "displayName": "Database",
+          "description": "Database name",
+          "groupName": "Connection",
+          "valueType": "string",
+          "defaultValue": null,
+          "objectType": null,
+          "isRequired": false,
+          "isArray": false
+        },
+        {
+          "specialValueType": null,
+          "isIdentity": false,
+          "name": "search",
+          "displayName": "Options",
+          "description": "Connection options",
+          "groupName": "Connection",
+          "valueType": "string",
+          "defaultValue": null,
+          "objectType": null,
+          "isRequired": false,
+          "isArray": false
+        },
+        {
+          "specialValueType": null,
+          "isIdentity": false,
+          "name": "isServer",
+          "displayName": "Cluster Server",
+          "description": "Mongo Atlas Cluster",
+          "groupName": "Connection",
+          "valueType": "boolean",
+          "defaultValue": false,
+          "objectType": null,
+          "isRequired": false,
           "isArray": false
         }
       ]
@@ -238,6 +285,7 @@
     "@azure/arm-monitor": "6.1.1",
     "@azure/arm-resourcegraph": "4.2.1",
     "mkdirp": "1.0.4",
+    "mongodb-connection-string-url": "2.5.2",
     "mongodb": "4.5.0",
     "vscode-nls": "5.0.0",
     "tar": "6.1.11",
