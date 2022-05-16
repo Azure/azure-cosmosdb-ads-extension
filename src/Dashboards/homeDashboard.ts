@@ -9,13 +9,16 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
   AppContext,
+  convertToConnectionOptions,
   getAccountName,
-  ICosmosDbDatabaseAccountInfo,
-  isAzureconnection,
+  isAzureConnection,
   retrieveDatabaseAccountInfoFromArm,
   retrieveMongoDbDatabasesInfoFromArm,
+  retrievePortalEndpoint,
+  retrieveResourceId,
 } from "../appContext";
 import { COSMOSDB_DOC_URL } from "../constant";
+import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { buildHeroCard } from "./util";
 
 const localize = nls.loadMessageBundle();
@@ -31,10 +34,13 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         light: context.asAbsolutePath("resources/light/add-database.svg"),
         dark: context.asAbsolutePath("resources/dark/add-database-inverse.svg"),
       },
-      onDidClick: () =>
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
-          connectionProfile: view.connection,
-        }),
+      onDidClick: () => {
+        const param: IConnectionNodeInfo = {
+          connectionId: view.connection.connectionId,
+          ...convertToConnectionOptions(view.connection),
+        };
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param);
+      },
     },
     {
       label: localize("openMongoShell", "Open Mongo Shell"),
@@ -43,9 +49,10 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
       },
       onDidClick() {
-        vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
-          connectionProfile: view.connection,
-        });
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openMongoShell",
+          convertToConnectionOptions(view.connection)
+        );
       },
     },
     {
@@ -142,33 +149,49 @@ const buildOverview = (view: azdata.ModelView): azdata.Component => {
 };
 
 const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {
+  const addOpenInPortalButton = async (connectionInfo: azdata.ConnectionInfo) => {
+    const portalEndpoint = await retrievePortalEndpoint(connectionInfo.options["azureAccount"]);
+    const resourceId = await retrieveResourceId(
+      connectionInfo.options["azureAccount"],
+      connectionInfo.options["azureTenantId"],
+      connectionInfo.options["azureResourceId"],
+      getAccountName(connectionInfo)
+    );
+    heroCardsContainer.addItem(
+      buildHeroCard(
+        view,
+        context.asAbsolutePath("resources/fluent/azure.svg"),
+        localize("openInPortal", "Open in portal"),
+        localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
+        () => openInPortal(portalEndpoint, resourceId)
+      ),
+      { flex: "0 0 auto" }
+    );
+  };
+
   const heroCards: azdata.ButtonComponent[] = [
     buildHeroCard(
       view,
       context.asAbsolutePath("resources/fluent/new-database.svg"),
       localize("newDatabase", "New Database"),
       localize("newDtabaseDescription", "Create database to store you data"),
-      () =>
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", {
-          connectionProfile: view.connection,
-        })
+      () => {
+        const param: IConnectionNodeInfo = {
+          connectionId: view.connection.connectionId,
+          ...convertToConnectionOptions(view.connection),
+        };
+        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param);
+      }
     ),
     buildHeroCard(
       view,
       context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
-      localize("openMongoShell", "Open Mongo Shell"),
+      localize("openMongoShell", "Query Data with Mongo Shell"),
       localize("mongoShellDescription", "Interact with data using Mongo shell"),
       () =>
         vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
           connectionProfile: view.connection,
         })
-    ),
-    buildHeroCard(
-      view,
-      context.asAbsolutePath("resources/fluent/azure.svg"),
-      localize("openInPortal", "Open in portal"),
-      localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
-      () => openInPortal(view.connection)
     ),
     buildHeroCard(
       view,
@@ -185,6 +208,10 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     .withLayout({ flexFlow: "row", flexWrap: "wrap" })
     .withProps({ CSSStyles: { width: "100%" } })
     .component();
+
+  if (isAzureConnection(view.connection)) {
+    addOpenInPortalButton(view.connection);
+  }
 
   return view.modelBuilder
     .flexContainer()
@@ -248,13 +275,13 @@ const buildDatabasesAreaAzure = async (
   context: vscode.ExtensionContext
 ): Promise<azdata.Component> => {
   refreshDatabases = () => {
-    const connectionInfo = view.connection;
+    const connection = view.connection;
 
     retrieveMongoDbDatabasesInfoFromArm(
-      connectionInfo.options["azureAccount"],
-      connectionInfo.options["azureTenantId"],
-      connectionInfo.options["azureResourceId"],
-      getAccountName(connectionInfo)
+      connection.options["azureAccount"],
+      connection.options["azureTenantId"],
+      connection.options["azureResourceId"],
+      getAccountName(connection)
     ).then((databasesInfo) => {
       tableComponent.data = databasesInfo.map((db) => [
         <azdata.HyperlinkColumnCellValue>{
@@ -268,13 +295,15 @@ const buildDatabasesAreaAzure = async (
 
       if (tableComponent.onCellAction) {
         tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-          const cosmosDbAccountName = view.connection.options["server"];
+          const databaseDashboardInfo: IDatabaseDashboardInfo = {
+            databaseName: databasesInfo[arg.row].name,
+            connectionId: connection.connectionId,
+            ...convertToConnectionOptions(connection),
+          };
           vscode.commands.executeCommand(
             "cosmosdb-ads-extension.openDatabaseDashboard",
             undefined,
-            cosmosDbAccountName,
-            databasesInfo[arg.row].name,
-            context
+            databaseDashboardInfo
           );
         });
       }
@@ -354,7 +383,7 @@ const buildDatabasesAreaNonAzure = async (
   const server = view.connection.options["server"];
 
   appContext.listDatabases(server).then(async (dbs) => {
-    const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number }[] = [];
+    const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number | undefined }[] = [];
     for (const db of dbs) {
       const name = db.name;
       if (name !== undefined) {
@@ -362,17 +391,26 @@ const buildDatabasesAreaNonAzure = async (
         databasesInfo.push({ name, nbCollections, sizeOnDisk: db.sizeOnDisk });
       }
     }
-    tableComponent.data = databasesInfo.map((db) => [db.name, db.sizeOnDisk, db.nbCollections]);
+    tableComponent.data = databasesInfo.map((db) => [
+      <azdata.HyperlinkColumnCellValue>{
+        title: db.name,
+        icon: context.asAbsolutePath("resources/fluent/database.svg"),
+      },
+      db.sizeOnDisk,
+      db.nbCollections,
+    ]);
 
     if (tableComponent.onCellAction) {
       tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-        const azureAccountId = view.connection.options["azureAccount"];
+        const databaseDashboardInfo: IDatabaseDashboardInfo = {
+          databaseName: databasesInfo[arg.row].name,
+          connectionId: view.connection.connectionId,
+          ...convertToConnectionOptions(view.connection),
+        };
         vscode.commands.executeCommand(
           "cosmosdb-ads-extension.openDatabaseDashboard",
           undefined,
-          azureAccountId,
-          databasesInfo[arg.row].name,
-          context
+          databaseDashboardInfo
         );
       });
     }
@@ -384,9 +422,10 @@ const buildDatabasesAreaNonAzure = async (
     .table()
     .withProps({
       columns: [
-        {
+        <azdata.HyperlinkColumn>{
           value: localize("database", "Database"),
-          type: azdata.ColumnType.text,
+          type: azdata.ColumnType.hyperlink,
+          name: "Database",
           width: 250,
         },
         {
@@ -440,7 +479,7 @@ const buildDatabasesAreaNonAzure = async (
 export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     const viewItems: azdata.Component[] = [buildToolbar(view, context)];
-    if (isAzureconnection(view.connection)) {
+    if (isAzureConnection(view.connection)) {
       viewItems.push(buildOverview(view));
     }
     viewItems.push(buildGettingStarted(view, context));
@@ -455,22 +494,20 @@ export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appC
   });
 
   azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
-    const viewItem = isAzureconnection(view.connection)
+    const viewItem = isAzureConnection(view.connection)
       ? await buildDatabasesAreaAzure(view, context)
       : await buildDatabasesAreaNonAzure(view, context, appContext);
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([viewItem])
+      .withItems([buildToolbar(view, context), viewItem])
       .withLayout({ flexFlow: "column" })
       .component();
     await view.initializeModel(homeTabContainer);
   });
 };
 
-const openInPortal = (connection: azdata.connection.Connection) => {
-  const azurePortalEndpoint = connection?.options?.azurePortalEndpoint;
-  const azureResourceId = connection?.options?.azureResourceId;
+const openInPortal = (azurePortalEndpoint: string, azureResourceId: string) => {
   if (!azurePortalEndpoint || !azureResourceId) {
     vscode.window.showErrorMessage(localize("missingAzureInformation", "Missing azure information from connection"));
     return;

@@ -6,6 +6,7 @@ import { after } from "mocha";
 // as well as import your extension to test it
 import * as vscode from "vscode";
 import { buildMongoConnectionString, parseMongoConnectionString } from "../../Providers/connectionString";
+import { convertToConnectionOptions } from "../../appContext";
 // import * as myExtension from '../../extension';
 
 suite("Extension Test Suite", () => {
@@ -118,7 +119,8 @@ suite("Connection String Test Suite", () => {
         assert.fail(`Failed to parse ${csTestInfo.cs}`);
       }
 
-      const reconstructedUrl = buildMongoConnectionString(parsedUrl.options);
+      const options = convertToConnectionOptions(parsedUrl);
+      const reconstructedUrl = buildMongoConnectionString(options);
 
       if (!reconstructedUrl) {
         assert.fail(`Failed to build mongo connection string: ${JSON.stringify(parsedUrl)}`);
@@ -145,7 +147,7 @@ suite("Connection String Test Suite", () => {
       user: "user",
       password: "password",
     };
-    assert.strictEqual(buildMongoConnectionString(options), undefined);
+    assert.strictEqual(buildMongoConnectionString(options as any), undefined);
   });
 
   test("Build connection string with username/password", () => {

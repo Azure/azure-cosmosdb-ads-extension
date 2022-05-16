@@ -43,7 +43,15 @@ export const parseMongoConnectionString = (connectionString: string): azdata.Con
   };
 };
 
-export const buildMongoConnectionString = (options: any): string | undefined => {
+export const buildMongoConnectionString = (options: {
+  authenticationType: string;
+  server: string;
+  isServer: boolean;
+  user: string;
+  password: string;
+  pathname: string;
+  search: string;
+}): string | undefined => {
   if (options.authenticationType === "AzureMFA") {
     // No connection string with Azure MFA
     return undefined;

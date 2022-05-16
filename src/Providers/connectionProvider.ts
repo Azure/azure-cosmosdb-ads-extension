@@ -2,7 +2,7 @@ import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { v4 as uuid } from "uuid";
-import { AppContext, retrieveConnectionStringFromConnectionOption } from "../appContext";
+import { AppContext, convertToConnectionOptions, retrieveConnectionStringFromConnectionOptions } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
 
 const localize = nls.loadMessageBundle();
@@ -25,23 +25,42 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   onConnectionChanged: vscode.Event<azdata.ChangedConnectionInfo> = this.onConnectionChangedEmitter.event;
 
   async connect(connectionUri: string, connectionInfo: azdata.ConnectionInfo): Promise<boolean> {
+    const showErrorMessage = (errorMessage: string) => {
+      this.onConnectionCompleteEmitter.fire({
+        ownerUri: connectionUri,
+        errorMessage,
+      } as any);
+    };
+
     console.log(`ConnectionProvider.connect ${connectionUri}`);
     // For now, pass connection string in password
     console.log("connectionInfo", connectionInfo);
 
     const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
+    const connectionOptions = convertToConnectionOptions(connectionInfo);
     this.connectionUriToServerMap.set(connectionUri, server);
 
-    let connectionString = await retrieveConnectionStringFromConnectionOption(connectionInfo.options, false);
-
-    if (!connectionString) {
-      vscode.window.showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
+    let connectionString;
+    try {
+      connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
+    } catch (e) {
+      showErrorMessage((e as { message: string }).message);
       return false;
     }
 
-    if (!(await this.appContext.connect(server, connectionString))) {
-      vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
-      return Promise.reject();
+    if (!connectionString) {
+      showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
+      return false;
+    }
+
+    try {
+      if (!(await this.appContext.connect(server, connectionString))) {
+        vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
+        return false;
+      }
+    } catch (e) {
+      showErrorMessage((e as { message: string }).message);
+      return false;
     }
 
     this.onConnectionCompleteEmitter.fire({
