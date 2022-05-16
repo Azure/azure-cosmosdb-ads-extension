@@ -10,7 +10,6 @@ import * as fs from "fs";
 // Import the module and reference it with the alias azdata in your code below
 
 import * as azdata from "azdata";
-// import { MongoObjectExplorerNodeProvider } from './objectExplorerNodeProvider';
 import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
 import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
