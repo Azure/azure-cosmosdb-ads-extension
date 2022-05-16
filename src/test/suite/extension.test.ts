@@ -6,7 +6,7 @@ import { after } from "mocha";
 // as well as import your extension to test it
 import * as vscode from "vscode";
 import { buildMongoConnectionString, parseMongoConnectionString } from "../../Providers/connectionString";
-import { convertToConnectionOptions } from "../../appContext";
+import { convertToConnectionOptions } from "../../models";
 // import * as myExtension from '../../extension';
 
 suite("Extension Test Suite", () => {

@@ -12,81 +12,20 @@ import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
 import { buildMongoConnectionString } from "./Providers/connectionString";
-
-// import { CosmosClient, DatabaseResponse } from '@azure/cosmos';
-
-export interface IDatabaseInfo {
-  name: string;
-  sizeOnDisk?: number;
-  empty?: boolean;
-}
-
-type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem;
-
-export interface ICosmosDbDatabaseAccountInfo {
-  serverStatus: string;
-  backupPolicy: string;
-  consistencyPolicy: string;
-  readLocations: string[];
-  location: string;
-  documentEndpoint: string | undefined;
-}
-
-export interface ICosmosDbDatabaseInfo {
-  name: string;
-  nbCollections: number;
-  throughputSetting: string;
-  usageSizeKB: number | undefined;
-}
-
-export interface ICosmosDbCollectionInfo {
-  name: string;
-  documentCount: number | undefined;
-  throughputSetting: string;
-  usageSizeKB: number | undefined;
-}
-
-export interface IMongoShellOptions {
-  isCosmosDB: boolean;
-  connectionString: string | undefined;
-  connectionInfo:
-    | {
-        hostname: string;
-        port: string | undefined;
-        username: string | undefined;
-        password: string | undefined;
-      }
-    | undefined;
-}
-
-export interface IConnectionOptions {
-  server: string;
-  authenticationType: string;
-  azureAccount: string;
-  azureTenantId: string;
-  azureResourceId: string;
-  user: string;
-  password: string;
-  pathname: string;
-  search: string;
-  isServer: boolean;
-}
-
-export const convertToConnectionOptions = (connectionInfo: azdata.ConnectionInfo): IConnectionOptions => ({
-  server: connectionInfo.options["server"],
-  authenticationType: connectionInfo.options["authenticationType"],
-  azureAccount: connectionInfo.options["azureAccount"],
-  azureResourceId: connectionInfo.options["azureResourceId"],
-  azureTenantId: connectionInfo.options["azureTenantId"],
-  user: connectionInfo.options["user"],
-  password: connectionInfo.options["password"],
-  pathname: connectionInfo.options["pathname"],
-  search: connectionInfo.options["search"],
-  isServer: connectionInfo.options["isServer"],
-});
+import {
+  convertToConnectionOptions,
+  IConnectionOptions,
+  ICosmosDbCollectionInfo,
+  ICosmosDbDatabaseAccountInfo,
+  ICosmosDbDatabaseInfo,
+  IDatabaseInfo,
+  IMongoShellOptions,
+} from "./models";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
+
+type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem;
 
 /**
  * Global context for app

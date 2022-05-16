@@ -2,8 +2,9 @@ import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { v4 as uuid } from "uuid";
-import { AppContext, convertToConnectionOptions, retrieveConnectionStringFromConnectionOptions } from "../appContext";
+import { AppContext, retrieveConnectionStringFromConnectionOptions } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
+import { convertToConnectionOptions } from "../models";
 
 const localize = nls.loadMessageBundle();
 

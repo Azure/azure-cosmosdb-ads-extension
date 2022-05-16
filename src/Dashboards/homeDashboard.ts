@@ -9,7 +9,6 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
   AppContext,
-  convertToConnectionOptions,
   getAccountName,
   isAzureConnection,
   retrieveDatabaseAccountInfoFromArm,
@@ -19,6 +18,7 @@ import {
 } from "../appContext";
 import { COSMOSDB_DOC_URL } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
+import { convertToConnectionOptions } from "../models";
 import { buildHeroCard } from "./util";
 
 const localize = nls.loadMessageBundle();
