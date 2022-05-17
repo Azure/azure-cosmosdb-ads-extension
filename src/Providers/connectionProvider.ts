@@ -34,8 +34,6 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     };
 
     console.log(`ConnectionProvider.connect ${connectionUri}`);
-    // For now, pass connection string in password
-    console.log("connectionInfo", connectionInfo);
 
     const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
     const connectionOptions = convertToConnectionOptions(connectionInfo);

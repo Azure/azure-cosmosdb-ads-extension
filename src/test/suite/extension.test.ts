@@ -134,7 +134,6 @@ suite("Connection String Test Suite", () => {
     csTestInfos.forEach((csTestInfo) => {
       const parsedUrl = parseMongoConnectionString(csTestInfo.cs);
 
-      console.log(`Testing: ${csTestInfo.cs}`);
       ["server", "user", "password", "authenticationType", "pathname", "search", "isServer"].forEach((field) =>
         assert.strictEqual(parsedUrl?.options[field], (csTestInfo as any)[field])
       );

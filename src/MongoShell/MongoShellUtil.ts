@@ -59,7 +59,6 @@ export const installMongoShell = async (extensionPath: string): Promise<string |
 };
 
 const extract = (archivePath: string, targetPath: string): Promise<void> => {
-  console.log(archivePath);
   if (archivePath.match(/\.tar\.gz|\.tar|\.gz$/i)) {
     return tar.x({
       file: archivePath,

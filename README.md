@@ -1,6 +1,11 @@
-# Project
+# Azure CosmosDB ADS Extension
 
-This repo contains the source code for the CosmosDB extension for Azure Data Studio
+The [Azure CosmosDB extension for Azure Data Studio](https://github.com/Azure/azure-cosmosdb-ads-extension) is an open-source project that currently supports Azure CosmosDB Mongo API accounts and Mongo databases.
+
+## Getting Started
+Download and install [Azure Data Studio](https://docs.microsoft.com/sql/azure-data-studio/download-azure-data-studio).
+Click on the Extension and install the Azure CosmosDB (Mongo API) and Mongo extension.
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
