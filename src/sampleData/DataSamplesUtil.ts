@@ -46,7 +46,7 @@ export const ingestSampleMongoData = async (
     const response = await vscode.window.showInformationMessage(
       localize(
         "ingestSampleMongoDataConfirm",
-        "This will create a collection '{1}' inside database '{0}'. Are you sure?",
+        "This will create a collection '{1}' inside database '{0}'. It may incur additional costs to your account. Do you want to proceed?",
         databaseName,
         collectionToCreate
       ),
