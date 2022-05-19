@@ -4,6 +4,8 @@
   "description": "CosmosDB Azure Data Studio extension",
   "publisher": "Microsoft",
   "version": "0.1.0",
+  "icon": "resources/catalog/CosmosDBExtension.png",
+  "preview": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/Azure/azure-cosmosdb-ads-extension"
