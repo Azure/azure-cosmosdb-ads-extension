@@ -1,7 +1,7 @@
 {
   "name": "azure-cosmosdb-ads-extension",
-  "displayName": "CosmosDB ADS Extension",
-  "description": "CosmosDB Azure Data Studio extension",
+  "displayName": "Cosmos DB ADS Extension",
+  "description": "Cosmos DB Azure Data Studio extension",
   "publisher": "Microsoft",
   "version": "0.1.0",
   "icon": "resources/catalog/CosmosDBExtension.png",
@@ -26,42 +26,42 @@
       {
         "command": "cosmosdb-ads-extension.createMongoDatabase",
         "title": "Create Database...",
-        "category": "CosmosDB Mongo"
+        "category": "Cosmos DB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.createMongoCollection",
         "title": "Create Collection...",
-        "category": "CosmosDB Mongo"
+        "category": "Cosmos DB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.deleteMongoCollection",
         "title": "Delete Collection",
-        "category": "CosmosDB Mongo"
+        "category": "Cosmos DB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.deleteMongoDatabase",
         "title": "Delete Database",
-        "category": "CosmosDB Mongo"
+        "category": "Cosmos DB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.openDatabaseDashboard",
         "title": "Open Database",
-        "category": "CosmosDB Mongo"
+        "category": "Cosmos DB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.openCollection",
         "title": "Open Collection",
-        "category": "CosmosDB Mongo"
+        "category": "Cosmos DB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.openQuery",
         "title": "Open Query",
-        "category": "CosmosDB Mongo"
+        "category": "Cosmos DB Mongo"
       },
       {
         "command": "cosmosdb-ads-extension.openMongoShell",
         "title": "Open Mongo Shell",
-        "category": "CosmosDB Mongo"
+        "category": "Cosmos DB Mongo"
       }
     ],
     "menus": {
@@ -163,7 +163,7 @@
           "specialValueType": "serverName",
           "isIdentity": true,
           "name": "server",
-          "displayName": "Hostname:port or CosmosDB account name",
+          "displayName": "Hostname:port or Cosmos DB account name",
           "description": "Hostname(s) or Mongo Account",
           "groupName": "Source",
           "valueType": "string",

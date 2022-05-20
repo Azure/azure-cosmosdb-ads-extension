@@ -13,6 +13,6 @@ import * as vscode from "vscode";
  */
 export class UriHandler implements vscode.UriHandler {
   handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-    vscode.window.showInformationMessage(`CosmosDB Extension received uri: ${uri.toString()}`);
+    vscode.window.showInformationMessage(`Cosmos DB Extension received uri: ${uri.toString()}`);
   }
 }
