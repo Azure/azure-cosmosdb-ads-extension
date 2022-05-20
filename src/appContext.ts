@@ -1,4 +1,4 @@
-import { Collection, MongoClient, MongoClientOptions } from "mongodb";
+import { Collection, Document, MongoClient, MongoClientOptions } from "mongodb";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as azdata from "azdata";
@@ -21,6 +21,8 @@ import {
   IDatabaseInfo,
   IMongoShellOptions,
 } from "./models";
+import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "./extension";
+import { createNodePath } from "./Providers/objectExplorerNodeProvider";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -142,7 +144,7 @@ export class AppContext {
       if (!collectionName) {
         collectionName = await vscode.window.showInputBox({
           placeHolder: localize("collection", "Collection"),
-          prompt: localize("enterCollectionName", "Enter collection name"),
+          prompt: localize("enterCollectionNameToCreate", "Enter collection name to create"),
           validateInput: validateMongoCollectionName,
           ignoreFocusOut: true,
         });
@@ -210,32 +212,27 @@ export class AppContext {
    * @returns Promise with inserted count
    */
   public async insertDocuments(
-    server: string,
-    sampleData: SampleData,
-    databaseName?: string
+    databaseDashboardInfo: IDatabaseDashboardInfo,
+    sampleData: SampleData
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected
-      const client = this._mongoClients.get(server);
+      const client = this._mongoClients.get(databaseDashboardInfo.server);
       if (!client) {
         reject(localize("notConnected", "Not connected"));
         return;
       }
 
-      showStatusBarItem(localize("creatingCollection", "Creating collection {0}...", sampleData.collectionId));
-      let collection;
-      try {
-        collection = await client.db(databaseName).createCollection(sampleData.collectionId);
-        if (!collection) {
-          reject(localize("failCreateCollection", "Failed to create collection"));
-          return;
-        }
-      } catch (e) {
-        reject(localize("failCreateCollection", "Failed to create collection"));
-        return;
-      } finally {
-        hideStatusBarItem();
-      }
+      const param: IConnectionNodeInfo = {
+        ...databaseDashboardInfo,
+        nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
+      };
+      const collection = await vscode.commands.executeCommand<Collection<Document>>(
+        "cosmosdb-ads-extension.createMongoCollection",
+        undefined,
+        param,
+        sampleData.collectionId
+      );
 
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
       try {
