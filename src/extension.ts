@@ -51,6 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+          Promise.reject();
           return;
         }
 
@@ -71,12 +72,15 @@ export function activate(context: vscode.ExtensionContext) {
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
             );
             objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.server);
+            Promise.resolve();
+            return;
           }
         } catch (e) {
           vscode.window.showErrorMessage(
             `${localize("failedCreatedDatabase", "Failed to create mongo database")}: ${e})`
           );
         }
+        Promise.reject();
       }
     )
   );

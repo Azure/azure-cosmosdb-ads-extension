@@ -39,7 +39,9 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
           connectionId: view.connection.connectionId,
           ...convertToConnectionOptions(view.connection),
         };
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param);
+        vscode.commands
+          .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
+          .then(() => refreshDatabases && refreshDatabases());
       },
     },
     {
@@ -180,7 +182,9 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
           connectionId: view.connection.connectionId,
           ...convertToConnectionOptions(view.connection),
         };
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param);
+        vscode.commands
+          .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
+          .then(() => refreshDatabases && refreshDatabases());
       }
     ),
     buildHeroCard(
