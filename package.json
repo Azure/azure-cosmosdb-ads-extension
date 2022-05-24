@@ -312,7 +312,7 @@
     "prettier": "2.3.2",
     "typescript": "4.6.3",
     "vscode-test": "1.6.1",
-    "vsce": "2.5.0"
+    "vsce": "2.8.0"
   },
   "prettier": {
     "printWidth": 120
