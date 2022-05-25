@@ -114,22 +114,11 @@ export class AppContext {
   }
 
   public createMongoCollection(
-    connectionOptions?: IConnectionOptions,
+    connectionOptions: IConnectionOptions,
     databaseName?: string,
     collectionName?: string
   ): Promise<{ collection: Collection; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
-      if (!connectionOptions) {
-        const connectionProfile = await askUserForConnectionProfile();
-        if (!connectionProfile) {
-          // TODO Show error here
-          reject(localize("missingConnectionProfile", "Missing ConnectionProfile"));
-          return;
-        }
-
-        connectionOptions = convertToConnectionOptions(connectionProfile);
-      }
-
       if (!databaseName) {
         databaseName = await vscode.window.showInputBox({
           placeHolder: localize("database", "Database"),
@@ -267,13 +256,13 @@ export class AppContext {
   }
 }
 
-const askUserForConnectionProfile = async (): Promise<ConnectionPick | undefined> => {
+export const askUserForConnectionProfile = async (): Promise<ConnectionPick | undefined> => {
   const connections = await azdata.connection.getConnections();
   const picks: ConnectionPick[] = connections
     .filter((c) => c.providerId === ProviderId)
     .map((c) => ({
       ...c,
-      label: c.connectionName,
+      label: c.connectionName || c.serverName,
     }));
 
   return vscode.window.showQuickPick<ConnectionPick>(picks, {

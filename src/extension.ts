@@ -13,7 +13,13 @@ import * as azdata from "azdata";
 import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
 import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
-import { AppContext, createStatusBarItem, getNbServiceInfo, NotebookServiceInfo } from "./appContext";
+import {
+  AppContext,
+  askUserForConnectionProfile,
+  createStatusBarItem,
+  getNbServiceInfo,
+  NotebookServiceInfo,
+} from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
@@ -61,6 +67,19 @@ export function activate(context: vscode.ExtensionContext) {
             connectionId: connectionProfile.id,
             ...convertToConnectionOptions(connectionProfile),
             nodePath: objectExplorerContext.nodeInfo?.nodePath,
+          };
+        }
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return;
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
           };
         }
 
