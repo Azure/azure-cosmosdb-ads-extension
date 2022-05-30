@@ -127,12 +127,27 @@ export function activate(context: vscode.ExtensionContext) {
             nodePath: objectExplorerContext.nodeInfo?.nodePath,
           };
         }
-        const mongoInfo = getMongoInfo(connectionNodeInfo.nodePath!);
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return;
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: createNodePath(connectionProfile.serverName),
+          };
+        }
+
+        const { databaseName } = getMongoInfo(connectionNodeInfo.nodePath!);
 
         try {
           const { collection: newCollection } = await appContext.createMongoCollection(
             connectionNodeInfo,
-            mongoInfo.databaseName
+            databaseName
           );
           if (newCollection) {
             vscode.window.showInformationMessage(
