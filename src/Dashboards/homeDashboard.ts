@@ -385,42 +385,44 @@ const buildDatabasesAreaNonAzure = async (
   appContext: AppContext
 ): Promise<azdata.Component> => {
   const server = view.connection.options["server"];
-
-  appContext.listDatabases(server).then(async (dbs) => {
-    const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number | undefined }[] = [];
-    for (const db of dbs) {
-      const name = db.name;
-      if (name !== undefined) {
-        const nbCollections = (await appContext.listCollections(server, name)).length;
-        databasesInfo.push({ name, nbCollections, sizeOnDisk: db.sizeOnDisk });
+  refreshDatabases = () => {
+    appContext.listDatabases(server).then(async (dbs) => {
+      const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number | undefined }[] = [];
+      for (const db of dbs) {
+        const name = db.name;
+        if (name !== undefined) {
+          const nbCollections = (await appContext.listCollections(server, name)).length;
+          databasesInfo.push({ name, nbCollections, sizeOnDisk: db.sizeOnDisk });
+        }
       }
-    }
-    tableComponent.data = databasesInfo.map((db) => [
-      <azdata.HyperlinkColumnCellValue>{
-        title: db.name,
-        icon: context.asAbsolutePath("resources/fluent/database.svg"),
-      },
-      db.sizeOnDisk,
-      db.nbCollections,
-    ]);
+      tableComponent.data = databasesInfo.map((db) => [
+        <azdata.HyperlinkColumnCellValue>{
+          title: db.name,
+          icon: context.asAbsolutePath("resources/fluent/database.svg"),
+        },
+        db.sizeOnDisk,
+        db.nbCollections,
+      ]);
 
-    if (tableComponent.onCellAction) {
-      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-        const databaseDashboardInfo: IDatabaseDashboardInfo = {
-          databaseName: databasesInfo[arg.row].name,
-          connectionId: view.connection.connectionId,
-          ...convertToConnectionOptions(view.connection),
-        };
-        vscode.commands.executeCommand(
-          "cosmosdb-ads-extension.openDatabaseDashboard",
-          undefined,
-          databaseDashboardInfo
-        );
-      });
-    }
+      if (tableComponent.onCellAction) {
+        tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+          const databaseDashboardInfo: IDatabaseDashboardInfo = {
+            databaseName: databasesInfo[arg.row].name,
+            connectionId: view.connection.connectionId,
+            ...convertToConnectionOptions(view.connection),
+          };
+          vscode.commands.executeCommand(
+            "cosmosdb-ads-extension.openDatabaseDashboard",
+            undefined,
+            databaseDashboardInfo
+          );
+        });
+      }
 
-    tableLoadingComponent.loading = false;
-  });
+      tableLoadingComponent.loading = false;
+    });
+  };
+  refreshDatabases();
 
   const tableComponent = view.modelBuilder
     .table()

@@ -111,11 +111,13 @@ export function activate(context: vscode.ExtensionContext) {
         console.log("createMongoCollection");
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+          Promise.reject();
           return;
         }
 
         if (objectExplorerContext && !objectExplorerContext.nodeInfo) {
           vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+          Promise.reject();
           return;
         }
 
@@ -132,6 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
           const connectionProfile = await askUserForConnectionProfile();
           if (!connectionProfile) {
             vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            Promise.reject();
             return;
           }
 
@@ -154,10 +157,13 @@ export function activate(context: vscode.ExtensionContext) {
               localize("successCreateCollection", "Successfully created: {0}", newCollection.collectionName)
             );
             objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
+            Promise.resolve();
+            return;
           }
         } catch (e) {
           vscode.window.showErrorMessage(`${localize("failedCreateCollection", "Failed to create collection")}: ${e}`);
         }
+        Promise.reject();
       }
     )
   );
