@@ -109,7 +109,8 @@ const buildWorkingWithDatabase = (
       context.asAbsolutePath("resources/fluent/new-collection.svg"),
       localize("importSampleData", "Import Sample Data"),
       localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
-      () => ingestSampleMongoData(appContext, context, databaseDashboardInfo.server, databaseDashboardInfo.databaseName)
+      () =>
+        ingestSampleMongoData(appContext, context, databaseDashboardInfo.server, databaseDashboardInfo.databaseName!)
     ),
   ];
 

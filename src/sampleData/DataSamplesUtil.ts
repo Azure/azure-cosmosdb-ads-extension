@@ -11,7 +11,7 @@ export const ingestSampleMongoData = async (
   appContext: AppContext,
   context: vscode.ExtensionContext,
   serverName: string,
-  databaseName: string | undefined
+  databaseName: string
 ): Promise<void> => {
   try {
     const rawData = await fs.readFile(path.join(context.extensionPath, "resources", "sampleData", "customer.json"));
@@ -65,7 +65,12 @@ export const ingestSampleMongoData = async (
         progress.report({
           message: localize("importingSampleData", "Importing sample data..."),
         });
-        const { count, elapsedTimeMS } = await appContext.insertDocuments(serverName, sampleData, databaseName);
+        const { count, elapsedTimeMS } = await appContext.insertDocuments(
+          serverName,
+          sampleData,
+          databaseName,
+          collectionToCreate
+        );
         setTimeout(() => {
           vscode.window.showInformationMessage(
             localize(

@@ -201,7 +201,8 @@ export class AppContext {
   public async insertDocuments(
     server: string,
     sampleData: SampleData,
-    databaseName?: string
+    databaseName: string,
+    collectionName: string
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected
@@ -211,10 +212,10 @@ export class AppContext {
         return;
       }
 
-      showStatusBarItem(localize("creatingCollection", "Creating collection {0}...", sampleData.collectionId));
+      showStatusBarItem(localize("creatingCollection", "Creating collection {0}...", collectionName));
       let collection;
       try {
-        collection = await client.db(databaseName).createCollection(sampleData.collectionId);
+        collection = await client.db(databaseName).createCollection(collectionName);
         if (!collection) {
           reject(localize("failCreateCollection", "Failed to create collection"));
           return;
