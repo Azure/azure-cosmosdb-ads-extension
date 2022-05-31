@@ -165,15 +165,6 @@ const buildCollectionsAreaAzure = async (
         collection.throughputSetting,
       ]);
 
-      if (tableComponent.onCellAction) {
-        tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-          vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openMongoShell",
-            { ...databaseDashboardInfo },
-            databaseDashboardInfo.databaseName
-          );
-        });
-      }
       tableLoadingComponent.loading = false;
     });
   };
@@ -209,6 +200,15 @@ const buildCollectionsAreaAzure = async (
       },
     })
     .component();
+
+  tableComponent.onCellAction &&
+    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+      vscode.commands.executeCommand(
+        "cosmosdb-ads-extension.openMongoShell",
+        { ...databaseDashboardInfo },
+        databaseDashboardInfo.databaseName
+      );
+    });
 
   const tableLoadingComponent = view.modelBuilder
     .loadingComponent()
@@ -258,16 +258,6 @@ const buildCollectionsAreaNonAzure = async (
         )
       );
 
-      if (tableComponent.onCellAction) {
-        tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-          vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openMongoShell",
-            { ...databaseDashboardInfo },
-            databaseDashboardInfo.databaseName
-          );
-        });
-      }
-
       tableComponent.data = collectionsInfo.map((collection) => {
         const stats = statsMap.get(collection.collectionName);
         return [
@@ -311,6 +301,15 @@ const buildCollectionsAreaNonAzure = async (
       },
     })
     .component();
+
+  tableComponent.onCellAction &&
+    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+      vscode.commands.executeCommand(
+        "cosmosdb-ads-extension.openMongoShell",
+        { ...databaseDashboardInfo },
+        databaseDashboardInfo.databaseName
+      );
+    });
 
   const tableLoadingComponent = view.modelBuilder
     .loadingComponent()

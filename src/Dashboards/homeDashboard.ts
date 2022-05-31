@@ -18,7 +18,7 @@ import {
 } from "../appContext";
 import { COSMOSDB_DOC_URL } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
-import { convertToConnectionOptions } from "../models";
+import { convertToConnectionOptions, ICosmosDbDatabaseInfo, IDatabaseInfo } from "../models";
 import { buildHeroCard } from "./util";
 
 const localize = nls.loadMessageBundle();
@@ -278,15 +278,17 @@ const buildDatabasesAreaAzure = async (
   view: azdata.ModelView,
   context: vscode.ExtensionContext
 ): Promise<azdata.Component> => {
-  refreshDatabases = () => {
-    const connection = view.connection;
+  const connection = view.connection;
+  let databases: ICosmosDbDatabaseInfo[];
 
+  refreshDatabases = () => {
     retrieveMongoDbDatabasesInfoFromArm(
       connection.options["azureAccount"],
       connection.options["azureTenantId"],
       connection.options["azureResourceId"],
       getAccountName(connection)
     ).then((databasesInfo) => {
+      databases = databasesInfo;
       tableComponent.data = databasesInfo.map((db) => [
         <azdata.HyperlinkColumnCellValue>{
           title: db.name,
@@ -296,21 +298,6 @@ const buildDatabasesAreaAzure = async (
         db.nbCollections,
         db.throughputSetting,
       ]);
-
-      if (tableComponent.onCellAction) {
-        tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-          const databaseDashboardInfo: IDatabaseDashboardInfo = {
-            databaseName: databasesInfo[arg.row].name,
-            connectionId: connection.connectionId,
-            ...convertToConnectionOptions(connection),
-          };
-          vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openDatabaseDashboard",
-            undefined,
-            databaseDashboardInfo
-          );
-        });
-      }
 
       tableLoadingComponent.loading = false;
     });
@@ -347,6 +334,20 @@ const buildDatabasesAreaAzure = async (
       },
     })
     .component();
+
+  tableComponent.onCellAction &&
+    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+      if (!databases) {
+        return;
+      }
+
+      const databaseDashboardInfo: IDatabaseDashboardInfo = {
+        databaseName: databases[arg.row].name,
+        connectionId: connection.connectionId,
+        ...convertToConnectionOptions(connection),
+      };
+      vscode.commands.executeCommand("cosmosdb-ads-extension.openDatabaseDashboard", undefined, databaseDashboardInfo);
+    });
 
   const tableLoadingComponent = view.modelBuilder
     .loadingComponent()
@@ -385,8 +386,12 @@ const buildDatabasesAreaNonAzure = async (
   appContext: AppContext
 ): Promise<azdata.Component> => {
   const server = view.connection.options["server"];
+  let databases: IDatabaseInfo[];
+
   refreshDatabases = () => {
     appContext.listDatabases(server).then(async (dbs) => {
+      databases = dbs;
+
       const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number | undefined }[] = [];
       for (const db of dbs) {
         const name = db.name;
@@ -403,21 +408,6 @@ const buildDatabasesAreaNonAzure = async (
         db.sizeOnDisk,
         db.nbCollections,
       ]);
-
-      if (tableComponent.onCellAction) {
-        tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-          const databaseDashboardInfo: IDatabaseDashboardInfo = {
-            databaseName: databasesInfo[arg.row].name,
-            connectionId: view.connection.connectionId,
-            ...convertToConnectionOptions(view.connection),
-          };
-          vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openDatabaseDashboard",
-            undefined,
-            databaseDashboardInfo
-          );
-        });
-      }
 
       tableLoadingComponent.loading = false;
     });
@@ -450,6 +440,20 @@ const buildDatabasesAreaNonAzure = async (
       },
     })
     .component();
+
+  tableComponent.onCellAction &&
+    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+      if (!databases) {
+        return;
+      }
+
+      const databaseDashboardInfo: IDatabaseDashboardInfo = {
+        databaseName: databases[arg.row].name,
+        connectionId: view.connection.connectionId,
+        ...convertToConnectionOptions(view.connection),
+      };
+      vscode.commands.executeCommand("cosmosdb-ads-extension.openDatabaseDashboard", undefined, databaseDashboardInfo);
+    });
 
   const tableLoadingComponent = view.modelBuilder
     .loadingComponent()
