@@ -215,7 +215,7 @@ export class AppContext {
 
       const param: IConnectionNodeInfo = {
         ...databaseDashboardInfo,
-        nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName, collectionName),
+        nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
       };
       const collection = await vscode.commands.executeCommand<Collection<Document>>(
         "cosmosdb-ads-extension.createMongoCollection",

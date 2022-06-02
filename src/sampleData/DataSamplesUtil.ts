@@ -63,7 +63,7 @@ export const ingestSampleMongoData = async (
       }
 
       let _count, _elapsedTimeMS;
-      vscode.window.withProgress(
+      await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           cancellable: false,
