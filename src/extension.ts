@@ -13,7 +13,13 @@ import * as azdata from "azdata";
 import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
 import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
-import { AppContext, createStatusBarItem, getNbServiceInfo, NotebookServiceInfo } from "./appContext";
+import {
+  AppContext,
+  askUserForConnectionProfile,
+  createStatusBarItem,
+  getNbServiceInfo,
+  NotebookServiceInfo,
+} from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
@@ -52,6 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+          Promise.reject();
           return;
         }
 
@@ -64,6 +71,19 @@ export function activate(context: vscode.ExtensionContext) {
           };
         }
 
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return;
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+          };
+        }
+
         try {
           // Creating a database requires creating a collection inside
           const { databaseName } = await appContext.createMongoCollection(connectionNodeInfo);
@@ -72,12 +92,15 @@ export function activate(context: vscode.ExtensionContext) {
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
             );
             objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.server);
+            Promise.resolve();
+            return;
           }
         } catch (e) {
           vscode.window.showErrorMessage(
             `${localize("failedCreatedDatabase", "Failed to create mongo database")}: ${e})`
           );
         }
+        Promise.reject();
       }
     )
   );
@@ -109,12 +132,27 @@ export function activate(context: vscode.ExtensionContext) {
             nodePath: objectExplorerContext.nodeInfo?.nodePath,
           };
         }
-        const mongoInfo = getMongoInfo(connectionNodeInfo.nodePath!);
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: createNodePath(connectionProfile.serverName),
+          };
+        }
+
+        const { databaseName } = getMongoInfo(connectionNodeInfo.nodePath!);
 
         try {
           const { collection: newCollection } = await appContext.createMongoCollection(
             connectionNodeInfo,
-            mongoInfo.databaseName,
+            databaseName,
             collectionName
           );
           if (newCollection) {
@@ -122,12 +160,13 @@ export function activate(context: vscode.ExtensionContext) {
               localize("successCreateCollection", "Successfully created: {0}", newCollection.collectionName)
             );
             objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
+            return Promise.resolve(newCollection);
           }
-          return Promise.resolve(newCollection);
         } catch (e) {
           vscode.window.showErrorMessage(`${localize("failedCreateCollection", "Failed to create collection")}: ${e}`);
           return Promise.reject();
         }
+        return Promise.reject();
       }
     )
   );

@@ -19,13 +19,9 @@ import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "./util";
 
-interface IButtonData {
-  label: string;
-  icon?: string;
-  onClick?: () => void;
-}
-
 const localize = nls.loadMessageBundle();
+
+let refreshCollections: () => void;
 
 const buildToolbar = (
   view: azdata.ModelView,
@@ -44,7 +40,9 @@ const buildToolbar = (
           ...databaseDashboardInfo,
           nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
         };
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param);
+        vscode.commands
+          .executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param)
+          .then(() => refreshCollections && refreshCollections());
       },
     },
     {
@@ -59,6 +57,16 @@ const buildToolbar = (
           { ...databaseDashboardInfo },
           databaseDashboardInfo.databaseName
         );
+      },
+    },
+    {
+      label: localize("refresh", "Refresh"),
+      iconPath: {
+        light: context.asAbsolutePath("resources/light/refresh.svg"),
+        dark: context.asAbsolutePath("resources/dark/refresh-inverse.svg"),
+      },
+      onDidClick() {
+        refreshCollections && refreshCollections();
       },
     },
   ];
@@ -79,7 +87,6 @@ const buildWorkingWithDatabase = (
   appContext: AppContext,
   context: vscode.ExtensionContext,
   databaseDashboardInfo: IDatabaseDashboardInfo
-  // connection: azdata.IConnectionProfile
 ): azdata.Component => {
   const heroCards: azdata.ButtonComponent[] = [
     buildHeroCard(
@@ -92,7 +99,9 @@ const buildWorkingWithDatabase = (
           ...databaseDashboardInfo,
           nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
         };
-        vscode.commands.executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param);
+        vscode.commands
+          .executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param)
+          .then(() => refreshCollections && refreshCollections());
       }
     ),
     buildHeroCard(
@@ -100,7 +109,10 @@ const buildWorkingWithDatabase = (
       context.asAbsolutePath("resources/fluent/new-collection.svg"),
       localize("importSampleData", "Import Sample Data"),
       localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
-      () => ingestSampleMongoData(appContext, context, databaseDashboardInfo)
+      () =>
+        ingestSampleMongoData(appContext, context, databaseDashboardInfo).then(
+          () => refreshCollections && refreshCollections()
+        )
     ),
   ];
 
@@ -138,35 +150,28 @@ const buildCollectionsAreaAzure = async (
   context: vscode.ExtensionContext,
   databaseDashboardInfo: IDatabaseDashboardInfo
 ): Promise<azdata.Component> => {
-  retrieveMongoDbCollectionsInfoFromArm(
-    databaseDashboardInfo.azureAccount,
-    databaseDashboardInfo.azureTenantId,
-    databaseDashboardInfo.azureResourceId,
-    getAccountNameFromOptions(databaseDashboardInfo),
-    databaseName
-  ).then((collectionsInfo) => {
-    tableComponent.data = collectionsInfo.map((collection) => [
-      <azdata.HyperlinkColumnCellValue>{
-        title: collection.name,
-        icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-      },
-      collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
-      collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
-      collection.throughputSetting,
-    ]);
+  refreshCollections = () => {
+    retrieveMongoDbCollectionsInfoFromArm(
+      databaseDashboardInfo.azureAccount,
+      databaseDashboardInfo.azureTenantId,
+      databaseDashboardInfo.azureResourceId,
+      getAccountNameFromOptions(databaseDashboardInfo),
+      databaseName
+    ).then((collectionsInfo) => {
+      tableComponent.data = collectionsInfo.map((collection) => [
+        <azdata.HyperlinkColumnCellValue>{
+          title: collection.name,
+          icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+        },
+        collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
+        collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
+        collection.throughputSetting,
+      ]);
 
-    if (tableComponent.onCellAction) {
-      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-        vscode.commands.executeCommand(
-          "cosmosdb-ads-extension.openMongoShell",
-          { ...databaseDashboardInfo },
-          databaseDashboardInfo.databaseName
-        );
-      });
-    }
-
-    tableLoadingComponent.loading = false;
-  });
+      tableLoadingComponent.loading = false;
+    });
+  };
+  refreshCollections();
 
   const tableComponent = view.modelBuilder
     .table()
@@ -198,6 +203,15 @@ const buildCollectionsAreaAzure = async (
       },
     })
     .component();
+
+  tableComponent.onCellAction &&
+    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+      vscode.commands.executeCommand(
+        "cosmosdb-ads-extension.openMongoShell",
+        { ...databaseDashboardInfo },
+        databaseDashboardInfo.databaseName
+      );
+    });
 
   const tableLoadingComponent = view.modelBuilder
     .loadingComponent()
@@ -237,39 +251,32 @@ const buildCollectionsAreaNonAzure = async (
   appContext: AppContext,
   databaseDashboardInfo: IDatabaseDashboardInfo
 ): Promise<azdata.Component> => {
-  appContext.listCollections(databaseDashboardInfo.server, databaseName).then(async (collectionsInfo) => {
-    const statsMap = new Map<string, CollStats>();
-    // Retrieve all stats for each collection
-    await Promise.all(
-      collectionsInfo.map((collection) =>
-        collection.stats().then((stats) => statsMap.set(collection.collectionName, stats))
-      )
-    );
+  refreshCollections = () => {
+    appContext.listCollections(databaseDashboardInfo.server, databaseName).then(async (collectionsInfo) => {
+      const statsMap = new Map<string, CollStats>();
+      // Retrieve all stats for each collection
+      await Promise.all(
+        collectionsInfo.map((collection) =>
+          collection.stats().then((stats) => statsMap.set(collection.collectionName, stats))
+        )
+      );
 
-    if (tableComponent.onCellAction) {
-      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-        vscode.commands.executeCommand(
-          "cosmosdb-ads-extension.openMongoShell",
-          { ...databaseDashboardInfo },
-          databaseDashboardInfo.databaseName
-        );
+      tableComponent.data = collectionsInfo.map((collection) => {
+        const stats = statsMap.get(collection.collectionName);
+        return [
+          <azdata.HyperlinkColumnCellValue>{
+            title: collection.collectionName,
+            icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+          },
+          stats?.storageSize,
+          stats?.count,
+        ];
       });
-    }
 
-    tableComponent.data = collectionsInfo.map((collection) => {
-      const stats = statsMap.get(collection.collectionName);
-      return [
-        <azdata.HyperlinkColumnCellValue>{
-          title: collection.collectionName,
-          icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-        },
-        stats?.storageSize,
-        stats?.count,
-      ];
+      tableLoadingComponent.loading = false;
     });
-
-    tableLoadingComponent.loading = false;
-  });
+  };
+  refreshCollections();
 
   const tableComponent = view.modelBuilder
     .table()
@@ -297,6 +304,15 @@ const buildCollectionsAreaNonAzure = async (
       },
     })
     .component();
+
+  tableComponent.onCellAction &&
+    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+      vscode.commands.executeCommand(
+        "cosmosdb-ads-extension.openMongoShell",
+        { ...databaseDashboardInfo },
+        databaseDashboardInfo.databaseName
+      );
+    });
 
   const tableLoadingComponent = view.modelBuilder
     .loadingComponent()
