@@ -4,14 +4,14 @@ import * as nls from "vscode-nls";
 import { AppContext, isAzureConnection, validateMongoCollectionName } from "../appContext";
 import { promises as fs } from "fs";
 import * as path from "path";
+import { IDatabaseDashboardInfo } from "../extension";
 
 const localize = nls.loadMessageBundle();
 
 export const ingestSampleMongoData = async (
   appContext: AppContext,
   context: vscode.ExtensionContext,
-  serverName: string,
-  databaseName: string
+  databaseDashboardInfo: IDatabaseDashboardInfo
 ): Promise<void> => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -24,18 +24,21 @@ export const ingestSampleMongoData = async (
         return;
       }
 
-      if (!databaseName) {
-        databaseName = sampleData.databaseId;
+      if (!databaseDashboardInfo.databaseName) {
+        databaseDashboardInfo.databaseName = sampleData.databaseId;
       }
 
       let collectionToCreate = sampleData.collectionId;
 
       // If collection already exists
-      const collections = await appContext.listCollections(serverName, databaseName!);
+      const collections = await appContext.listCollections(
+        databaseDashboardInfo.server,
+        databaseDashboardInfo.databaseName!
+      );
       if (collections.find((c) => c.collectionName === sampleData.collectionId)) {
         collectionToCreate = await vscode.window.showInputBox({
           placeHolder: localize("collectionName", "Collection name"),
-          prompt: localize("collectionExistEnterNewName", "Enter collection name to create"),
+          prompt: localize("enterCollectionNameToCreate", "Enter collection name to create"),
           validateInput: validateMongoCollectionName,
           ignoreFocusOut: true,
         });
@@ -50,18 +53,17 @@ export const ingestSampleMongoData = async (
         localize(
           "ingestSampleMongoDataConfirm",
           "This will create a collection '{1}' inside database '{0}'. It may incur additional costs to your account. Do you want to proceed?",
-          databaseName,
+          databaseDashboardInfo.databaseName,
           collectionToCreate
         ),
         ...[localize("yes", "Yes"), localize("no", "No")]
       );
       if (response !== "Yes") {
-        reject();
         return;
       }
 
       let _count, _elapsedTimeMS;
-      await vscode.window.withProgress(
+      vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           cancellable: false,
@@ -71,9 +73,8 @@ export const ingestSampleMongoData = async (
             message: localize("importingSampleData", "Importing sample data..."),
           });
           const { count, elapsedTimeMS } = await appContext.insertDocuments(
-            serverName,
+            databaseDashboardInfo,
             sampleData,
-            databaseName,
             collectionToCreate
           );
           _count = count;
@@ -91,7 +92,6 @@ export const ingestSampleMongoData = async (
     } catch (e) {
       vscode.window.showErrorMessage(e as string);
     }
-
     reject();
   });
 };

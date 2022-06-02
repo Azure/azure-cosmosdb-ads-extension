@@ -26,6 +26,7 @@ import { UriHandler } from "./protocol/UriHandler";
 import ViewLoader from "./ViewLoader";
 import { installMongoShell } from "./MongoShell/MongoShellUtil";
 import { convertToConnectionOptions, IConnectionOptions } from "./models";
+import { Collection, Document } from "mongodb";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -107,18 +108,20 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.createMongoCollection",
-      async (objectExplorerContext: azdata.ObjectExplorerContext, connectionNodeInfo: IConnectionNodeInfo) => {
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        connectionNodeInfo: IConnectionNodeInfo,
+        collectionName?: string
+      ): Promise<Collection<Document>> => {
         console.log("createMongoCollection");
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
-          Promise.reject();
-          return;
+          return Promise.reject();
         }
 
         if (objectExplorerContext && !objectExplorerContext.nodeInfo) {
           vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
-          Promise.reject();
-          return;
+          return Promise.reject();
         }
 
         if (objectExplorerContext) {
@@ -134,8 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
           const connectionProfile = await askUserForConnectionProfile();
           if (!connectionProfile) {
             vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
-            Promise.reject();
-            return;
+            return Promise.reject();
           }
 
           connectionNodeInfo = {
@@ -150,20 +152,21 @@ export function activate(context: vscode.ExtensionContext) {
         try {
           const { collection: newCollection } = await appContext.createMongoCollection(
             connectionNodeInfo,
-            databaseName
+            databaseName,
+            collectionName
           );
           if (newCollection) {
             vscode.window.showInformationMessage(
               localize("successCreateCollection", "Successfully created: {0}", newCollection.collectionName)
             );
             objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
-            Promise.resolve();
-            return;
+            return Promise.resolve(newCollection);
           }
         } catch (e) {
           vscode.window.showErrorMessage(`${localize("failedCreateCollection", "Failed to create collection")}: ${e}`);
+          return Promise.reject();
         }
-        Promise.reject();
+        return Promise.reject();
       }
     )
   );
@@ -479,6 +482,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   registerHomeDashboardTabs(context, appContext);
 }
+
+// export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?
 
 // this method is called when your extension is deactivated
 export function deactivate() {}
