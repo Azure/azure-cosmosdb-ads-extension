@@ -48,7 +48,7 @@ export interface IDatabaseDashboardInfo extends IConnectionOptions {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const terminalMap = new Map<string, vscode.Terminal>(); // servername <-> terminal
+  const terminalMap = new Map<string, number>(); // terminal name <-> counter
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -386,13 +386,11 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        if (terminalMap.has(serverName)) {
-          const terminal = terminalMap.get(serverName);
-          if (terminal!.exitStatus === undefined) {
-            terminal!.show();
-            return;
-          }
-        }
+        const terminalName = `${serverName}${databaseName ? "/" + databaseName : ""}`;
+
+        let counter = terminalMap.get(terminalName) ?? -1;
+        const isTerminalOpen = terminalMap.size > 0;
+        terminalMap.set(terminalName, ++counter);
 
         // Download mongosh
         const executablePath = await installMongoShell(context.extensionPath);
@@ -404,7 +402,7 @@ export function activate(context: vscode.ExtensionContext) {
         const mongoShellOptions = await appContext.getMongoShellOptions(connectionOptions);
 
         const terminalOptions: vscode.TerminalOptions = {
-          name: `Mongo Shell: ${serverName}`,
+          name: `Mongo Shell: ${terminalName}-${counter}`,
           shellPath: executablePath,
         };
         if (mongoShellOptions) {
@@ -431,19 +429,9 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
 
-        // Make sure no terminal is already set
-        if (terminalMap.has(serverName)) {
-          const terminal = terminalMap.get(serverName);
-          if (terminal!.exitStatus === undefined) {
-            terminal!.show();
-            return;
-          }
-        }
-
         const terminal = vscode.window.createTerminal(terminalOptions);
         context.subscriptions.push(terminal);
 
-        terminalMap.set(serverName, terminal);
         vscode.window.onDidCloseTerminal((t) => {
           if (t === terminal && t.exitStatus !== undefined) {
             terminalMap.delete(serverName);
@@ -455,7 +443,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
         terminal.show();
 
-        if (terminalMap.size === 1) {
+        if (!isTerminalOpen) {
           // Wait for it to settle, then make terminal bigger on first mongoshell
           // TODO: Consider maximize? "workbench.action.toggleMaximizedPanel"
           setTimeout(() => {
