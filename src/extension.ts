@@ -27,6 +27,8 @@ import ViewLoader from "./ViewLoader";
 import { installMongoShell } from "./MongoShell/MongoShellUtil";
 import { convertToConnectionOptions, IConnectionOptions } from "./models";
 import { Collection, Document } from "mongodb";
+import TelemetryReporter from "ads-extension-telemetry";
+import { Telemetry } from "./constant";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -46,6 +48,8 @@ export interface IDatabaseDashboardInfo extends IConnectionOptions {
   databaseName: string | undefined;
   connectionId: string;
 }
+
+let appContext: AppContext;
 
 export function activate(context: vscode.ExtensionContext) {
   const terminalMap = new Map<string, number>(); // terminal name <-> counter
@@ -458,7 +462,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
 
   // Instantiate client
-  const appContext = new AppContext();
+  appContext = new AppContext();
   createStatusBarItem();
 
   const connectionProvider = new ConnectionProvider(appContext);
@@ -469,9 +473,20 @@ export function activate(context: vscode.ExtensionContext) {
   azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
 
   registerHomeDashboardTabs(context, appContext);
+
+  // create telemetry reporter on extension activation
+  appContext.reporter = new TelemetryReporter(
+    Telemetry.extensionId,
+    Telemetry.extensionVersion,
+    Telemetry.instrumentationKey
+  );
+  // ensure it gets property disposed
+  context.subscriptions.push(appContext.reporter);
 }
 
 // export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  appContext.reporter?.dispose();
+}

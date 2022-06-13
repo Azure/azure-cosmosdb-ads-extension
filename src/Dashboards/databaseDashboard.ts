@@ -14,6 +14,7 @@ import {
   isAzureAuthType,
   retrieveMongoDbCollectionsInfoFromArm,
 } from "../appContext";
+import { Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
@@ -26,6 +27,7 @@ let refreshCollections: () => void;
 const buildToolbar = (
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
+  appContext: AppContext,
   databaseDashboardInfo: IDatabaseDashboardInfo
 ): azdata.ToolbarContainer => {
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
@@ -43,6 +45,11 @@ const buildToolbar = (
         vscode.commands
           .executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param)
           .then(() => refreshCollections && refreshCollections());
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.databaseDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.databaseDashboard.toolbarNewCollection
+        );
       },
     },
     {
@@ -57,6 +64,11 @@ const buildToolbar = (
           { ...databaseDashboardInfo },
           databaseDashboardInfo.databaseName
         );
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.databaseDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.databaseDashboard.toolbarOpenMongoShell
+        );
       },
     },
     {
@@ -67,6 +79,11 @@ const buildToolbar = (
       },
       onDidClick() {
         refreshCollections && refreshCollections();
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.databaseDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.databaseDashboard.toolbarRefresh
+        );
       },
     },
   ];
@@ -102,6 +119,11 @@ const buildWorkingWithDatabase = (
         vscode.commands
           .executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param)
           .then(() => refreshCollections && refreshCollections());
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.databaseDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.databaseDashboard.gettingStartedNewCollection
+        );
       }
     ),
     buildHeroCard(
@@ -109,10 +131,16 @@ const buildWorkingWithDatabase = (
       context.asAbsolutePath("resources/fluent/new-collection.svg"),
       localize("importSampleData", "Import Sample Data"),
       localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
-      () =>
+      () => {
         ingestSampleMongoData(appContext, context, databaseDashboardInfo).then(
           () => refreshCollections && refreshCollections()
-        )
+        );
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.databaseDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.databaseDashboard.gettingStartedImportSampleData
+        );
+      }
     ),
   ];
 
@@ -148,6 +176,7 @@ const buildCollectionsAreaAzure = async (
   databaseName: string,
   view: azdata.ModelView,
   context: vscode.ExtensionContext,
+  appContext: AppContext,
   databaseDashboardInfo: IDatabaseDashboardInfo
 ): Promise<azdata.Component> => {
   refreshCollections = () => {
@@ -210,6 +239,11 @@ const buildCollectionsAreaAzure = async (
         "cosmosdb-ads-extension.openMongoShell",
         { ...databaseDashboardInfo },
         databaseDashboardInfo.databaseName
+      );
+      appContext.reporter?.sendActionEvent(
+        Telemetry.sources.databaseDashboard,
+        Telemetry.actions.click,
+        Telemetry.targets.databaseDashboard.collectionsListAzure
       );
     });
 
@@ -312,6 +346,11 @@ const buildCollectionsAreaNonAzure = async (
         { ...databaseDashboardInfo },
         databaseDashboardInfo.databaseName
       );
+      appContext.reporter?.sendActionEvent(
+        Telemetry.sources.databaseDashboard,
+        Telemetry.actions.click,
+        Telemetry.targets.databaseDashboard.collectionsListNonAzure
+      );
     });
 
   const tableLoadingComponent = view.modelBuilder
@@ -356,7 +395,7 @@ export const openDatabaseDashboard = async (
     const input1 = view.modelBuilder.inputBox().withProps({ value: databaseDashboardInfo.databaseName }).component();
 
     const viewItem = isAzureAuthType(databaseDashboardInfo.authenticationType)
-      ? await buildCollectionsAreaAzure(databaseName, view, context, databaseDashboardInfo)
+      ? await buildCollectionsAreaAzure(databaseName, view, context, appContext, databaseDashboardInfo)
       : await buildCollectionsAreaNonAzure(databaseName, view, context, appContext, databaseDashboardInfo);
 
     const homeTabContainer = view.modelBuilder
@@ -367,7 +406,7 @@ export const openDatabaseDashboard = async (
 
     const homeTab: azdata.DashboardTab = {
       id: "home",
-      toolbar: buildToolbar(view, context, databaseDashboardInfo),
+      toolbar: buildToolbar(view, context, appContext, databaseDashboardInfo),
       content: homeTabContainer,
       title: "Home",
       icon: context.asAbsolutePath("resources/fluent/home.svg"), // icon can be the path of a svg file

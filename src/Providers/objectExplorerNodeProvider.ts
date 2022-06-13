@@ -2,6 +2,7 @@ import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
+import { Telemetry } from "../constant";
 import { ProviderId } from "./connectionProvider";
 
 const localize = nls.loadMessageBundle();
@@ -123,6 +124,12 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
   }
 
   private expandAccount(nodeInfo: azdata.ExpandNodeInfo, server: string): Thenable<boolean> {
+    this.appContext.reporter?.sendActionEvent(
+      Telemetry.sources.objectExplorerNodeProvider,
+      Telemetry.actions.expand,
+      Telemetry.targets.objectExplorerNodeProvider.accountNode
+    );
+
     // Get list of databases from root
     return this.appContext.listDatabases(server).then((databases) => {
       this.onExpandCompletedEmitter.fire({
@@ -148,6 +155,13 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
     if (!database) {
       return Promise.resolve(false);
     }
+
+    this.appContext.reporter?.sendActionEvent(
+      Telemetry.sources.objectExplorerNodeProvider,
+      Telemetry.actions.expand,
+      Telemetry.targets.objectExplorerNodeProvider.databaseNode
+    );
+
     return this.appContext.listCollections(server, database).then((collections) => {
       console.log("expandDatabase done");
       this.onExpandCompletedEmitter.fire({
@@ -169,6 +183,12 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
   }
 
   private expandCollection(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
+    this.appContext.reporter?.sendActionEvent(
+      Telemetry.sources.objectExplorerNodeProvider,
+      Telemetry.actions.expand,
+      Telemetry.targets.objectExplorerNodeProvider.collectionNode
+    );
+
     this.onExpandCompletedEmitter.fire({
       sessionId: nodeInfo.sessionId,
       nodePath: nodeInfo.nodePath || "unknown",

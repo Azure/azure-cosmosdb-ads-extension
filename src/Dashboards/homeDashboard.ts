@@ -16,7 +16,7 @@ import {
   retrievePortalEndpoint,
   retrieveResourceId,
 } from "../appContext";
-import { COSMOSDB_DOC_URL } from "../constant";
+import { COSMOSDB_DOC_URL, Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, ICosmosDbDatabaseInfo, IDatabaseInfo } from "../models";
 import { buildHeroCard } from "./util";
@@ -26,7 +26,11 @@ const localize = nls.loadMessageBundle();
 let refreshProperties: () => void;
 let refreshDatabases: () => void;
 
-const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer => {
+const buildToolbar = (
+  view: azdata.ModelView,
+  context: vscode.ExtensionContext,
+  appContext: AppContext
+): azdata.ToolbarContainer => {
   const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
     {
       label: localize("newDatabase", "New Database"),
@@ -42,6 +46,11 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
         vscode.commands
           .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
           .then(() => refreshDatabases && refreshDatabases());
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.toolbarNewDatabase
+        );
       },
     },
     {
@@ -55,6 +64,11 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
           "cosmosdb-ads-extension.openMongoShell",
           convertToConnectionOptions(view.connection)
         );
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.toolbarOpenMongoShell
+        );
       },
     },
     {
@@ -66,6 +80,11 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
       onDidClick() {
         refreshProperties && refreshProperties();
         refreshDatabases && refreshDatabases();
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.toolbarRefresh
+        );
       },
     },
     {
@@ -76,6 +95,11 @@ const buildToolbar = (view: azdata.ModelView, context: vscode.ExtensionContext):
       },
       onDidClick() {
         vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL));
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.toolbarLearnMore
+        );
       },
     },
   ];
@@ -150,7 +174,11 @@ const buildOverview = (view: azdata.ModelView): azdata.Component => {
   return component;
 };
 
-const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {
+const buildGettingStarted = (
+  view: azdata.ModelView,
+  context: vscode.ExtensionContext,
+  appContext: AppContext
+): azdata.Component => {
   const addOpenInPortalButton = async (connectionInfo: azdata.ConnectionInfo) => {
     const portalEndpoint = await retrievePortalEndpoint(connectionInfo.options["azureAccount"]);
     const resourceId = await retrieveResourceId(
@@ -165,7 +193,14 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
         context.asAbsolutePath("resources/fluent/azure.svg"),
         localize("openInPortal", "Open in portal"),
         localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
-        () => openInPortal(portalEndpoint, resourceId)
+        () => {
+          openInPortal(portalEndpoint, resourceId);
+          appContext.reporter?.sendActionEvent(
+            Telemetry.sources.homeDashboard,
+            Telemetry.actions.click,
+            Telemetry.targets.homeDashboard.gettingStartedOpenInPortal
+          );
+        }
       ),
       { flex: "0 0 auto" }
     );
@@ -185,6 +220,11 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
         vscode.commands
           .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
           .then(() => refreshDatabases && refreshDatabases());
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.gettingStartedNewDatabase
+        );
       }
     ),
     buildHeroCard(
@@ -192,17 +232,30 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
       context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
       localize("openMongoShell", "Query Data with Mongo Shell"),
       localize("mongoShellDescription", "Interact with data using Mongo shell"),
-      () =>
+      () => {
         vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
           connectionProfile: view.connection,
-        })
+        });
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.gettingStartedOpenMongoShell
+        );
+      }
     ),
     buildHeroCard(
       view,
       context.asAbsolutePath("resources/fluent/documentation.svg"),
       localize("documentation", "Documentation"),
       localize("documentation", "Find quickstarts, how-to guides, and references."),
-      () => vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL))
+      () => {
+        vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL));
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.gettingStartedDocumentation
+        );
+      }
     ),
   ];
 
@@ -247,13 +300,17 @@ const buildGettingStarted = (view: azdata.ModelView, context: vscode.ExtensionCo
     .component();
 };
 
-const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component => {
+const buildTabArea = (
+  view: azdata.ModelView,
+  context: vscode.ExtensionContext,
+  appContext: AppContext
+): azdata.Component => {
   const input2 = view.modelBuilder.inputBox().withProps({ value: "input 2" }).component();
 
   const tabs: azdata.Tab[] = [
     {
       id: "tab1",
-      content: buildGettingStarted(view, context),
+      content: buildGettingStarted(view, context, appContext),
       title: localize("gettingStarted", "Getting started"),
     },
     {
@@ -276,7 +333,8 @@ const buildTabArea = (view: azdata.ModelView, context: vscode.ExtensionContext):
 
 const buildDatabasesAreaAzure = async (
   view: azdata.ModelView,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  appContext: AppContext
 ): Promise<azdata.Component> => {
   const connection = view.connection;
   let databases: ICosmosDbDatabaseInfo[];
@@ -347,6 +405,11 @@ const buildDatabasesAreaAzure = async (
         ...convertToConnectionOptions(connection),
       };
       vscode.commands.executeCommand("cosmosdb-ads-extension.openDatabaseDashboard", undefined, databaseDashboardInfo);
+      appContext.reporter?.sendActionEvent(
+        Telemetry.sources.homeDashboard,
+        Telemetry.actions.click,
+        Telemetry.targets.homeDashboard.databasesListAzure
+      );
     });
 
   const tableLoadingComponent = view.modelBuilder
@@ -453,6 +516,11 @@ const buildDatabasesAreaNonAzure = async (
         ...convertToConnectionOptions(view.connection),
       };
       vscode.commands.executeCommand("cosmosdb-ads-extension.openDatabaseDashboard", undefined, databaseDashboardInfo);
+      appContext.reporter?.sendActionEvent(
+        Telemetry.sources.homeDashboard,
+        Telemetry.actions.click,
+        Telemetry.targets.homeDashboard.databasesListNonAzure
+      );
     });
 
   const tableLoadingComponent = view.modelBuilder
@@ -488,11 +556,11 @@ const buildDatabasesAreaNonAzure = async (
 
 export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
-    const viewItems: azdata.Component[] = [buildToolbar(view, context)];
+    const viewItems: azdata.Component[] = [buildToolbar(view, context, appContext)];
     if (isAzureConnection(view.connection)) {
       viewItems.push(buildOverview(view));
     }
-    viewItems.push(buildGettingStarted(view, context));
+    viewItems.push(buildGettingStarted(view, context, appContext));
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()
@@ -505,12 +573,12 @@ export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appC
 
   azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
     const viewItem = isAzureConnection(view.connection)
-      ? await buildDatabasesAreaAzure(view, context)
+      ? await buildDatabasesAreaAzure(view, context, appContext)
       : await buildDatabasesAreaNonAzure(view, context, appContext);
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([buildToolbar(view, context), viewItem])
+      .withItems([buildToolbar(view, context, appContext), viewItem])
       .withLayout({ flexFlow: "column" })
       .component();
     await view.initializeModel(homeTabContainer);
