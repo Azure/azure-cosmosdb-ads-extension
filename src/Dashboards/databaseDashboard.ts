@@ -13,8 +13,10 @@ import {
   getAccountNameFromOptions,
   isAzureAuthType,
   retrieveMongoDbCollectionsInfoFromArm,
+  changeMongoDbCollectionThroughput,
 } from "../appContext";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
+import { ICosmosDbCollectionInfo } from "../models";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "./util";
@@ -150,6 +152,8 @@ const buildCollectionsAreaAzure = async (
   context: vscode.ExtensionContext,
   databaseDashboardInfo: IDatabaseDashboardInfo
 ): Promise<azdata.Component> => {
+  let collections: ICosmosDbCollectionInfo[];
+
   refreshCollections = () => {
     retrieveMongoDbCollectionsInfoFromArm(
       databaseDashboardInfo.azureAccount,
@@ -158,6 +162,7 @@ const buildCollectionsAreaAzure = async (
       getAccountNameFromOptions(databaseDashboardInfo),
       databaseName
     ).then((collectionsInfo) => {
+      collections = collectionsInfo;
       tableComponent.data = collectionsInfo.map((collection) => [
         <azdata.HyperlinkColumnCellValue>{
           title: collection.name,
@@ -165,7 +170,9 @@ const buildCollectionsAreaAzure = async (
         },
         collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
         collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
-        collection.throughputSetting,
+        <azdata.HyperlinkColumnCellValue>{
+          title: collection.throughputSetting,
+        },
       ]);
 
       tableLoadingComponent.loading = false;
@@ -178,9 +185,9 @@ const buildCollectionsAreaAzure = async (
     .withProps({
       columns: [
         <azdata.HyperlinkColumn>{
-          value: localize("collection", "Collection"),
+          value: "collection",
           type: azdata.ColumnType.hyperlink,
-          name: "Collection",
+          name: localize("collection", "Collection"),
           width: 250,
         },
         {
@@ -191,9 +198,11 @@ const buildCollectionsAreaAzure = async (
           value: localize("documents", "Documents"),
           type: azdata.ColumnType.text,
         },
-        {
-          value: localize("throughput", "Throughput"),
-          type: azdata.ColumnType.text,
+        <azdata.HyperlinkColumn>{
+          value: "throughput",
+          type: azdata.ColumnType.hyperlink,
+          name: localize("throughput", "Throughput"),
+          width: 200,
         },
       ],
       data: [],
@@ -205,12 +214,30 @@ const buildCollectionsAreaAzure = async (
     .component();
 
   tableComponent.onCellAction &&
-    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-      vscode.commands.executeCommand(
-        "cosmosdb-ads-extension.openMongoShell",
-        { ...databaseDashboardInfo },
-        databaseDashboardInfo.databaseName
-      );
+    tableComponent.onCellAction(async (arg: any /* Bug with definition: ICellActionEventArgs */) => {
+      if (arg.name === "collection") {
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openMongoShell",
+          { ...databaseDashboardInfo },
+          databaseDashboardInfo.databaseName
+        );
+      } else if (arg.name === "throughput" && collections[arg.row].throughputSetting !== "") {
+        try {
+          const result = await changeMongoDbCollectionThroughput(
+            databaseDashboardInfo.azureAccount,
+            databaseDashboardInfo.azureTenantId,
+            databaseDashboardInfo.azureResourceId,
+            getAccountNameFromOptions(databaseDashboardInfo),
+            databaseName,
+            collections[arg.row]
+          );
+          if (result) {
+            refreshCollections && refreshCollections();
+          }
+        } catch (e) {
+          vscode.window.showErrorMessage(e as any);
+        }
+      }
     });
 
   const tableLoadingComponent = view.modelBuilder
