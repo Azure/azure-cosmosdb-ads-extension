@@ -21,6 +21,8 @@ export interface ICosmosDbDatabaseInfo {
   nbCollections: number;
   throughputSetting: string;
   usageSizeKB: number | undefined;
+  isAutoscale: boolean;
+  currentThroughput: number | undefined;
 }
 
 export interface ICosmosDbCollectionInfo {
@@ -28,6 +30,8 @@ export interface ICosmosDbCollectionInfo {
   documentCount: number | undefined;
   throughputSetting: string;
   usageSizeKB: number | undefined;
+  isAutoscale: boolean;
+  currentThroughput: number | undefined;
 }
 
 export interface IMongoShellOptions {
