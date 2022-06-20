@@ -21,6 +21,8 @@ export interface ICosmosDbDatabaseInfo {
   nbCollections: number;
   throughputSetting: string;
   usageSizeKB: number | undefined;
+  isAutoscale: boolean;
+  currentThroughput: number | undefined;
 }
 
 export interface ICosmosDbCollectionInfo {

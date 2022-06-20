@@ -546,6 +546,8 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   );
 
   let throughputSetting = "";
+  let isAutoscale: boolean = false;
+  let currentThroughput: number | undefined;
   try {
     showStatusBarItem(localize("retrievingMongoDbDatabaseThroughput", "Retrieving mongodb database throughput..."));
     const rpResponse = await client.mongoDBResources.getMongoDBDatabaseThroughput(
@@ -556,6 +558,8 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
 
     if (rpResponse.resource) {
       throughputSetting = throughputSettingToString(rpResponse.resource);
+      isAutoscale = !!rpResponse.resource.autoscaleSettings;
+      currentThroughput = rpResponse.resource.throughput;
     }
   } catch (e) {
     // Entity with the specified id does not exist in the system. More info: https://aka.ms/cosmosdb-tsg-not-found
@@ -570,6 +574,8 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
     nbCollections: collections.length,
     throughputSetting,
     usageSizeKB,
+    isAutoscale,
+    currentThroughput,
   };
 };
 
@@ -844,7 +850,7 @@ export const changeMongoDbCollectionThroughput = async (
             );
             return false;
           } else {
-            return await changeMongoDBCollectionThroughput(
+            return await updateMongoDbCollectionThroughput(
               azureAccountId,
               azureTenantId,
               azureResourceId,
@@ -880,7 +886,7 @@ const migrateMongoDbCollectionToAutoscale = async (
 ): Promise<boolean> => {
   const response = await vscode.window.showInformationMessage(
     localize(
-      "migrateToAutoscaleConfirm",
+      "migrateCollectionToAutoscaleConfirm",
       "Are you sure you want to migrate the collection {0} to Autoscale?",
       collectionName
     ),
@@ -912,7 +918,7 @@ const migrateMongoDbCollectionToAutoscale = async (
   }
 };
 
-const changeMongoDBCollectionThroughput = async (
+const updateMongoDbCollectionThroughput = async (
   azureAccountId: string,
   azureTenantId: string,
   azureResourceId: string,
@@ -924,7 +930,7 @@ const changeMongoDBCollectionThroughput = async (
 ): Promise<boolean> => {
   const response = await vscode.window.showInformationMessage(
     localize(
-      "setManualThroughputConfirm",
+      "setManualThroughputCollectionConfirm",
       "Are you sure you want to set the collection {0} throughput to {1} RUs?",
       collectionName,
       requestedThroughput
@@ -945,7 +951,7 @@ const changeMongoDBCollectionThroughput = async (
     if (migrateToManualThroughput) {
       const response = await vscode.window.showInformationMessage(
         localize(
-          "migrateToManualThroughputConfirm",
+          "migrateToManualThroughputCollectionConfirm",
           "Are you sure you want to migrate the collection {0} to manual throughput?",
           collectionName
         ),
@@ -979,6 +985,193 @@ const changeMongoDBCollectionThroughput = async (
       cosmosDbAccountName,
       databaseName,
       collectionName,
+      {
+        resource: {
+          throughput: requestedThroughput,
+        },
+      }
+    );
+
+    return !!rpResponse;
+  } catch (e) {
+    return Promise.reject(e);
+  } finally {
+    hideStatusBarItem();
+  }
+};
+
+export const changeMongoDbDatabaseThroughput = async (
+  azureAccountId: string,
+  azureTenantId: string,
+  azureResourceId: string,
+  cosmosDbAccountName: string,
+  databaseInfo: ICosmosDbDatabaseInfo
+): Promise<boolean> => {
+  const mode = await vscode.window.showQuickPick<any>(
+    [
+      {
+        label: "Autoscale",
+        onSelect: async (): Promise<boolean> => {
+          if (databaseInfo.isAutoscale) {
+            vscode.window.showInformationMessage(localize("alreadySetToAutoscale", "Already set to Autoscale"));
+            return false;
+          } else {
+            return await migrateMongoDbDatabaseToAutoscale(
+              azureAccountId,
+              azureTenantId,
+              azureResourceId,
+              cosmosDbAccountName,
+              databaseInfo.name
+            );
+          }
+        },
+      },
+      {
+        label: localize("setThroughput", "Set throughput"),
+        onSelect: async (): Promise<boolean> => {
+          const requestedThroughputStr = await vscode.window.showInputBox({
+            placeHolder: localize("enterThroughput", "Enter throughput (RU)"),
+          });
+
+          if (!requestedThroughputStr === undefined) {
+            return false;
+          }
+
+          const requestedThroughput = Number.parseInt(requestedThroughputStr!);
+
+          if (databaseInfo.currentThroughput === requestedThroughput) {
+            vscode.window.showInformationMessage(
+              localize("throughputAlreadySetAt", "Throughput already set at {0} RU", requestedThroughput)
+            );
+            return false;
+          } else {
+            return await updateMongoDbDatabaseThroughput(
+              azureAccountId,
+              azureTenantId,
+              azureResourceId,
+              cosmosDbAccountName,
+              databaseInfo.name,
+              requestedThroughput,
+              databaseInfo.isAutoscale
+            );
+          }
+        },
+      },
+    ],
+    {
+      placeHolder: localize("useAutoscaleOrSetThroughput", "Use Autoscale or set Throughput manually?"),
+    }
+  );
+
+  if (!mode) {
+    return false;
+  }
+
+  return await mode.onSelect();
+};
+
+const migrateMongoDbDatabaseToAutoscale = async (
+  azureAccountId: string,
+  azureTenantId: string,
+  azureResourceId: string,
+  cosmosDbAccountName: string,
+  databaseName: string
+): Promise<boolean> => {
+  const response = await vscode.window.showInformationMessage(
+    localize(
+      "migrateDatabaseToAutoscaleConfirm",
+      "Are you sure you want to migrate the database {0} to Autoscale?",
+      databaseName
+    ),
+    ...[localize("yes", "Yes"), localize("no", "No")]
+  );
+  if (response !== "Yes") {
+    return false;
+  }
+
+  const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  // TODO: check resourceGroup here
+  const { resourceGroup } = parsedAzureResourceId(azureResourceId);
+  try {
+    showStatusBarItem(localize("migratingDatabaseToAutoscale", "Migrating database to autoscale..."));
+    const rpResponse = await client.mongoDBResources.migrateMongoDBDatabaseToAutoscale(
+      resourceGroup,
+      cosmosDbAccountName,
+      databaseName
+    );
+
+    return !!rpResponse;
+  } catch (e) {
+    Promise.reject(e);
+    return false;
+  } finally {
+    hideStatusBarItem();
+  }
+};
+
+const updateMongoDbDatabaseThroughput = async (
+  azureAccountId: string,
+  azureTenantId: string,
+  azureResourceId: string,
+  cosmosDbAccountName: string,
+  databaseName: string,
+  requestedThroughput: number,
+  migrateToManualThroughput: boolean
+): Promise<boolean> => {
+  const response = await vscode.window.showInformationMessage(
+    localize(
+      "setManualThroughputDatabaseConfirm",
+      "Are you sure you want to set the database {0} throughput to {1} RUs?",
+      databaseName,
+      requestedThroughput
+    ),
+    ...[localize("yes", "Yes"), localize("no", "No")]
+  );
+  if (response !== "Yes") {
+    return false;
+  }
+
+  const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  // TODO: check resourceGroup here
+  const { resourceGroup } = parsedAzureResourceId(azureResourceId);
+
+  try {
+    let rpResponse;
+    if (migrateToManualThroughput) {
+      const response = await vscode.window.showInformationMessage(
+        localize(
+          "migrateToManualThroughputDatabaseConfirm",
+          "Are you sure you want to migrate the database {0} to manual throughput?",
+          databaseName
+        ),
+        ...[localize("yes", "Yes"), localize("no", "No")]
+      );
+      if (response !== "Yes") {
+        return false;
+      }
+
+      showStatusBarItem(localize("migratingDatabaseToManualThroughput", "Migrating database to manual throughput..."));
+      rpResponse = await client.mongoDBResources.migrateMongoDBDatabaseToManualThroughput(
+        resourceGroup,
+        cosmosDbAccountName,
+        databaseName,
+        {
+          resource: {
+            throughput: requestedThroughput,
+          },
+        }
+      );
+    }
+
+    showStatusBarItem(
+      localize("updatingDatabaseThroughput", "Updating database throughput to {0} RUs...", requestedThroughput)
+    );
+    rpResponse = await client.mongoDBResources.updateMongoDBDatabaseThroughput(
+      resourceGroup,
+      cosmosDbAccountName,
+      databaseName,
       {
         resource: {
           throughput: requestedThroughput,
