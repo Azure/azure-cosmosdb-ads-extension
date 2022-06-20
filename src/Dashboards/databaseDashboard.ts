@@ -234,8 +234,8 @@ const buildCollectionsAreaAzure = async (
           if (result) {
             refreshCollections && refreshCollections();
           }
-        } catch (e) {
-          vscode.window.showErrorMessage(e as any);
+        } catch (e: any) {
+          vscode.window.showErrorMessage(e?.message);
         }
       }
     });

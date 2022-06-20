@@ -988,8 +988,7 @@ const changeMongoDBCollectionThroughput = async (
 
     return !!rpResponse;
   } catch (e) {
-    Promise.reject(e);
-    return false;
+    return Promise.reject(e);
   } finally {
     hideStatusBarItem();
   }
