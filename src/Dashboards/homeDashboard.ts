@@ -434,11 +434,11 @@ const buildDatabasesAreaAzure = async (
           if (result) {
             refreshDatabases && refreshDatabases();
           }
-					appContext.reporter?.sendActionEvent(
-						Telemetry.sources.homeDashboard,
-						Telemetry.actions.click,
-						Telemetry.targets.homeDashboard.databasesListAzureChangeThroughput
-					);
+          appContext.reporter?.sendActionEvent(
+            Telemetry.sources.homeDashboard,
+            Telemetry.actions.click,
+            Telemetry.targets.homeDashboard.databasesListAzureChangeThroughput
+          );
         } catch (e: any) {
           vscode.window.showErrorMessage(e?.message);
         }

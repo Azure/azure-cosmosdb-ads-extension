@@ -268,11 +268,11 @@ const buildCollectionsAreaAzure = async (
           if (result) {
             refreshCollections && refreshCollections();
           }
-					appContext.reporter?.sendActionEvent(
-						Telemetry.sources.databaseDashboard,
-						Telemetry.actions.click,
-						Telemetry.targets.databaseDashboard.collectionsListAzureChangeThroughput
-					);
+          appContext.reporter?.sendActionEvent(
+            Telemetry.sources.databaseDashboard,
+            Telemetry.actions.click,
+            Telemetry.targets.databaseDashboard.collectionsListAzureChangeThroughput
+          );
         } catch (e: any) {
           vscode.window.showErrorMessage(e?.message);
         }
