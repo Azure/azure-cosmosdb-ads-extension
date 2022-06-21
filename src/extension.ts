@@ -484,6 +484,4 @@ export function activate(context: vscode.ExtensionContext) {
 // export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?
 
 // this method is called when your extension is deactivated
-export function deactivate() {
-  appContext.reporter?.dispose();
-}
+export function deactivate() {}
