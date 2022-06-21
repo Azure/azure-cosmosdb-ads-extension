@@ -23,7 +23,7 @@ import {
 } from "./models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "./extension";
 import { createNodePath } from "./Providers/objectExplorerNodeProvider";
-import TelemetryReporter from "ads-extension-telemetry";
+import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();

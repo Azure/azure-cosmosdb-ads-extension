@@ -27,8 +27,8 @@ import ViewLoader from "./ViewLoader";
 import { installMongoShell } from "./MongoShell/MongoShellUtil";
 import { convertToConnectionOptions, IConnectionOptions } from "./models";
 import { Collection, Document } from "mongodb";
-import TelemetryReporter from "ads-extension-telemetry";
-import { Telemetry } from "./constant";
+import TelemetryReporter from "@microsoft/ads-extension-telemetry";
+import { getPackageInfo } from "./Dashboards/util";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -475,11 +475,8 @@ export function activate(context: vscode.ExtensionContext) {
   registerHomeDashboardTabs(context, appContext);
 
   // create telemetry reporter on extension activation
-  appContext.reporter = new TelemetryReporter(
-    Telemetry.extensionId,
-    Telemetry.extensionVersion,
-    Telemetry.instrumentationKey
-  );
+  const packageInfo = getPackageInfo();
+  appContext.reporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
   // ensure it gets property disposed
   context.subscriptions.push(appContext.reporter);
 }
