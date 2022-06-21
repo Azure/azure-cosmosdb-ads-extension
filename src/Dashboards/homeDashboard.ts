@@ -9,7 +9,9 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
   AppContext,
+  changeMongoDbDatabaseThroughput,
   getAccountName,
+  getAccountNameFromOptions,
   isAzureConnection,
   retrieveDatabaseAccountInfoFromArm,
   retrieveMongoDbDatabasesInfoFromArm,
@@ -354,7 +356,9 @@ const buildDatabasesAreaAzure = async (
         },
         db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
         db.nbCollections,
-        db.throughputSetting,
+        <azdata.HyperlinkColumnCellValue>{
+          title: db.throughputSetting,
+        },
       ]);
 
       tableLoadingComponent.loading = false;
@@ -367,9 +371,9 @@ const buildDatabasesAreaAzure = async (
     .withProps({
       columns: [
         <azdata.HyperlinkColumn>{
-          value: localize("database", "Database"),
+          value: "database",
           type: azdata.ColumnType.hyperlink,
-          name: "Database",
+          name: localize("database", "Database"),
           width: 250,
         },
         {
@@ -380,9 +384,11 @@ const buildDatabasesAreaAzure = async (
           value: localize("collection", "Collections"),
           type: azdata.ColumnType.text,
         },
-        {
-          value: localize("throughputSharedAccrossCollection", "Throughput Shared Across Collections"),
-          type: azdata.ColumnType.text,
+        <azdata.HyperlinkColumn>{
+          value: "throughput",
+          type: azdata.ColumnType.hyperlink,
+          name: localize("throughputSharedAccrossCollection", "Throughput Shared Across Collections"),
+          width: 200,
         },
       ],
       data: [],
@@ -394,7 +400,7 @@ const buildDatabasesAreaAzure = async (
     .component();
 
   tableComponent.onCellAction &&
-    tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+    tableComponent.onCellAction(async (arg: any /* Bug with definition: ICellActionEventArgs */) => {
       if (!databases) {
         return;
       }
@@ -404,12 +410,39 @@ const buildDatabasesAreaAzure = async (
         connectionId: connection.connectionId,
         ...convertToConnectionOptions(connection),
       };
-      vscode.commands.executeCommand("cosmosdb-ads-extension.openDatabaseDashboard", undefined, databaseDashboardInfo);
-      appContext.reporter?.sendActionEvent(
-        Telemetry.sources.homeDashboard,
-        Telemetry.actions.click,
-        Telemetry.targets.homeDashboard.databasesListAzure
-      );
+
+      if (arg.name === "database") {
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openDatabaseDashboard",
+          undefined,
+          databaseDashboardInfo
+        );
+        appContext.reporter?.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.databasesListAzureOpenDashboard
+        );
+      } else if (arg.name === "throughput" && databases[arg.row].throughputSetting !== "") {
+        try {
+          const result = await changeMongoDbDatabaseThroughput(
+            databaseDashboardInfo.azureAccount,
+            databaseDashboardInfo.azureTenantId,
+            databaseDashboardInfo.azureResourceId,
+            getAccountNameFromOptions(databaseDashboardInfo),
+            databases[arg.row]
+          );
+          if (result) {
+            refreshDatabases && refreshDatabases();
+          }
+					appContext.reporter?.sendActionEvent(
+						Telemetry.sources.homeDashboard,
+						Telemetry.actions.click,
+						Telemetry.targets.homeDashboard.databasesListAzureChangeThroughput
+					);
+        } catch (e: any) {
+          vscode.window.showErrorMessage(e?.message);
+        }
+      }
     });
 
   const tableLoadingComponent = view.modelBuilder
@@ -519,7 +552,7 @@ const buildDatabasesAreaNonAzure = async (
       appContext.reporter?.sendActionEvent(
         Telemetry.sources.homeDashboard,
         Telemetry.actions.click,
-        Telemetry.targets.homeDashboard.databasesListNonAzure
+        Telemetry.targets.homeDashboard.databasesListNonAzureOpenDashboard
       );
     });
 

@@ -20,8 +20,9 @@ export const Telemetry = {
       gettingStartedOpenMongoShell: "GettingStarted/OpenMongoShell",
       gettingStartedDocumentation: "GettingStarted/Documentation",
       gettingStartedOpenInPortal: "GettingStarted/OpenInPortal",
-      databasesListAzure: "databasesListAzure",
-      databasesListNonAzure: "databasesListNonAzure",
+      databasesListAzureOpenDashboard: "databasesListAzure/OpenDashboard",
+      databasesListAzureChangeThroughput: "databasesListAzure/ChangeThroughput",
+      databasesListNonAzureOpenDashboard: "databasesListNonAzure/OpenDashboard",
     },
     databaseDashboard: {
       toolbarNewCollection: "Toolbar/NewCollection",
@@ -29,8 +30,9 @@ export const Telemetry = {
       toolbarRefresh: "Toolbar/Refresh",
       gettingStartedNewCollection: "GettingStarted/NewCollection",
       gettingStartedImportSampleData: "GettingStarted/ImportSampleData",
-      collectionsListAzure: "collectionsListAzure",
-      collectionsListNonAzure: "collectionsListNonAzure",
+      collectionsListAzureOpenDashboard: "collectionsListAzure/OpenDashboard",
+      collectionsListAzureChangeThroughput: "collectionsListAzure/ChangeThroughput",
+      collectionsListNonAzureOpenDashboard: "collectionsListNonAzure/OpenDashboard",
     },
     objectExplorerNodeProvider: {
       accountNode: "accountNode",
