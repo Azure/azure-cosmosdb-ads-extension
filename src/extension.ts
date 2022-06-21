@@ -54,8 +54,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.createMongoDatabase",
       async (objectExplorerContext: azdata.ObjectExplorerContext, connectionNodeInfo: IConnectionNodeInfo) => {
-        console.log(objectExplorerContext);
-
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           Promise.reject();
@@ -113,7 +111,6 @@ export function activate(context: vscode.ExtensionContext) {
         connectionNodeInfo: IConnectionNodeInfo,
         collectionName?: string
       ): Promise<Collection<Document>> => {
-        console.log("createMongoCollection");
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return Promise.reject();
@@ -175,7 +172,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.deleteMongoDatabase",
       async (objectExplorerContext: azdata.ObjectExplorerContext) => {
-        console.log(objectExplorerContext);
         if (!objectExplorerContext.connectionProfile) {
           // TODO handle error;
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
@@ -192,15 +188,11 @@ export function activate(context: vscode.ExtensionContext) {
         const { nodePath } = objectExplorerContext.nodeInfo;
         const mongoInfo = getMongoInfo(nodePath);
 
-        const response = await vscode.window.showInformationMessage(
-          localize(
-            "removeDatabaseConfirm",
-            "Are you sure you want to remove the database: {0}?",
-            mongoInfo.databaseName
-          ),
-          ...[localize("yes", "Yes"), localize("no", "No")]
-        );
-        if (response !== "Yes") {
+        const response = await vscode.window.showInputBox({
+          placeHolder: localize("removeDatabaseConfirm", "Please enter the name of the database to delete"),
+        });
+
+        if (response !== mongoInfo.databaseName) {
           return;
         }
 
@@ -232,7 +224,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.deleteMongoCollection",
       async (objectExplorerContext: azdata.ObjectExplorerContext) => {
-        console.log(objectExplorerContext);
         if (!objectExplorerContext.connectionProfile) {
           // TODO handle error;
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
@@ -249,15 +240,11 @@ export function activate(context: vscode.ExtensionContext) {
         const { nodePath } = objectExplorerContext.nodeInfo;
         const mongoInfo = getMongoInfo(nodePath);
 
-        const response = await vscode.window.showInformationMessage(
-          localize(
-            "command.removeCollectionConfirm",
-            "Are you sure you want to remove the collection: {0}?",
-            mongoInfo.collectionName
-          ),
-          ...[localize("yes", "Yes"), localize("no", "No")]
-        );
-        if (response !== "Yes") {
+        const response = await vscode.window.showInputBox({
+          placeHolder: localize("removeCollectionConfirm", "Please enter the name of the collection to delete"),
+        });
+
+        if (response !== mongoInfo.collectionName) {
           return;
         }
 
