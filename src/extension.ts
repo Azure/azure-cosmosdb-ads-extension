@@ -27,6 +27,8 @@ import ViewLoader from "./ViewLoader";
 import { installMongoShell } from "./MongoShell/MongoShellUtil";
 import { convertToConnectionOptions, IConnectionOptions } from "./models";
 import { Collection, Document } from "mongodb";
+import TelemetryReporter from "@microsoft/ads-extension-telemetry";
+import { getPackageInfo } from "./Dashboards/util";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -46,6 +48,8 @@ export interface IDatabaseDashboardInfo extends IConnectionOptions {
   databaseName: string | undefined;
   connectionId: string;
 }
+
+let appContext: AppContext;
 
 export function activate(context: vscode.ExtensionContext) {
   const terminalMap = new Map<string, number>(); // terminal name <-> counter
@@ -445,7 +449,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
 
   // Instantiate client
-  const appContext = new AppContext();
+  appContext = new AppContext();
   createStatusBarItem();
 
   const connectionProvider = new ConnectionProvider(appContext);
@@ -456,6 +460,12 @@ export function activate(context: vscode.ExtensionContext) {
   azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
 
   registerHomeDashboardTabs(context, appContext);
+
+  // create telemetry reporter on extension activation
+  const packageInfo = getPackageInfo();
+  appContext.reporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
+  // ensure it gets property disposed
+  context.subscriptions.push(appContext.reporter);
 }
 
 // export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?

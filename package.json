@@ -5,6 +5,7 @@
   "publisher": "Microsoft",
   "version": "0.1.1",
   "icon": "resources/catalog/CosmosDBExtension.png",
+  "aiKey": "add_key_here",
   "preview": true,
   "repository": {
     "type": "git",
@@ -286,6 +287,7 @@
     "@azure/arm-cosmosdb": "13.0.0",
     "@azure/arm-monitor": "6.1.1",
     "@azure/arm-resourcegraph": "4.2.1",
+    "@microsoft/ads-extension-telemetry": "1.1.5",
     "mkdirp": "1.0.4",
     "mongodb-connection-string-url": "2.5.2",
     "mongodb": "4.5.0",

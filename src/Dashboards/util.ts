@@ -3,6 +3,7 @@
  *  Licensed under the Source EULA. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as azdata from "azdata";
+const packageJson = require("../../package.json");
 
 export const buildHeroCard = (
   view: azdata.ModelView,
@@ -32,3 +33,17 @@ export const buildHeroCard = (
   button.onDidClick(onClick); // TODO Make sure to manage disposable (unlisten)
   return button;
 };
+
+export interface IPackageInfo {
+  name: string;
+  version: string;
+  aiKey: string;
+}
+
+export function getPackageInfo(): IPackageInfo {
+  return {
+    name: packageJson.name,
+    version: packageJson.version,
+    aiKey: packageJson.aiKey,
+  };
+}

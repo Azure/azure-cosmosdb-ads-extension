@@ -23,6 +23,7 @@ import {
 } from "./models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "./extension";
 import { createNodePath } from "./Providers/objectExplorerNodeProvider";
+import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -35,6 +36,7 @@ type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem
 export class AppContext {
   public static readonly CONNECTION_INFO_KEY_PROP = "server"; // Unique key to store connection info against
   private _mongoClients = new Map<string, MongoClient>();
+  public reporter: TelemetryReporter | undefined = undefined;
 
   public async connect(server: string, connectionString: string): Promise<MongoClient | undefined> {
     const options: MongoClientOptions = <MongoClientOptions>{};
