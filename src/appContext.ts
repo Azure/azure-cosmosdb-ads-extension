@@ -152,6 +152,18 @@ export class AppContext {
         return;
       }
 
+      if (isAzureAuthType(connectionOptions.authenticationType)) {
+        createMongoDbCollectionWithArm(
+          connectionOptions.azureAccount,
+          connectionOptions.azureTenantId,
+          connectionOptions.azureResourceId,
+          getAccountNameFromOptions(connectionOptions),
+          databaseName!,
+          collectionName
+        );
+        return;
+      }
+
       let mongoClient;
       if (this._mongoClients.has(connectionOptions.server)) {
         mongoClient = this._mongoClients.get(connectionOptions.server);
@@ -1184,6 +1196,155 @@ const updateMongoDbDatabaseThroughput = async (
     return !!rpResponse;
   } catch (e) {
     return Promise.reject(e);
+  } finally {
+    hideStatusBarItem();
+  }
+};
+
+const createMongoDbCollectionWithArm = async (
+  azureAccountId: string,
+  azureTenantId: string,
+  azureResourceId: string,
+  cosmosDbAccountName: string,
+  databaseName: string,
+  collectionName: string
+): Promise<boolean> => {
+  const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  // TODO: check resourceGroup here
+  const { resourceGroup } = parsedAzureResourceId(azureResourceId);
+
+  const dialog = azdata.window.createModelViewDialog("New Collection");
+
+  dialog.okButton.onClick(() => vscode.window.showInformationMessage("Ok pressed"));
+  dialog.cancelButton.onClick(() => {});
+  dialog.okButton.label = "Create";
+  dialog.cancelButton.label = "Cancel";
+
+  dialog.registerContent(async (view) => {
+    let formModel;
+
+    const databaseNameText = view.modelBuilder.text().withProps({ value: "Database name" }).component();
+
+    const createNewRadioButton = view.modelBuilder
+      .radioButton()
+      .withProps({
+        name: "createNewOrExisting",
+        label: "Create New",
+        value: "new",
+        checked: true,
+      })
+      .component();
+    const useExistingRadioButton = view.modelBuilder
+      .radioButton()
+      .withProps({
+        name: "createNewOrExisting",
+        label: "Use existing",
+        value: "existing",
+        checked: false,
+      })
+      .component();
+    useExistingRadioButton.onDidChangeCheckedState(async () => {
+      console.log("USING EXISTING clicked");
+      formModel = view.modelBuilder
+        .formContainer()
+        .withFormItems([
+          {
+            components: [
+              {
+                component: databaseNameText,
+                title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+              },
+              {
+                component: databases,
+                title: "Databases2", // localize('createSessionDialog.selectTemplates', "Select session template:")
+              },
+            ],
+            title: "",
+          },
+        ])
+        .withLayout({ width: "100%" })
+        .component();
+
+      await view.initializeModel(formModel);
+    });
+
+    let flexRadioButtonsModel: azdata.FlexContainer = view.modelBuilder
+      .flexContainer()
+      .withLayout({ flexFlow: "row" })
+      .withItems([createNewRadioButton, useExistingRadioButton])
+      .withProps({ ariaRole: "radiogroup" })
+      .component();
+
+    const databaseId = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: "",
+      })
+      .component();
+    const isSharedThroughput = view.modelBuilder.checkBox().withProps({ enabled: true }).component();
+
+    const databases = view.modelBuilder
+      .dropDown()
+      .withProps({
+        values: ["database1", "database2"],
+      })
+      .component();
+
+    formModel = view.modelBuilder
+      .formContainer()
+      .withFormItems([
+        {
+          components: [
+            {
+              component: databaseNameText,
+              title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+            },
+            {
+              component: flexRadioButtonsModel,
+              title: "Blah", // localize('createSessionDialog.selectTemplates', "Select session template:")
+            },
+            {
+              component: databaseId,
+              title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+            },
+            {
+              component: isSharedThroughput,
+              title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+            },
+          ],
+          title: "",
+        },
+      ])
+      .withLayout({ width: "100%" })
+      .component();
+
+    await view.initializeModel(formModel);
+  });
+
+  azdata.window.openDialog(dialog);
+
+  return false;
+  try {
+    showStatusBarItem(localize("creatingMongoCollection", "Creating Mongo collection..."));
+    const rpResponse = await client.mongoDBResources.beginCreateUpdateMongoDBCollection(
+      resourceGroup,
+      cosmosDbAccountName,
+      databaseName,
+      collectionName,
+      {
+        resource: {
+          id: "blah",
+        },
+      } //createUpdateMongoDBCollectionParameters
+    );
+
+    return !!rpResponse;
+  } catch (e) {
+    Promise.reject(e);
+    return false;
   } finally {
     hideStatusBarItem();
   }
