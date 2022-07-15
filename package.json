@@ -107,6 +107,7 @@
     "dashboard.tabs": [
       {
         "id": "mongo-account-home",
+        "when": "connectionProvider == 'COSMOSDB_MONGO'",
         "isHomeTab": true,
         "description": "",
         "title": "Home",
@@ -117,6 +118,7 @@
       },
       {
         "id": "mongo-databases.tab",
+        "when": "connectionProvider == 'COSMOSDB_MONGO'",
         "title": "Databases",
         "icon": "resources/fluent/database.svg",
         "description": "Shows all account databases",
