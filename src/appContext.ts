@@ -24,6 +24,7 @@ import {
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "./extension";
 import { createNodePath } from "./Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
+import { FormBuilder } from "azdata";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -1222,7 +1223,16 @@ const createMongoDbCollectionWithArm = async (
   dialog.cancelButton.label = "Cancel";
 
   dialog.registerContent(async (view) => {
-    let formModel;
+    let formBuilder: FormBuilder;
+
+		const collectionNameInput = view.modelBuilder.inputBox()
+		.withProps({
+			required: true,
+			multiline: false,
+			value: "",
+		})
+		.component();
+
 
     const databaseNameText = view.modelBuilder.text().withProps({ value: "Database name" }).component();
 
@@ -1245,28 +1255,10 @@ const createMongoDbCollectionWithArm = async (
       })
       .component();
     useExistingRadioButton.onDidChangeCheckedState(async () => {
-      console.log("USING EXISTING clicked");
-      formModel = view.modelBuilder
-        .formContainer()
-        .withFormItems([
-          {
-            components: [
-              {
-                component: databaseNameText,
-                title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-              },
-              {
-                component: databases,
-                title: "Databases2", // localize('createSessionDialog.selectTemplates', "Select session template:")
-              },
-            ],
-            title: "",
-          },
-        ])
-        .withLayout({ width: "100%" })
-        .component();
-
-      await view.initializeModel(formModel);
+			formBuilder.addFormItem({
+				component: databases,
+				title: "Databases2", // localize('createSessionDialog.selectTemplates', "Select session template:")
+			});
     });
 
     let flexRadioButtonsModel: azdata.FlexContainer = view.modelBuilder
@@ -1293,8 +1285,7 @@ const createMongoDbCollectionWithArm = async (
       })
       .component();
 
-    formModel = view.modelBuilder
-      .formContainer()
+    formBuilder = view.modelBuilder.formContainer()
       .withFormItems([
         {
           components: [
@@ -1317,7 +1308,9 @@ const createMongoDbCollectionWithArm = async (
           ],
           title: "",
         },
-      ])
+      ]);
+
+			const formModel = formBuilder
       .withLayout({ width: "100%" })
       .component();
 
