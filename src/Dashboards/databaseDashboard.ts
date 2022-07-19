@@ -464,18 +464,6 @@ const buildBreadcrumb = (view: azdata.ModelView, accountName: string, databaseNa
       },
     })
     .component();
-
-  // return view.modelBuilder
-  //   .navContainer()
-  //   .withItems([home, rightArrow, accountLink, rightArrow2, database], { CSSStyles: { marginRight: 10 } })
-  //   // .withLayout({ flexFlow: "row", flexWrap: "wrap", justifyContent: "flex-start" })
-  //   .withProps({
-  //     CSSStyles: {
-  //       padding: "10px",
-  //       "border-bottom": "1px solid rgba(128, 128, 128, 0.35)",
-  //     },
-  //   })
-  //   .component();
 };
 
 export const openDatabaseDashboard = async (
@@ -505,6 +493,7 @@ export const openDatabaseDashboard = async (
 
     const homeTab: azdata.DashboardTab = {
       id: "home",
+      // TODO depending on how breadcrumb is eventually exposed in ADS, we may have to uncomment this
       // toolbar: buildToolbar(view, context, appContext, databaseDashboardInfo),
       content: homeTabContainer,
       title: "Home",
