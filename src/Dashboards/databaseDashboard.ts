@@ -14,10 +14,12 @@ import {
   isAzureAuthType,
   retrieveMongoDbCollectionsInfoFromArm,
   changeMongoDbCollectionThroughput,
+  openAccountDashboard,
 } from "../appContext";
 import { Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
-import { ICosmosDbCollectionInfo } from "../models";
+import { convertToConnectionOptions, ICosmosDbCollectionInfo } from "../models";
+import { ProviderId } from "../Providers/connectionProvider";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "./util";
@@ -444,22 +446,8 @@ const buildBreadcrumb = (view: azdata.ModelView, accountName: string, databaseNa
 
   const database = view.modelBuilder.text().withProps({ value: databaseName, CSSStyles }).component();
 
-  accountLink.onDidClick(async _ => {
-    vscode.window.showInformationMessage("CLicked!");
-
-		const connections = await azdata.connection.getConnections();
-
-		const connectionProfile: azdata.IConnectionProfile = {
-			...connections[0],
-			providerName: "COSMOSDB_MONGO",
-			id: connections[0].connectionId,
-			azureAccount: connections[0].options['azureAccount'],
-			azureTenantId: connections[0].options['azureTenantId'],
-			azureResourceId: connections[0].options['azureResourceId']
-		};
-
-		const result = await azdata.connection.connect(connectionProfile, false, true);
-		console.log('Result is:', result);
+  accountLink.onDidClick(async (_) => {
+    openAccountDashboard(accountName);
   });
 
   return view.modelBuilder
