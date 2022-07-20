@@ -14,10 +14,12 @@ import {
   isAzureAuthType,
   retrieveMongoDbCollectionsInfoFromArm,
   changeMongoDbCollectionThroughput,
+  openAccountDashboard,
 } from "../appContext";
 import { Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
-import { ICosmosDbCollectionInfo } from "../models";
+import { convertToConnectionOptions, ICosmosDbCollectionInfo } from "../models";
+import { ProviderId } from "../Providers/connectionProvider";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "./util";
@@ -416,6 +418,54 @@ const buildCollectionsAreaNonAzure = async (
     .component();
 };
 
+const buildBreadcrumb = (view: azdata.ModelView, accountName: string, databaseName: string): azdata.Component => {
+  const CSSStyles = { marginTop: 0, marginBottom: 0 };
+  const home = view.modelBuilder.text().withProps({ value: "Home", CSSStyles }).component();
+
+  // TODO: left and right margins don't work on righArrow, and spaces are trimmed, so we use this for spacers
+  const space1 = view.modelBuilder
+    .text()
+    .withProps({ value: "_", CSSStyles: { ...CSSStyles, opacity: 0 } })
+    .component();
+  const rightArrow = view.modelBuilder.text().withProps({ value: ">", CSSStyles }).component();
+  const space2 = view.modelBuilder
+    .text()
+    .withProps({ value: "_", CSSStyles: { ...CSSStyles, opacity: 0 } })
+    .component();
+
+  const accountLink = view.modelBuilder.hyperlink().withProps({ label: accountName, url: "" }).component();
+  const space3 = view.modelBuilder
+    .text()
+    .withProps({ value: "_", CSSStyles: { ...CSSStyles, opacity: 0 } })
+    .component();
+  const rightArrow2 = view.modelBuilder.text().withProps({ value: ">", CSSStyles }).component();
+  const space4 = view.modelBuilder
+    .text()
+    .withProps({ value: "_", CSSStyles: { ...CSSStyles, opacity: 0 } })
+    .component();
+
+  const database = view.modelBuilder.text().withProps({ value: databaseName, CSSStyles }).component();
+
+  accountLink.onDidClick(async (_) => {
+    openAccountDashboard(accountName);
+  });
+
+  return view.modelBuilder
+    .flexContainer()
+    .withItems([home, space1, rightArrow, space2, accountLink, space3, rightArrow2, space4, database], {
+      flex: "0 0 auto",
+      CSSStyles: { gap: 10, paddingRight: 10 },
+    })
+    .withLayout({ flexFlow: "row", flexWrap: "wrap", justifyContent: "flex-start" })
+    .withProps({
+      CSSStyles: {
+        padding: "10px",
+        "border-bottom": "1px solid rgba(128, 128, 128, 0.35)",
+      },
+    })
+    .component();
+};
+
 export const openDatabaseDashboard = async (
   databaseDashboardInfo: IDatabaseDashboardInfo,
   appContext: AppContext,
@@ -432,13 +482,19 @@ export const openDatabaseDashboard = async (
 
     const homeTabContainer = view.modelBuilder
       .flexContainer()
-      .withItems([buildWorkingWithDatabase(view, appContext, context, databaseDashboardInfo), viewItem])
+      .withItems([
+        buildBreadcrumb(view, databaseDashboardInfo.server, databaseName),
+        buildToolbar(view, context, appContext, databaseDashboardInfo),
+        buildWorkingWithDatabase(view, appContext, context, databaseDashboardInfo),
+        viewItem,
+      ])
       .withLayout({ flexFlow: "column" })
       .component();
 
     const homeTab: azdata.DashboardTab = {
       id: "home",
-      toolbar: buildToolbar(view, context, appContext, databaseDashboardInfo),
+      // TODO depending on how breadcrumb is eventually exposed in ADS, we may have to uncomment this
+      // toolbar: buildToolbar(view, context, appContext, databaseDashboardInfo),
       content: homeTabContainer,
       title: "Home",
       icon: context.asAbsolutePath("resources/fluent/home.svg"), // icon can be the path of a svg file
