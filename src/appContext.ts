@@ -24,7 +24,7 @@ import {
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "./extension";
 import { createNodePath } from "./Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { FormBuilder } from "azdata";
+import { createNewCollectionDialog } from "./newCollectionDialog";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -1215,108 +1215,7 @@ const createMongoDbCollectionWithArm = async (
   // TODO: check resourceGroup here
   const { resourceGroup } = parsedAzureResourceId(azureResourceId);
 
-  const dialog = azdata.window.createModelViewDialog("New Collection");
-
-  dialog.okButton.onClick(() => vscode.window.showInformationMessage("Ok pressed"));
-  dialog.cancelButton.onClick(() => {});
-  dialog.okButton.label = "Create";
-  dialog.cancelButton.label = "Cancel";
-
-  dialog.registerContent(async (view) => {
-    let formBuilder: FormBuilder;
-
-		const collectionNameInput = view.modelBuilder.inputBox()
-		.withProps({
-			required: true,
-			multiline: false,
-			value: "",
-		})
-		.component();
-
-
-    const databaseNameText = view.modelBuilder.text().withProps({ value: "Database name" }).component();
-
-    const createNewRadioButton = view.modelBuilder
-      .radioButton()
-      .withProps({
-        name: "createNewOrExisting",
-        label: "Create New",
-        value: "new",
-        checked: true,
-      })
-      .component();
-    const useExistingRadioButton = view.modelBuilder
-      .radioButton()
-      .withProps({
-        name: "createNewOrExisting",
-        label: "Use existing",
-        value: "existing",
-        checked: false,
-      })
-      .component();
-    useExistingRadioButton.onDidChangeCheckedState(async () => {
-			formBuilder.addFormItem({
-				component: databases,
-				title: "Databases2", // localize('createSessionDialog.selectTemplates', "Select session template:")
-			});
-    });
-
-    let flexRadioButtonsModel: azdata.FlexContainer = view.modelBuilder
-      .flexContainer()
-      .withLayout({ flexFlow: "row" })
-      .withItems([createNewRadioButton, useExistingRadioButton])
-      .withProps({ ariaRole: "radiogroup" })
-      .component();
-
-    const databaseId = view.modelBuilder
-      .inputBox()
-      .withProps({
-        required: true,
-        multiline: false,
-        value: "",
-      })
-      .component();
-    const isSharedThroughput = view.modelBuilder.checkBox().withProps({ enabled: true }).component();
-
-    const databases = view.modelBuilder
-      .dropDown()
-      .withProps({
-        values: ["database1", "database2"],
-      })
-      .component();
-
-    formBuilder = view.modelBuilder.formContainer()
-      .withFormItems([
-        {
-          components: [
-            {
-              component: databaseNameText,
-              title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-            },
-            {
-              component: flexRadioButtonsModel,
-              title: "Blah", // localize('createSessionDialog.selectTemplates', "Select session template:")
-            },
-            {
-              component: databaseId,
-              title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-            },
-            {
-              component: isSharedThroughput,
-              title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-            },
-          ],
-          title: "",
-        },
-      ]);
-
-			const formModel = formBuilder
-      .withLayout({ width: "100%" })
-      .component();
-
-    await view.initializeModel(formModel);
-  });
-
+  const dialog = await createNewCollectionDialog();
   azdata.window.openDialog(dialog);
 
   return false;
