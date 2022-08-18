@@ -1,48 +1,12 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 
-const updateDatabaseThroughputSection = (
-  view: azdata.ModelView,
-  existingContainer: azdata.DivContainer,
-  isAutoscale: boolean
-) => {
-  existingContainer.clearItems();
-
-  if (isAutoscale) {
-    existingContainer.addItem(view.modelBuilder.text().withProps({ value: "Database Max RU/s" }).component());
-    const databaseThroughputInput = view.modelBuilder
-      .inputBox()
-      .withProps({
-        required: true,
-        multiline: false,
-        value: "",
-        placeHolder: "Database Max throughput",
-        CSSStyles: { marginBottom: 20, paddingBottom: 20 },
-      })
-      .component();
-    existingContainer.addItem(databaseThroughputInput);
-  } else {
-    existingContainer.addItem(view.modelBuilder.text().withProps({ value: "Required RU/s" }).component());
-    const databaseThroughputInput = view.modelBuilder
-      .inputBox()
-      .withProps({
-        required: true,
-        multiline: false,
-        value: "",
-        placeHolder: "Required throughput",
-        CSSStyles: { marginBottom: 20, paddingBottom: 20 },
-      })
-      .component();
-    existingContainer.addItem(databaseThroughputInput);
-  }
-};
-
 /**
  *
  * @param view
  * @param isCreateNew true: create new database, false: use existing database
  */
-const updateNewDatabaseSection = (
+const updateNewDatabaseFormItem = (
   view: azdata.ModelView,
   existingContainer: azdata.DivContainer,
   isCreateNew: boolean
@@ -65,16 +29,33 @@ const updateNewDatabaseSection = (
 
     const isSharedThroughput = view.modelBuilder
       .checkBox()
-      .withProps({ enabled: true, label: "Share throughput across collections" })
+      .withProps({ checked: true, label: "Share throughput across collections" })
       .component();
     existingContainer.addItem(isSharedThroughput);
+  } else {
+    // Existing databases
+    const databases = view.modelBuilder
+      .dropDown()
+      .withProps({
+        values: ["database1", "database2"],
+      })
+      .component();
+    existingContainer.addItem(databases);
+  }
+};
 
-    existingContainer.addItem(
-      view.modelBuilder
-        .text()
-        .withProps({ value: "Database throughput (autoscale)", CSSStyles: { marginTop: 20 } })
-        .component()
-    );
+export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog> => {
+  const dialog = azdata.window.createModelViewDialog("New Collection");
+
+  dialog.okButton.onClick((data) => {
+    vscode.window.showInformationMessage("Ok pressed");
+    console.log("onClick data:", data);
+  });
+  dialog.cancelButton.onClick(() => {});
+  dialog.okButton.label = "Create";
+  dialog.cancelButton.label = "Cancel";
+
+  dialog.registerContent(async (view) => {
     const autoScaleRadioButton = view.modelBuilder
       .radioButton()
       .withProps({
@@ -95,86 +76,58 @@ const updateNewDatabaseSection = (
       })
       .component();
 
-    let flexRadioButtonsModel: azdata.FlexContainer = view.modelBuilder
+    const databaseThroughputRadioButtons: azdata.FlexContainer = view.modelBuilder
       .flexContainer()
       .withLayout({ flexFlow: "row" })
       .withItems([autoScaleRadioButton, manualThroughputRadioButton])
       .withProps({ ariaRole: "radiogroup" })
       .component();
 
-    existingContainer.addItem(flexRadioButtonsModel);
+    autoScaleRadioButton.onDidChangeCheckedState((isAutoSelect: boolean) => {
+      if (isAutoSelect) {
+        formBuilder.removeFormItem(manualThroughput);
+        formBuilder.insertFormItem(autoscaleMaxThroughputFormItem, 3);
+      } else {
+        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
+        formBuilder.insertFormItem(manualThroughput, 3);
+      }
+    });
 
-    const databaseThroughputContainer = view.modelBuilder
-      .divContainer()
-      .withProps({
-        CSSStyles: {
-          padding: "0px",
-        },
-      })
-      .component();
+    const databaseThroughtputFormItem = {
+      component: view.modelBuilder.divContainer().withItems([databaseThroughputRadioButtons]).component(),
+      title: "Database Throughput (autoscale)",
+      required: true,
+    };
 
-    existingContainer.addItem(databaseThroughputContainer);
+    const autoscaleMaxThroughputFormItem: azdata.FormComponent = {
+      component: view.modelBuilder
+        .inputBox()
+        .withProps({
+          required: true,
+          multiline: false,
+          value: "",
+          placeHolder: "Database Max throughput",
+          CSSStyles: { marginBottom: 20, paddingBottom: 20 },
+        })
+        .component(),
+      title: "Database Max RU/s",
+      required: true,
+    };
 
-    autoScaleRadioButton.onDidChangeCheckedState(async (state) =>
-      updateDatabaseThroughputSection(view, databaseThroughputContainer, state)
-    );
-  } else {
-    // Existing databases
-    const databases = view.modelBuilder
-      .dropDown()
-      .withProps({
-        values: ["database1", "database2"],
-      })
-      .component();
-    existingContainer.addItem(databases);
-  }
-
-  existingContainer.addItem(
-    view.modelBuilder
-      .separator()
-      .withProps({ CSSStyles: { marginTop: 20, paddingTop: 20 } })
-      .component()
-  );
-};
-
-const updateCollectionShardingSection = (
-  view: azdata.ModelView,
-  existingContainer: azdata.DivContainer,
-  isSharded: boolean
-) => {
-  existingContainer.clearItems();
-
-  if (isSharded) {
-    const shardKeyInput = view.modelBuilder
-      .inputBox()
-      .withProps({
-        required: true,
-        multiline: false,
-        value: "",
-        placeHolder: "Enter shard key",
-      })
-      .component();
-
-    existingContainer.addItem(view.modelBuilder.text().withProps({ value: "Shard key" }).component());
-    existingContainer.addItem(shardKeyInput);
-  }
-};
-
-export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog> => {
-  const dialog = azdata.window.createModelViewDialog("New Collection");
-
-  dialog.okButton.onClick((data) => {
-    vscode.window.showInformationMessage("Ok pressed");
-    console.log("onClick data:", data);
-  });
-  dialog.cancelButton.onClick(() => {});
-  dialog.okButton.label = "Create";
-  dialog.cancelButton.label = "Cancel";
-
-  dialog.registerContent(async (view) => {
-    let formBuilder: azdata.FormBuilder;
-
-    const databaseNameText = view.modelBuilder.text().withProps({ value: "Database name" }).component();
+    const manualThroughput: azdata.FormComponent = {
+      component: view.modelBuilder
+        .inputBox()
+        .withProps({
+          required: true,
+          multiline: false,
+          value: "",
+          placeHolder: "Database required throughput",
+          CSSStyles: { marginBottom: 20, paddingBottom: 20 },
+        })
+        .component(),
+      title: "Database Required RU/s",
+      required: true,
+    };
 
     // Selection between create new or use existing database
     const createNewRadioButton = view.modelBuilder
@@ -197,16 +150,28 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
       })
       .component();
 
-    let flexRadioButtonsModel: azdata.FlexContainer = view.modelBuilder
+    const createDatabaseRadioButtonsModel: azdata.FlexContainer = view.modelBuilder
       .flexContainer()
       .withLayout({ flexFlow: "row" })
       .withItems([createNewRadioButton, useExistingRadioButton])
       .withProps({ ariaRole: "radiogroup" })
       .component();
 
-    useExistingRadioButton.onDidChangeCheckedState(async (state) =>
-      updateNewDatabaseSection(view, databaseSectionContainer, !state)
-    );
+    useExistingRadioButton.onDidChangeCheckedState(async (state) => {
+      updateNewDatabaseFormItem(view, databaseSectionContainer, !state);
+      if (state) {
+        formBuilder.removeFormItem(databaseThroughtputFormItem);
+        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
+        formBuilder.removeFormItem(manualThroughput);
+      } else {
+        formBuilder.insertFormItem(databaseThroughtputFormItem, 2);
+        if (autoScaleRadioButton.checked) {
+          formBuilder.insertFormItem(autoscaleMaxThroughputFormItem, 3);
+        } else {
+          formBuilder.insertFormItem(manualThroughput, 3);
+        }
+      }
+    });
 
     const databaseSectionContainer = view.modelBuilder
       .divContainer()
@@ -231,8 +196,8 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
       .radioButton()
       .withProps({
         name: "collectionSharding",
-        label: "unsharded",
-        value: "Unsharded",
+        label: "Unsharded",
+        value: "unsharded",
         checked: true,
       })
       .component();
@@ -241,58 +206,76 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
       .radioButton()
       .withProps({
         name: "collectionSharding",
-        label: "sharded",
-        value: "Sharded",
+        label: "Sharded",
+        value: "sharded",
         checked: false,
       })
       .component();
 
-    let flexRadioButtonsModel2: azdata.FlexContainer = view.modelBuilder
+    const collectionShardingRadioButtons: azdata.FlexContainer = view.modelBuilder
       .flexContainer()
       .withLayout({ flexFlow: "row" })
       .withItems([collectionUnshardedRadioButton, collectionShardedRadioButton])
       .withProps({ ariaRole: "radiogroup" })
       .component();
 
-    const collectionShardingContainer = view.modelBuilder
-      .divContainer()
-      .withProps({
-        CSSStyles: {
-          padding: "0px",
-        },
-      })
-      .component();
+    const shardKeyInputFormItem: azdata.FormComponent = {
+      component: view.modelBuilder
+        .inputBox()
+        .withProps({
+          required: true,
+          multiline: false,
+          value: "",
+          placeHolder: "e.g. address.zipCode",
+        })
+        .component(),
+      title: "Shard key",
+    };
 
-    collectionUnshardedRadioButton.onDidChangeCheckedState(async (state) =>
-      updateCollectionShardingSection(view, collectionShardingContainer, !state)
-    );
+    collectionUnshardedRadioButton.onDidChangeCheckedState((isUnsharded: boolean) => {
+      if (isUnsharded) {
+        formBuilder.removeFormItem(shardKeyInputFormItem);
+      } else {
+        formBuilder.addFormItem(shardKeyInputFormItem); // Fortunately for now, we just add at the end
+      }
+    });
 
-    formBuilder = view.modelBuilder.formContainer().withFormItems([
+    const databaseNameFormItem: azdata.FormComponent = {
+      component: view.modelBuilder
+        .divContainer()
+        .withItems([createDatabaseRadioButtonsModel, databaseSectionContainer])
+        .component(),
+      title: "Database Name", // localize('createSessionDialog.selectTemplates', "Select session template:")
+      required: true,
+    };
+
+    const formBuilder = view.modelBuilder.formContainer().withFormItems([
       {
         components: [
+          databaseNameFormItem,
+          databaseThroughtputFormItem,
+          autoscaleMaxThroughputFormItem,
           {
-            component: databaseNameText,
-            title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-          },
-          {
-            component: flexRadioButtonsModel,
-            title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-          },
-          {
-            component: databaseSectionContainer,
-            title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+            component: view.modelBuilder
+              .separator()
+              .withProps({ CSSStyles: { marginTop: 20, paddingTop: 20 } })
+              .component(),
+            title: undefined,
           },
           {
             component: collectionNameInput,
             title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
+            required: true,
           },
           {
-            component: flexRadioButtonsModel2,
+            component: collectionShardingRadioButtons,
             title: "Sharding", // localize('createSessionDialog.selectTemplates', "Select session template:")
+            required: true,
           },
           {
-            component: collectionShardingContainer,
+            component: collectionShardingRadioButtons,
             title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+            required: true,
           },
         ],
         title: "",
@@ -302,8 +285,7 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
 
     // Initialization
-    updateNewDatabaseSection(view, databaseSectionContainer, true);
-    updateCollectionShardingSection(view, collectionShardingContainer, false);
+    updateNewDatabaseFormItem(view, databaseSectionContainer, true);
     await view.initializeModel(formModel);
   });
 
