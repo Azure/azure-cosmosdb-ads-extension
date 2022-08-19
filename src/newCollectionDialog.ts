@@ -1,68 +1,107 @@
 import * as azdata from "azdata";
-import * as vscode from "vscode";
 
-/**
- *
- * @param view
- * @param isCreateNew true: create new database, false: use existing database
- */
-const updateNewDatabaseFormItem = (
-  view: azdata.ModelView,
-  existingContainer: azdata.DivContainer,
-  isCreateNew: boolean
-) => {
-  existingContainer.clearItems();
+export interface NewCollectionFormData {
+  isCreateNewDatabase: boolean;
+  existingDatabaseId: string;
+  newDatabaseInfo: {
+    newDatabaseName: string;
+    isShareDatabaseThroughput: boolean;
+    isAutoScale: boolean;
+    databaseMaxThroughputRUPS: number;
+    databaseRequiredThroughputRUPS: number;
+  };
 
-  if (isCreateNew) {
+  newCollectionName: string;
+  isSharded: boolean;
+  shardKey: string | undefined;
+}
+
+export const createNewCollectionDialog = async (
+  onCreateClick: (data: NewCollectionFormData) => void
+): Promise<azdata.window.Dialog> => {
+  const dialog = azdata.window.createModelViewDialog("New Collection");
+
+  const DEFAULT_NEW_DATABASE_NAME = "";
+  const DEFAULT_IS_SHARED_DATABASE_THROUGHPUT = true;
+  const DEFAULT_IS_AUTOSCALE = true;
+  const DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS = 0;
+  const DEFAULT_DATABASE_REQUIRED_RUPS = 0;
+  const DEFAULT_NEW_COLLECTION_NAME = "";
+  const DEFAULT_IS_SHARDED = false;
+  const DEFAULT_SHARD_KEY = "";
+
+  const model: NewCollectionFormData = {
+    isCreateNewDatabase: true,
+    existingDatabaseId: "",
+    newDatabaseInfo: {
+      newDatabaseName: DEFAULT_NEW_DATABASE_NAME,
+      isShareDatabaseThroughput: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
+      isAutoScale: DEFAULT_IS_AUTOSCALE,
+      databaseMaxThroughputRUPS: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS,
+      databaseRequiredThroughputRUPS: DEFAULT_DATABASE_REQUIRED_RUPS,
+    },
+    newCollectionName: DEFAULT_NEW_COLLECTION_NAME,
+    isSharded: DEFAULT_IS_SHARDED,
+    shardKey: DEFAULT_SHARD_KEY,
+  };
+
+  dialog.okButton.onClick(() => onCreateClick(model));
+  dialog.cancelButton.onClick(() => {});
+  dialog.okButton.label = "Create";
+  dialog.cancelButton.label = "Cancel";
+
+  dialog.registerContent(async (view) => {
+    /**
+     *
+     * @param view
+     * @param isCreateNew true: create new database, false: use existing database
+     */
+    const updateNewDatabaseFormItem = (existingContainer: azdata.DivContainer, isCreateNew: boolean) => {
+      existingContainer.clearItems();
+
+      if (isCreateNew) {
+        existingContainer.addItem(newDatabaseNameInput);
+        existingContainer.addItem(isSharedThroughput);
+      } else {
+        existingContainer.addItem(existingDatabaseIds);
+      }
+    };
+
     // Create new database
     const newDatabaseNameInput = view.modelBuilder
       .inputBox()
       .withProps({
         required: true,
         multiline: false,
-        value: "",
+        value: DEFAULT_NEW_DATABASE_NAME,
         placeHolder: "Enter new database name",
       })
       .component();
-
-    existingContainer.addItem(newDatabaseNameInput);
+    newDatabaseNameInput.onTextChanged((text) => (model.newDatabaseInfo.newDatabaseName = text));
 
     const isSharedThroughput = view.modelBuilder
       .checkBox()
-      .withProps({ checked: true, label: "Share throughput across collections" })
+      .withProps({ checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT, label: "Share throughput across collections" })
       .component();
-    existingContainer.addItem(isSharedThroughput);
-  } else {
-    // Existing databases
-    const databases = view.modelBuilder
+    isSharedThroughput.onChanged(
+      (isSharedThroughput) => (model.newDatabaseInfo.isShareDatabaseThroughput = isSharedThroughput)
+    );
+
+    const existingDatabaseIds = view.modelBuilder
       .dropDown()
       .withProps({
         values: ["database1", "database2"],
       })
       .component();
-    existingContainer.addItem(databases);
-  }
-};
+    existingDatabaseIds.onValueChanged((databaseId) => (model.existingDatabaseId = databaseId));
 
-export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog> => {
-  const dialog = azdata.window.createModelViewDialog("New Collection");
-
-  dialog.okButton.onClick((data) => {
-    vscode.window.showInformationMessage("Ok pressed");
-    console.log("onClick data:", data);
-  });
-  dialog.cancelButton.onClick(() => {});
-  dialog.okButton.label = "Create";
-  dialog.cancelButton.label = "Cancel";
-
-  dialog.registerContent(async (view) => {
     const autoScaleRadioButton = view.modelBuilder
       .radioButton()
       .withProps({
         name: "databaseThroughput",
         label: "Autoscale",
         value: "autoscale",
-        checked: true,
+        checked: DEFAULT_IS_AUTOSCALE,
       })
       .component();
 
@@ -72,7 +111,7 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
         name: "databaseThroughput",
         label: "Manual",
         value: "manual",
-        checked: false,
+        checked: !DEFAULT_IS_AUTOSCALE,
       })
       .component();
 
@@ -83,13 +122,15 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
       .withProps({ ariaRole: "radiogroup" })
       .component();
 
-    autoScaleRadioButton.onDidChangeCheckedState((isAutoSelect: boolean) => {
-      if (isAutoSelect) {
-        formBuilder.removeFormItem(manualThroughput);
+    autoScaleRadioButton.onDidChangeCheckedState((isAutoScale: boolean) => {
+      model.newDatabaseInfo && (model.newDatabaseInfo.isAutoScale = isAutoScale);
+
+      if (isAutoScale) {
+        formBuilder.removeFormItem(manualThroughputFormItem);
         formBuilder.insertFormItem(autoscaleMaxThroughputFormItem, 3);
       } else {
         formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
-        formBuilder.insertFormItem(manualThroughput, 3);
+        formBuilder.insertFormItem(manualThroughputFormItem, 3);
       }
     });
 
@@ -99,32 +140,40 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
       required: true,
     };
 
+    const autoscaleMaxThroughputInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS.toString(),
+        placeHolder: "Database Max throughput",
+      })
+      .component();
+    autoscaleMaxThroughputInput.onTextChanged(
+      (text) => !isNaN(text) && (model.newDatabaseInfo.databaseMaxThroughputRUPS = Number.parseInt(text))
+    );
+
     const autoscaleMaxThroughputFormItem: azdata.FormComponent = {
-      component: view.modelBuilder
-        .inputBox()
-        .withProps({
-          required: true,
-          multiline: false,
-          value: "",
-          placeHolder: "Database Max throughput",
-          CSSStyles: { marginBottom: 20, paddingBottom: 20 },
-        })
-        .component(),
+      component: autoscaleMaxThroughputInput,
       title: "Database Max RU/s",
       required: true,
     };
 
-    const manualThroughput: azdata.FormComponent = {
-      component: view.modelBuilder
-        .inputBox()
-        .withProps({
-          required: true,
-          multiline: false,
-          value: "",
-          placeHolder: "Database required throughput",
-          CSSStyles: { marginBottom: 20, paddingBottom: 20 },
-        })
-        .component(),
+    const manualThroughputInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: DEFAULT_DATABASE_REQUIRED_RUPS.toString(),
+        placeHolder: "Database required throughput",
+      })
+      .component();
+    manualThroughputInput.onTextChanged(
+      (text) => !isNaN(text) && (model.newDatabaseInfo.databaseRequiredThroughputRUPS = Number.parseInt(text))
+    );
+
+    const manualThroughputFormItem: azdata.FormComponent = {
+      component: manualThroughputInput,
       title: "Database Required RU/s",
       required: true,
     };
@@ -158,17 +207,18 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
       .component();
 
     useExistingRadioButton.onDidChangeCheckedState(async (state) => {
-      updateNewDatabaseFormItem(view, databaseSectionContainer, !state);
+      model.isCreateNewDatabase = !state;
+      updateNewDatabaseFormItem(databaseSectionContainer, !state);
       if (state) {
         formBuilder.removeFormItem(databaseThroughtputFormItem);
         formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
-        formBuilder.removeFormItem(manualThroughput);
+        formBuilder.removeFormItem(manualThroughputFormItem);
       } else {
         formBuilder.insertFormItem(databaseThroughtputFormItem, 2);
         if (autoScaleRadioButton.checked) {
           formBuilder.insertFormItem(autoscaleMaxThroughputFormItem, 3);
         } else {
-          formBuilder.insertFormItem(manualThroughput, 3);
+          formBuilder.insertFormItem(manualThroughputFormItem, 3);
         }
       }
     });
@@ -187,10 +237,11 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
       .withProps({
         required: true,
         multiline: false,
-        value: "",
+        value: DEFAULT_NEW_COLLECTION_NAME,
         placeHolder: "Enter new collection name",
       })
       .component();
+    collectionNameInput.onTextChanged((text) => (model.newCollectionName = text));
 
     const collectionUnshardedRadioButton = view.modelBuilder
       .radioButton()
@@ -219,26 +270,31 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
       .withProps({ ariaRole: "radiogroup" })
       .component();
 
-    const shardKeyInputFormItem: azdata.FormComponent = {
-      component: view.modelBuilder
-        .inputBox()
-        .withProps({
-          required: true,
-          multiline: false,
-          value: "",
-          placeHolder: "e.g. address.zipCode",
-        })
-        .component(),
-      title: "Shard key",
-    };
-
     collectionUnshardedRadioButton.onDidChangeCheckedState((isUnsharded: boolean) => {
+      model.isSharded = !isUnsharded;
+
       if (isUnsharded) {
         formBuilder.removeFormItem(shardKeyInputFormItem);
       } else {
         formBuilder.addFormItem(shardKeyInputFormItem); // Fortunately for now, we just add at the end
       }
     });
+
+    const shardKeyInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: "",
+        placeHolder: "e.g. address.zipCode",
+      })
+      .component();
+    shardKeyInput.onTextChanged((text) => (model.shardKey = text));
+
+    const shardKeyInputFormItem: azdata.FormComponent = {
+      component: shardKeyInput,
+      title: "Shard key",
+    };
 
     const databaseNameFormItem: azdata.FormComponent = {
       component: view.modelBuilder
@@ -285,7 +341,7 @@ export const createNewCollectionDialog = async (): Promise<azdata.window.Dialog>
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
 
     // Initialization
-    updateNewDatabaseFormItem(view, databaseSectionContainer, true);
+    updateNewDatabaseFormItem(databaseSectionContainer, true);
     await view.initializeModel(formModel);
   });
 

@@ -1215,7 +1215,9 @@ const createMongoDbCollectionWithArm = async (
   // TODO: check resourceGroup here
   const { resourceGroup } = parsedAzureResourceId(azureResourceId);
 
-  const dialog = await createNewCollectionDialog();
+  const dialog = await createNewCollectionDialog((data) => {
+    console.log("createMongoDbCollectionWithArm", data);
+  });
   azdata.window.openDialog(dialog);
 
   return false;
