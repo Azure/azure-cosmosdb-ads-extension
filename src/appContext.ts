@@ -7,7 +7,7 @@ import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { ResourceGraphClient } from "@azure/arm-resourcegraph";
 import { TokenCredentials } from "@azure/ms-rest-js";
-import { ThroughputSettingsGetPropertiesResource, ThroughputSettingsResource } from "@azure/arm-cosmosdb/esm/models";
+import { MongoDBCollectionCreateUpdateParameters, ThroughputSettingsGetPropertiesResource, ThroughputSettingsResource } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
@@ -24,7 +24,7 @@ import {
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "./extension";
 import { createNodePath } from "./Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { createNewCollectionDialog } from "./newCollectionDialog";
+import { createNewCollectionDialog, NewCollectionFormData } from "./newCollectionDialog";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -1215,8 +1215,41 @@ const createMongoDbCollectionWithArm = async (
   // TODO: check resourceGroup here
   const { resourceGroup } = parsedAzureResourceId(azureResourceId);
 
-  const dialog = await createNewCollectionDialog((data) => {
-    console.log("createMongoDbCollectionWithArm", data);
+  const dialog = await createNewCollectionDialog(async (inputData: NewCollectionFormData) => {
+    console.log("createMongoDbCollectionWithArm", inputData);
+
+		const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+		azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+
+    const params: MongoDBCollectionCreateUpdateParameters = {
+			resource: {
+				id: inputData.newCollectionName
+			}
+		};
+
+		// if (inputData.isSharded) {
+		// 	params.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+		// }
+
+		// if (inputData.isCreateNewDatabase) {
+		// 	if (inputData.newDatabaseInfo.isAutoScale) {
+		// 		params.options = {
+		// 			autoscaleSettings: {
+		// 				maxThroughput: inputData.newDatabaseInfo.databaseMaxThroughputRUPS
+		// 			}
+		// 		};
+		// 	} else {
+		// 		params.options = {
+		// 			throughput: inputData.newDatabaseInfo.databaseRequiredThroughputRUPS
+		// 		};
+		// 	}
+		// }
+
+		client.mongoDBResources.createUpdateMongoDBCollection(resourceGroup,
+			cosmosDbAccountName,
+			 inputData.newDatabaseInfo.newDatabaseName,
+			 inputData.newCollectionName,
+			 params);
   });
   azdata.window.openDialog(dialog);
 

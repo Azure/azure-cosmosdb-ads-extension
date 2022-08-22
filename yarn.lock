@@ -55,7 +55,22 @@
     "@azure/ms-rest-js" "^2.2.0"
     tslib "^1.10.0"
 
-"@azure/ms-rest-js@^2.0.4", "@azure/ms-rest-js@^2.2.0":
+"@azure/ms-rest-js@^2.0.4":
+  version "2.6.2"
+  resolved "https://registry.yarnpkg.com/@azure/ms-rest-js/-/ms-rest-js-2.6.2.tgz#185a9d643ea55c696134af76a5c6026c94e26217"
+  integrity sha512-0/8rOxAoR9M3qKUdbGOIYtHtQkm4m5jdoDNdxTU0DkOr84KwyAdJuW/RfjJinGyig4h73DNF0rdCl6XowgCYcg==
+  dependencies:
+    "@azure/core-auth" "^1.1.4"
+    abort-controller "^3.0.0"
+    form-data "^2.5.0"
+    node-fetch "^2.6.7"
+    tough-cookie "^3.0.1"
+    tslib "^1.10.0"
+    tunnel "0.0.6"
+    uuid "^8.3.2"
+    xml2js "^0.4.19"
+
+"@azure/ms-rest-js@^2.2.0":
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/@azure/ms-rest-js/-/ms-rest-js-2.6.1.tgz#4f94688a750d51afcbab4b55d6ecb9d3df4ddd94"
   integrity sha512-LLi4jRe/qy5IM8U2CkoDgSZp2OH+MgDe2wePmhz8uY84Svc53EhHaamVyoU6BjjHBxvCRh1vcD1urJDccrxqIw==
@@ -103,10 +118,10 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
   integrity sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==
 
-"@types/azdata@1.33.0":
-  version "1.33.0"
-  resolved "https://registry.yarnpkg.com/@types/azdata/-/azdata-1.33.0.tgz#0693e725ec676122d17b8d38bc1226549136b545"
-  integrity sha512-Q3HnDTRtnqOsKOWwEC2QtU/7WVbWdPZyWSrcZOuLpP2HWGQISRnAYb8SmD7lg4Fe6Uk+Unt/4oipJmUX/tDx2A==
+"@types/azdata@1.38.0":
+  version "1.38.0"
+  resolved "https://registry.yarnpkg.com/@types/azdata/-/azdata-1.38.0.tgz#205d8366c28df15d2514dd86fce06a52cd233546"
+  integrity sha512-yXvy8+j2LgWoe7cX33doTDdv/0d7LMDEm3IfrXZ/EU4AwwzjvKqSR/0Ae0CH3o8WOvDm63bws++gxDlmhoLsPg==
   dependencies:
     "@types/vscode" "*"
 
