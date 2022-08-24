@@ -1323,6 +1323,30 @@ const createMongoDbCollectionWithArm = async (
   } finally {
     hideStatusBarItem();
   }
+export const openAccountDashboard = async (accountName: string) => {
+  const connections = (await azdata.connection.getConnections()).filter((c) => c.serverName === accountName);
+  if (connections.length < 1) {
+    vscode.window.showErrorMessage(localize("noAccountFound", "No account found for {0}", accountName));
+    return;
+  }
+
+  const connectionOptions = convertToConnectionOptions(connections[0]);
+
+  if (connectionOptions.authenticationType === "SqlLogin" || connectionOptions.authenticationType === "Integrated") {
+    const credentials = await azdata.connection.getCredentials(connections[0].connectionId);
+    connectionOptions.password = credentials["password"];
+  }
+
+  const connectionProfile: azdata.IConnectionProfile = {
+    ...connections[0],
+    providerName: ProviderId,
+    id: connections[0].connectionId,
+    azureAccount: connectionOptions.azureAccount,
+    azureTenantId: connectionOptions.azureTenantId,
+    azureResourceId: connectionOptions.azureResourceId,
+    password: connectionOptions.password,
+  };
+  await azdata.connection.connect(connectionProfile, false, true);
 };
 
 export interface NotebookServiceInfo {
