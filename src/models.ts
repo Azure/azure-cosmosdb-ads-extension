@@ -32,6 +32,7 @@ export interface ICosmosDbCollectionInfo {
   usageSizeKB: number | undefined;
   isAutoscale: boolean;
   currentThroughput: number | undefined;
+  shardKey: { [propertyName: string]: string } | undefined;
 }
 
 export interface IMongoShellOptions {

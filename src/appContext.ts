@@ -7,7 +7,12 @@ import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { ResourceGraphClient } from "@azure/arm-resourcegraph";
 import { TokenCredentials } from "@azure/ms-rest-js";
-import { MongoDBCollectionCreateUpdateParameters, ThroughputSettingsGetPropertiesResource, ThroughputSettingsResource } from "@azure/arm-cosmosdb/esm/models";
+import {
+  MongoDBCollectionCreateUpdateParameters,
+  MongoDBDatabaseCreateUpdateParameters,
+  ThroughputSettingsGetPropertiesResource,
+  ThroughputSettingsResource,
+} from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
@@ -703,6 +708,24 @@ const retrieveMongoDbCollectionInfoFromArm = async (
     hideStatusBarItem();
   }
 
+  // Retrieve shard key
+  let shardKey;
+  try {
+    showStatusBarItem(localize("retrievingMongoCollectionInfo", "Retrieving mongodb collection information..."));
+    const collInfoResponse = await client.mongoDBResources.getMongoDBCollection(
+      resourceGroupName,
+      accountName,
+      databaseName,
+      collectionName
+    );
+    shardKey = collInfoResponse.resource?.shardKey;
+  } catch (e) {
+    console.error(e);
+    // TODO Rethrow?
+  } finally {
+    hideStatusBarItem();
+  }
+
   return {
     name: collectionName,
     documentCount,
@@ -710,6 +733,7 @@ const retrieveMongoDbCollectionInfoFromArm = async (
     usageSizeKB: usageDataKB,
     isAutoscale,
     currentThroughput,
+    shardKey,
   };
 };
 
@@ -1218,38 +1242,62 @@ const createMongoDbCollectionWithArm = async (
   const dialog = await createNewCollectionDialog(async (inputData: NewCollectionFormData) => {
     console.log("createMongoDbCollectionWithArm", inputData);
 
-		const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
-		azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+    const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+    azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
-    const params: MongoDBCollectionCreateUpdateParameters = {
-			resource: {
-				id: inputData.newCollectionName
-			}
-		};
+    const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
+      resource: {
+        id: inputData.newDatabaseInfo.newDatabaseName,
+      },
+    };
 
-		// if (inputData.isSharded) {
-		// 	params.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
-		// }
+    if (inputData.isCreateNewDatabase) {
+      if (inputData.newDatabaseInfo.isAutoScale) {
+        createDbParams.options = {
+          autoscaleSettings: {
+            maxThroughput: inputData.newDatabaseInfo.databaseMaxThroughputRUPS,
+          },
+        };
+      } else {
+        createDbParams.options = {
+          throughput: inputData.newDatabaseInfo.databaseRequiredThroughputRUPS,
+        };
+      }
+    }
 
-		// if (inputData.isCreateNewDatabase) {
-		// 	if (inputData.newDatabaseInfo.isAutoScale) {
-		// 		params.options = {
-		// 			autoscaleSettings: {
-		// 				maxThroughput: inputData.newDatabaseInfo.databaseMaxThroughputRUPS
-		// 			}
-		// 		};
-		// 	} else {
-		// 		params.options = {
-		// 			throughput: inputData.newDatabaseInfo.databaseRequiredThroughputRUPS
-		// 		};
-		// 	}
-		// }
+    const dbresult = await client.mongoDBResources.createUpdateMongoDBDatabase(
+      resourceGroup,
+      cosmosDbAccountName,
+      inputData.newDatabaseInfo.newDatabaseName,
+      createDbParams
+    );
 
-		client.mongoDBResources.createUpdateMongoDBCollection(resourceGroup,
-			cosmosDbAccountName,
-			 inputData.newDatabaseInfo.newDatabaseName,
-			 inputData.newCollectionName,
-			 params);
+    // TODO Add error handling
+    console.log("createUpdateMongoDBDatabase", dbresult);
+
+    const createCollParams: MongoDBCollectionCreateUpdateParameters = {
+      resource: {
+        id: inputData.newCollectionName,
+      },
+    };
+
+    if (inputData.isSharded) {
+      createCollParams.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+    }
+
+    const collResult = await client.mongoDBResources
+      .createUpdateMongoDBCollection(
+        resourceGroup,
+        cosmosDbAccountName,
+        inputData.newDatabaseInfo.newDatabaseName,
+        inputData.newCollectionName,
+        createCollParams
+      )
+      .catch((e) => console.error("Error", e));
+
+    console.log("createUpdateMongoDBCollection", collResult);
+
+    vscode.window.showInformationMessage(`Created collection`);
   });
   azdata.window.openDialog(dialog);
 
