@@ -1323,6 +1323,8 @@ const createMongoDbCollectionWithArm = async (
   } finally {
     hideStatusBarItem();
   }
+};
+
 export const openAccountDashboard = async (accountName: string) => {
   const connections = (await azdata.connection.getConnections()).filter((c) => c.serverName === accountName);
   if (connections.length < 1) {
