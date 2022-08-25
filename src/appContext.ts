@@ -126,25 +126,29 @@ export class AppContext {
   /**
    * Create collection with mongodb driver
    * @param connectionOptions
+   * @param createDatabaseOnly
    * @param databaseName
    * @param collectionName
    * @returns
    */
-  public createMongoDbCollection(
+  public createMongoDatabaseAndCollection(
     connectionOptions: IConnectionOptions,
+    createDatabaseOnly: boolean,
     databaseName?: string,
     collectionName?: string
-  ): Promise<{ collectionName: string; databaseName: string }> {
+  ): Promise<{ databaseName: string; collectionName: string | undefined }> {
     if (isAzureAuthType(connectionOptions.authenticationType)) {
-      return createMongoDbCollectionWithArm(
+      return createMongoDatabaseAndCollectionWithArm(
         connectionOptions.azureAccount,
         connectionOptions.azureTenantId,
         connectionOptions.azureResourceId,
         getAccountNameFromOptions(connectionOptions),
+        createDatabaseOnly,
         databaseName,
         collectionName
       );
     } else {
+      // In MongoDB, a database cannot be empty.
       return this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, collectionName);
     }
   }
@@ -1247,14 +1251,15 @@ const updateMongoDbDatabaseThroughput = async (
   }
 };
 
-const createMongoDbCollectionWithArm = async (
+const createMongoDatabaseAndCollectionWithArm = async (
   azureAccountId: string,
   azureTenantId: string,
   azureResourceId: string,
   cosmosDbAccountName: string,
+  createDatabaseOnly: boolean,
   databaseName?: string,
   collectionName?: string
-): Promise<{ collectionName: string; databaseName: string }> => {
+): Promise<{ databaseName: string; collectionName: string | undefined }> => {
   return new Promise(async (resolve, reject) => {
     const dialog = await createNewCollectionDialog(
       async (inputData: NewCollectionFormData) => {
@@ -1299,39 +1304,44 @@ const createMongoDbCollectionWithArm = async (
             return;
           }
 
-          const createCollParams: MongoDBCollectionCreateUpdateParameters = {
-            resource: {
-              id: inputData.newCollectionName,
-            },
-          };
+          let collectionName;
+          if (!createDatabaseOnly && inputData.newCollectionName !== undefined) {
+            const createCollParams: MongoDBCollectionCreateUpdateParameters = {
+              resource: {
+                id: inputData.newCollectionName,
+              },
+            };
 
-          if (inputData.isSharded) {
-            createCollParams.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+            if (inputData.isSharded) {
+              createCollParams.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+            }
+
+            showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
+            const collResult = await client.mongoDBResources
+              .createUpdateMongoDBCollection(
+                resourceGroup,
+                cosmosDbAccountName,
+                inputData.newDatabaseInfo.newDatabaseName,
+                inputData.newCollectionName,
+                createCollParams
+              )
+              .catch((e) => reject(e));
+
+            if (!collResult || !collResult.resource?.id) {
+              reject("Could not create collection");
+              return;
+            }
+            collectionName = collResult.resource.id;
           }
 
-          showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
-          const collResult = await client.mongoDBResources
-            .createUpdateMongoDBCollection(
-              resourceGroup,
-              cosmosDbAccountName,
-              inputData.newDatabaseInfo.newDatabaseName,
-              inputData.newCollectionName,
-              createCollParams
-            )
-            .catch((e) => reject(e));
-
-          if (!collResult || !collResult.resource?.id) {
-            reject("Could not create collection");
-            return;
-          }
-
-          resolve({ databaseName: dbresult.resource.id, collectionName: collResult.resource.id });
+          resolve({ databaseName: dbresult.resource.id, collectionName });
         } catch (e) {
           reject(e);
         } finally {
           hideStatusBarItem();
         }
       },
+      createDatabaseOnly,
       databaseName,
       collectionName
     );

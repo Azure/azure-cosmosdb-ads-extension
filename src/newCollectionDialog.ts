@@ -18,10 +18,11 @@ export interface NewCollectionFormData {
 
 export const createNewCollectionDialog = async (
   onCreateClick: (data: NewCollectionFormData) => void,
+  createDatabaseOnly: boolean,
   databaseName?: string,
   collectionName?: string
 ): Promise<azdata.window.Dialog> => {
-  const dialog = azdata.window.createModelViewDialog("New Collection");
+  const dialog = azdata.window.createModelViewDialog(createDatabaseOnly ? "New Database" : "New Collection");
 
   const DEFAULT_NEW_DATABASE_NAME = "";
   const DEFAULT_IS_SHARED_DATABASE_THROUGHPUT = true;
@@ -320,25 +321,30 @@ export const createNewCollectionDialog = async (
               .component(),
             title: undefined,
           },
-          {
-            component: collectionNameInput,
-            title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
-            required: true,
-          },
-          {
-            component: collectionShardingRadioButtons,
-            title: "Sharding", // localize('createSessionDialog.selectTemplates', "Select session template:")
-            required: true,
-          },
-          {
-            component: collectionShardingRadioButtons,
-            title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-            required: true,
-          },
         ],
         title: "",
       },
     ]);
+
+    if (!createDatabaseOnly) {
+      formBuilder.addFormItems([
+        {
+          component: collectionNameInput,
+          title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
+          required: true,
+        },
+        {
+          component: collectionShardingRadioButtons,
+          title: "Sharding", // localize('createSessionDialog.selectTemplates', "Select session template:")
+          required: true,
+        },
+        {
+          component: collectionShardingRadioButtons,
+          title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+          required: true,
+        },
+      ]);
+    }
 
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
 

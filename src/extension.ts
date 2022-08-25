@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         try {
           // Creating a database requires creating a collection inside
-          const { databaseName } = await appContext.createMongoDbCollection(connectionNodeInfo);
+          const { databaseName } = await appContext.createMongoDatabaseAndCollection(connectionNodeInfo, true);
           if (databaseName) {
             vscode.window.showInformationMessage(
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
@@ -151,8 +151,9 @@ export function activate(context: vscode.ExtensionContext) {
         const { databaseName } = getMongoInfo(connectionNodeInfo.nodePath!);
 
         try {
-          const { collectionName: newCollectionName } = await appContext.createMongoDbCollection(
+          const { collectionName: newCollectionName } = await appContext.createMongoDatabaseAndCollection(
             connectionNodeInfo,
+            false,
             databaseName,
             collectionName
           );
@@ -177,15 +178,12 @@ export function activate(context: vscode.ExtensionContext) {
       "cosmosdb-ads-extension.deleteMongoDatabase",
       async (objectExplorerContext: azdata.ObjectExplorerContext) => {
         if (!objectExplorerContext.connectionProfile) {
-          // TODO handle error;
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return;
         }
 
         const { serverName } = objectExplorerContext.connectionProfile;
-        // TODO FIX THIS
         if (!objectExplorerContext.nodeInfo) {
-          // TODO handle error;
           vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
           return;
         }
@@ -197,6 +195,13 @@ export function activate(context: vscode.ExtensionContext) {
         });
 
         if (response !== mongoInfo.databaseName) {
+          vscode.window.showErrorMessage(
+            localize(
+              "incorrectDeleteDatabase",
+              "Incorrect name supplied to delete database {0}",
+              mongoInfo.databaseName
+            )
+          );
           return;
         }
 
