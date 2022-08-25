@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         try {
           // Creating a database requires creating a collection inside
-          const { databaseName } = await appContext.createMongoCollection(connectionNodeInfo);
+          const { databaseName } = await appContext.createMongoDbCollection(connectionNodeInfo);
           if (databaseName) {
             vscode.window.showInformationMessage(
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
@@ -114,7 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
         objectExplorerContext: azdata.ObjectExplorerContext,
         connectionNodeInfo: IConnectionNodeInfo,
         collectionName?: string
-      ): Promise<Collection<Document>> => {
+      ): Promise<void> => {
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return Promise.reject();
@@ -151,17 +151,17 @@ export function activate(context: vscode.ExtensionContext) {
         const { databaseName } = getMongoInfo(connectionNodeInfo.nodePath!);
 
         try {
-          const { collection: newCollection } = await appContext.createMongoCollection(
+          const { collectionName: newCollectionName } = await appContext.createMongoDbCollection(
             connectionNodeInfo,
             databaseName,
             collectionName
           );
-          if (newCollection) {
+          if (newCollectionName) {
             vscode.window.showInformationMessage(
-              localize("successCreateCollection", "Successfully created: {0}", newCollection.collectionName)
+              localize("successCreateCollection", "Successfully created: {0}", newCollectionName)
             );
             objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
-            return Promise.resolve(newCollection);
+            return Promise.resolve();
           }
         } catch (e) {
           vscode.window.showErrorMessage(`${localize("failedCreateCollection", "Failed to create collection")}: ${e}`);

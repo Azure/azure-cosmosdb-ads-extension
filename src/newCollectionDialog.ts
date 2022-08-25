@@ -17,7 +17,9 @@ export interface NewCollectionFormData {
 }
 
 export const createNewCollectionDialog = async (
-  onCreateClick: (data: NewCollectionFormData) => void
+  onCreateClick: (data: NewCollectionFormData) => void,
+	databaseName?: string,
+	collectionName?: string
 ): Promise<azdata.window.Dialog> => {
   const dialog = azdata.window.createModelViewDialog("New Collection");
 
@@ -73,7 +75,7 @@ export const createNewCollectionDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: DEFAULT_NEW_DATABASE_NAME,
+        value: databaseName ?? DEFAULT_NEW_DATABASE_NAME,
         placeHolder: "Enter new database name",
       })
       .component();
@@ -237,7 +239,7 @@ export const createNewCollectionDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: DEFAULT_NEW_COLLECTION_NAME,
+        value: collectionName && DEFAULT_NEW_COLLECTION_NAME,
         placeHolder: "Enter new collection name",
       })
       .component();

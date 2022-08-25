@@ -237,6 +237,10 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
 
   public async updateNode(connectionId: string, nodePath?: string): Promise<void> {
     const node1 = await azdata.objectexplorer.getNode(connectionId, nodePath);
-    await node1.refresh();
+		if (node1) {
+			await node1.refresh();
+		} else {
+			console.error(`updateNode: node not found. ConnectionId:${connectionId} nodePath:${nodePath}`);
+		}
   }
 }
