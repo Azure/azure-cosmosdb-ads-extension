@@ -18,8 +18,8 @@ export interface NewCollectionFormData {
 
 export const createNewCollectionDialog = async (
   onCreateClick: (data: NewCollectionFormData) => void,
-	databaseName?: string,
-	collectionName?: string
+  databaseName?: string,
+  collectionName?: string
 ): Promise<azdata.window.Dialog> => {
   const dialog = azdata.window.createModelViewDialog("New Collection");
 

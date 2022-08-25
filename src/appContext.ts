@@ -1257,82 +1257,84 @@ const createMongoDbCollectionWithArm = async (
 ): Promise<{ collectionName: string; databaseName: string }> => {
   return new Promise(async (resolve, reject) => {
     const dialog = await createNewCollectionDialog(
-			async (inputData: NewCollectionFormData) => {
-      const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
-      azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
-      // TODO: check resourceGroup here
-      const { resourceGroup } = parsedAzureResourceId(azureResourceId);
+      async (inputData: NewCollectionFormData) => {
+        const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+        azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+        // TODO: check resourceGroup here
+        const { resourceGroup } = parsedAzureResourceId(azureResourceId);
 
-      const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
-        resource: {
-          id: inputData.newDatabaseInfo.newDatabaseName,
-        },
-      };
-
-      if (inputData.isCreateNewDatabase) {
-        if (inputData.newDatabaseInfo.isAutoScale) {
-          createDbParams.options = {
-            autoscaleSettings: {
-              maxThroughput: inputData.newDatabaseInfo.databaseMaxThroughputRUPS,
-            },
-          };
-        } else {
-          createDbParams.options = {
-            throughput: inputData.newDatabaseInfo.databaseRequiredThroughputRUPS,
-          };
-        }
-      }
-
-      try {
-        showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB database"));
-        const dbresult = await client.mongoDBResources.createUpdateMongoDBDatabase(
-          resourceGroup,
-          cosmosDbAccountName,
-          inputData.newDatabaseInfo.newDatabaseName,
-          createDbParams
-        ).catch((e) => reject(e));
-
-				if (!dbresult || !dbresult.resource?.id) {
-					reject("Could not create database");
-					return;
-				}
-
-        const createCollParams: MongoDBCollectionCreateUpdateParameters = {
+        const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
           resource: {
-            id: inputData.newCollectionName,
+            id: inputData.newDatabaseInfo.newDatabaseName,
           },
         };
 
-        if (inputData.isSharded) {
-          createCollParams.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+        if (inputData.isCreateNewDatabase) {
+          if (inputData.newDatabaseInfo.isAutoScale) {
+            createDbParams.options = {
+              autoscaleSettings: {
+                maxThroughput: inputData.newDatabaseInfo.databaseMaxThroughputRUPS,
+              },
+            };
+          } else {
+            createDbParams.options = {
+              throughput: inputData.newDatabaseInfo.databaseRequiredThroughputRUPS,
+            };
+          }
         }
 
-        showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
-        const collResult = await client.mongoDBResources
-          .createUpdateMongoDBCollection(
-            resourceGroup,
-            cosmosDbAccountName,
-            inputData.newDatabaseInfo.newDatabaseName,
-            inputData.newCollectionName,
-            createCollParams
-          )
-          .catch((e) => reject(e));
+        try {
+          showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB database"));
+          const dbresult = await client.mongoDBResources
+            .createUpdateMongoDBDatabase(
+              resourceGroup,
+              cosmosDbAccountName,
+              inputData.newDatabaseInfo.newDatabaseName,
+              createDbParams
+            )
+            .catch((e) => reject(e));
 
-					if (!collResult || !collResult.resource?.id) {
-						reject("Could not create collection");
-						return;
-					}
+          if (!dbresult || !dbresult.resource?.id) {
+            reject("Could not create database");
+            return;
+          }
 
+          const createCollParams: MongoDBCollectionCreateUpdateParameters = {
+            resource: {
+              id: inputData.newCollectionName,
+            },
+          };
 
-        resolve({ databaseName: dbresult.resource.id, collectionName: collResult.resource.id});
-      } catch (e) {
-        reject(e);
-      } finally {
-        hideStatusBarItem();
-      }
-    },
-		databaseName,
-		collectionName);
+          if (inputData.isSharded) {
+            createCollParams.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+          }
+
+          showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
+          const collResult = await client.mongoDBResources
+            .createUpdateMongoDBCollection(
+              resourceGroup,
+              cosmosDbAccountName,
+              inputData.newDatabaseInfo.newDatabaseName,
+              inputData.newCollectionName,
+              createCollParams
+            )
+            .catch((e) => reject(e));
+
+          if (!collResult || !collResult.resource?.id) {
+            reject("Could not create collection");
+            return;
+          }
+
+          resolve({ databaseName: dbresult.resource.id, collectionName: collResult.resource.id });
+        } catch (e) {
+          reject(e);
+        } finally {
+          hideStatusBarItem();
+        }
+      },
+      databaseName,
+      collectionName
+    );
     azdata.window.openDialog(dialog);
   });
 };
