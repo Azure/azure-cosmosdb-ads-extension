@@ -1392,7 +1392,7 @@ const createMongoDatabaseAndCollectionWithArm = async (
 
             newDatabaseName = dbresult.resource.id;
           } else {
-            newDatabaseName = inputData.newDatabaseInfo.newDatabaseName;
+            newDatabaseName = inputData.existingDatabaseId;
           }
 
           if (inputData.newCollectionName !== undefined) {
@@ -1411,7 +1411,7 @@ const createMongoDatabaseAndCollectionWithArm = async (
               .createUpdateMongoDBCollection(
                 resourceGroup,
                 cosmosDbAccountName,
-                inputData.existingDatabaseId,
+                newDatabaseName,
                 inputData.newCollectionName,
                 createCollParams
               )
