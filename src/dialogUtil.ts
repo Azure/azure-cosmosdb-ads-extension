@@ -147,18 +147,21 @@ export const createNewDatabaseDialog = async (
       required: true,
     };
 
-    const formBuilder = view.modelBuilder.formContainer().withFormItems([
-      {
-        component: newDatabaseNameInput,
-        title: "Database Id",
-      },
-      {
-        component: isSharedThroughput,
-        title: "Provision throughput",
-      },
-      databaseThroughtputFormItem,
-      autoscaleMaxThroughputFormItem,
-    ]);
+    const formBuilder = view.modelBuilder.formContainer().withFormItems(
+      [
+        {
+          component: newDatabaseNameInput,
+          title: "Database Id",
+        },
+        {
+          component: isSharedThroughput,
+          title: "Provision throughput",
+        },
+        databaseThroughtputFormItem,
+        autoscaleMaxThroughputFormItem,
+      ],
+      { titleFontSize: 14 }
+    );
 
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
 
@@ -464,34 +467,34 @@ export const createNewCollectionDialog = async (
       required: true,
     };
 
-    const formBuilder = view.modelBuilder.formContainer().withFormItems([
-      {
-        components: [databaseNameFormItem, databaseThroughtputFormItem, autoscaleMaxThroughputFormItem],
-        title: "",
-      },
-      {
-        component: view.modelBuilder
-          .separator()
-          .withProps({ CSSStyles: { marginTop: 20, paddingTop: 20 } })
-          .component(),
-        title: undefined,
-      },
-      {
-        component: collectionNameInput,
-        title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
-        required: true,
-      },
-      {
-        component: collectionShardingRadioButtons,
-        title: "Sharding", // localize('createSessionDialog.selectTemplates', "Select session template:")
-        required: true,
-      },
-      {
-        component: collectionShardingRadioButtons,
-        title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-        required: true,
-      },
-    ]);
+    const formBuilder = view.modelBuilder.formContainer().withFormItems(
+      [
+        {
+          components: [databaseNameFormItem, databaseThroughtputFormItem, autoscaleMaxThroughputFormItem],
+          title: "",
+        },
+        {
+          component: view.modelBuilder.separator().component(),
+          title: undefined,
+        },
+        {
+          component: collectionNameInput,
+          title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
+          required: true,
+        },
+        {
+          component: collectionShardingRadioButtons,
+          title: "Sharding", // localize('createSessionDialog.selectTemplates', "Select session template:")
+          required: true,
+        },
+        {
+          component: collectionShardingRadioButtons,
+          title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+          required: true,
+        },
+      ],
+      { titleFontSize: 14 }
+    );
 
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
 
