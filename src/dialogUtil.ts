@@ -3,35 +3,178 @@ import * as azdata from "azdata";
 export interface NewCollectionFormData {
   isCreateNewDatabase: boolean;
   existingDatabaseId: string;
-  newDatabaseInfo: {
-    newDatabaseName: string;
-    isShareDatabaseThroughput: boolean;
-    isAutoScale: boolean;
-    databaseMaxThroughputRUPS: number;
-    databaseRequiredThroughputRUPS: number;
-  };
-
+  newDatabaseInfo: NewDatabaseFormData;
   newCollectionName: string;
   isSharded: boolean;
   shardKey: string | undefined;
 }
 
+export interface NewDatabaseFormData {
+  newDatabaseName: string;
+  isShareDatabaseThroughput: boolean;
+  isAutoScale: boolean;
+  databaseMaxThroughputRUPS: number;
+  databaseRequiredThroughputRUPS: number;
+}
+
+const DEFAULT_NEW_DATABASE_NAME = "";
+const DEFAULT_IS_SHARED_DATABASE_THROUGHPUT = true;
+const DEFAULT_IS_AUTOSCALE = true;
+const DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS = 4000;
+const DEFAULT_DATABASE_REQUIRED_RUPS = 400;
+const DEFAULT_NEW_COLLECTION_NAME = "";
+const DEFAULT_IS_SHARDED = false;
+const DEFAULT_SHARD_KEY = "";
+
+export const createNewDatabaseDialog = async (
+  onCreateClick: (data: NewDatabaseFormData) => void,
+  databaseName?: string
+): Promise<azdata.window.Dialog> => {
+  const dialog = azdata.window.createModelViewDialog("New Database");
+
+  const model: NewDatabaseFormData = {
+    newDatabaseName: DEFAULT_NEW_DATABASE_NAME,
+    isShareDatabaseThroughput: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
+    isAutoScale: DEFAULT_IS_AUTOSCALE,
+    databaseMaxThroughputRUPS: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS,
+    databaseRequiredThroughputRUPS: DEFAULT_DATABASE_REQUIRED_RUPS,
+  };
+
+  dialog.okButton.onClick(() => onCreateClick(model));
+  dialog.cancelButton.onClick(() => {});
+  dialog.okButton.label = "Create";
+  dialog.cancelButton.label = "Cancel";
+
+  dialog.registerContent(async (view) => {
+    // Create new database
+    const newDatabaseNameInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: databaseName ?? DEFAULT_NEW_DATABASE_NAME,
+        placeHolder: "Enter new database name",
+      })
+      .component();
+    newDatabaseNameInput.onTextChanged((text) => (model.newDatabaseName = text));
+
+    const isSharedThroughput = view.modelBuilder
+      .checkBox()
+      .withProps({ checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT, label: "Share throughput across collections" })
+      .component();
+    isSharedThroughput.onChanged((isSharedThroughput) => (model.isShareDatabaseThroughput = isSharedThroughput));
+
+    const autoScaleRadioButton = view.modelBuilder
+      .radioButton()
+      .withProps({
+        name: "databaseThroughput",
+        label: "Autoscale",
+        value: "autoscale",
+        checked: DEFAULT_IS_AUTOSCALE,
+      })
+      .component();
+
+    const manualThroughputRadioButton = view.modelBuilder
+      .radioButton()
+      .withProps({
+        name: "databaseThroughput",
+        label: "Manual",
+        value: "manual",
+        checked: !DEFAULT_IS_AUTOSCALE,
+      })
+      .component();
+
+    const databaseThroughputRadioButtons: azdata.FlexContainer = view.modelBuilder
+      .flexContainer()
+      .withLayout({ flexFlow: "row" })
+      .withItems([autoScaleRadioButton, manualThroughputRadioButton])
+      .withProps({ ariaRole: "radiogroup" })
+      .component();
+
+    autoScaleRadioButton.onDidChangeCheckedState((isAutoScale: boolean) => {
+      model.isAutoScale = isAutoScale;
+
+      if (isAutoScale) {
+        formBuilder.removeFormItem(manualThroughputFormItem);
+        formBuilder.insertFormItem(autoscaleMaxThroughputFormItem, 3);
+      } else {
+        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
+        formBuilder.insertFormItem(manualThroughputFormItem, 3);
+      }
+    });
+
+    const databaseThroughtputFormItem = {
+      component: view.modelBuilder.divContainer().withItems([databaseThroughputRadioButtons]).component(),
+      title: "Database Throughput (autoscale)",
+      required: true,
+    };
+
+    const autoscaleMaxThroughputInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS.toString(),
+        placeHolder: "Database Max throughput",
+      })
+      .component();
+    autoscaleMaxThroughputInput.onTextChanged(
+      (text) => !isNaN(text) && (model.databaseMaxThroughputRUPS = Number.parseInt(text))
+    );
+
+    const autoscaleMaxThroughputFormItem: azdata.FormComponent = {
+      component: autoscaleMaxThroughputInput,
+      title: "Database Max RU/s",
+      required: true,
+    };
+
+    const manualThroughputInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: DEFAULT_DATABASE_REQUIRED_RUPS.toString(),
+        placeHolder: "Database required throughput",
+      })
+      .component();
+    manualThroughputInput.onTextChanged(
+      (text) => !isNaN(text) && (model.databaseRequiredThroughputRUPS = Number.parseInt(text))
+    );
+
+    const manualThroughputFormItem: azdata.FormComponent = {
+      component: manualThroughputInput,
+      title: "Database Required RU/s",
+      required: true,
+    };
+
+    const formBuilder = view.modelBuilder.formContainer().withFormItems([
+      {
+        component: newDatabaseNameInput,
+        title: "Database Id",
+      },
+      {
+        component: isSharedThroughput,
+        title: "Provision throughput",
+      },
+      databaseThroughtputFormItem,
+      autoscaleMaxThroughputFormItem,
+    ]);
+
+    const formModel = formBuilder.withLayout({ width: "100%" }).component();
+
+    await view.initializeModel(formModel);
+  });
+
+  return dialog;
+};
+
 export const createNewCollectionDialog = async (
   onCreateClick: (data: NewCollectionFormData) => void,
-  createDatabaseOnly: boolean,
+  existingDatabaseIds: string[],
   databaseName?: string,
   collectionName?: string
 ): Promise<azdata.window.Dialog> => {
-  const dialog = azdata.window.createModelViewDialog(createDatabaseOnly ? "New Database" : "New Collection");
-
-  const DEFAULT_NEW_DATABASE_NAME = "";
-  const DEFAULT_IS_SHARED_DATABASE_THROUGHPUT = true;
-  const DEFAULT_IS_AUTOSCALE = true;
-  const DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS = 4000;
-  const DEFAULT_DATABASE_REQUIRED_RUPS = 400;
-  const DEFAULT_NEW_COLLECTION_NAME = "";
-  const DEFAULT_IS_SHARDED = false;
-  const DEFAULT_SHARD_KEY = "";
+  const dialog = azdata.window.createModelViewDialog("New Collection");
 
   const model: NewCollectionFormData = {
     isCreateNewDatabase: true,
@@ -43,10 +186,20 @@ export const createNewCollectionDialog = async (
       databaseMaxThroughputRUPS: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS,
       databaseRequiredThroughputRUPS: DEFAULT_DATABASE_REQUIRED_RUPS,
     },
-    newCollectionName: DEFAULT_NEW_COLLECTION_NAME,
+    newCollectionName: collectionName ?? DEFAULT_NEW_COLLECTION_NAME,
     isSharded: DEFAULT_IS_SHARDED,
     shardKey: DEFAULT_SHARD_KEY,
   };
+
+  // If the provided databaseName exists already, we're not creating a new database
+  if (databaseName) {
+    model.isCreateNewDatabase = existingDatabaseIds.indexOf(databaseName) === -1;
+    if (model.isCreateNewDatabase) {
+      model.newDatabaseInfo.newDatabaseName;
+    } else {
+      model.existingDatabaseId = databaseName;
+    }
+  }
 
   dialog.okButton.onClick(() => onCreateClick(model));
   dialog.cancelButton.onClick(() => {});
@@ -66,7 +219,7 @@ export const createNewCollectionDialog = async (
         existingContainer.addItem(newDatabaseNameInput);
         existingContainer.addItem(isSharedThroughput);
       } else {
-        existingContainer.addItem(existingDatabaseIds);
+        existingContainer.addItem(existingDatabaseIdsDropdown);
       }
     };
 
@@ -90,13 +243,16 @@ export const createNewCollectionDialog = async (
       (isSharedThroughput) => (model.newDatabaseInfo.isShareDatabaseThroughput = isSharedThroughput)
     );
 
-    const existingDatabaseIds = view.modelBuilder
+    const existingDatabaseIdsDropdown = view.modelBuilder
       .dropDown()
       .withProps({
-        values: ["database1", "database2"],
+        values: existingDatabaseIds,
       })
       .component();
-    existingDatabaseIds.onValueChanged((databaseId) => (model.existingDatabaseId = databaseId));
+    existingDatabaseIdsDropdown.onValueChanged((databaseId) => (model.existingDatabaseId = databaseId.selected));
+    if (!model.isCreateNewDatabase) {
+      existingDatabaseIdsDropdown.value = model.existingDatabaseId;
+    }
 
     const autoScaleRadioButton = view.modelBuilder
       .radioButton()
@@ -188,7 +344,7 @@ export const createNewCollectionDialog = async (
         name: "createNewOrExisting",
         label: "Create New",
         value: "new",
-        checked: true,
+        checked: model.isCreateNewDatabase,
       })
       .component();
 
@@ -198,7 +354,7 @@ export const createNewCollectionDialog = async (
         name: "createNewOrExisting",
         label: "Use existing",
         value: "existing",
-        checked: false,
+        checked: !model.isCreateNewDatabase,
       })
       .component();
 
@@ -310,46 +466,37 @@ export const createNewCollectionDialog = async (
 
     const formBuilder = view.modelBuilder.formContainer().withFormItems([
       {
-        components: [
-          databaseNameFormItem,
-          databaseThroughtputFormItem,
-          autoscaleMaxThroughputFormItem,
-          {
-            component: view.modelBuilder
-              .separator()
-              .withProps({ CSSStyles: { marginTop: 20, paddingTop: 20 } })
-              .component(),
-            title: undefined,
-          },
-        ],
+        components: [databaseNameFormItem, databaseThroughtputFormItem, autoscaleMaxThroughputFormItem],
         title: "",
       },
+      {
+        component: view.modelBuilder
+          .separator()
+          .withProps({ CSSStyles: { marginTop: 20, paddingTop: 20 } })
+          .component(),
+        title: undefined,
+      },
+      {
+        component: collectionNameInput,
+        title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
+        required: true,
+      },
+      {
+        component: collectionShardingRadioButtons,
+        title: "Sharding", // localize('createSessionDialog.selectTemplates', "Select session template:")
+        required: true,
+      },
+      {
+        component: collectionShardingRadioButtons,
+        title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
+        required: true,
+      },
     ]);
-
-    if (!createDatabaseOnly) {
-      formBuilder.addFormItems([
-        {
-          component: collectionNameInput,
-          title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
-          required: true,
-        },
-        {
-          component: collectionShardingRadioButtons,
-          title: "Sharding", // localize('createSessionDialog.selectTemplates', "Select session template:")
-          required: true,
-        },
-        {
-          component: collectionShardingRadioButtons,
-          title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-          required: true,
-        },
-      ]);
-    }
 
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
 
     // Initialization
-    updateNewDatabaseFormItem(databaseSectionContainer, true);
+    updateNewDatabaseFormItem(databaseSectionContainer, model.isCreateNewDatabase);
     await view.initializeModel(formModel);
   });
 

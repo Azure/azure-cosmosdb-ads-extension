@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         try {
           // Creating a database requires creating a collection inside
-          const { databaseName } = await appContext.createMongoDatabaseAndCollection(connectionNodeInfo, true);
+          const { databaseName } = await appContext.createMongoDatabase(connectionNodeInfo);
           if (databaseName) {
             vscode.window.showInformationMessage(
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
@@ -153,7 +153,6 @@ export function activate(context: vscode.ExtensionContext) {
         try {
           const { collectionName: newCollectionName } = await appContext.createMongoDatabaseAndCollection(
             connectionNodeInfo,
-            false,
             databaseName,
             collectionName
           );
