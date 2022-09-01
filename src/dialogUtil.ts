@@ -78,7 +78,7 @@ export const createNewDatabaseDialog = async (
       .radioButton()
       .withProps({
         name: "databaseThroughput",
-        label: "Manual",
+        label: "Manual (400 - unlimited RU/s)",
         value: "manual",
         checked: !DEFAULT_IS_AUTOSCALE,
       })
@@ -105,7 +105,7 @@ export const createNewDatabaseDialog = async (
 
     const databaseThroughtputFormItem = {
       component: view.modelBuilder.divContainer().withItems([databaseThroughputRadioButtons]).component(),
-      title: "Database Throughput (autoscale)",
+      title: "Database Throughput",
       required: true,
     };
 
@@ -147,21 +147,35 @@ export const createNewDatabaseDialog = async (
       required: true,
     };
 
-    const formBuilder = view.modelBuilder.formContainer().withFormItems(
-      [
-        {
-          component: newDatabaseNameInput,
-          title: "Database Id",
-        },
-        {
-          component: isSharedThroughput,
-          title: "Provision throughput",
-        },
-        databaseThroughtputFormItem,
-        autoscaleMaxThroughputFormItem,
-      ],
-      { titleFontSize: 14 }
+    const formBuilder = view.modelBuilder.formContainer();
+    formBuilder.addFormItem(
+      {
+        component: newDatabaseNameInput,
+        title: "Database Id",
+      },
+      {
+        titleFontSize: 14,
+        info: "A database is analogous to a namespace. It is the unit of management for a set of collections.",
+      }
     );
+
+    formBuilder.addFormItem(
+      {
+        component: isSharedThroughput,
+        title: "Provision throughput",
+      },
+      {
+        titleFontSize: 14,
+        info: "Throughput configured at the database level will be shared across all collections within the database.",
+      }
+    );
+
+    formBuilder.addFormItem(databaseThroughtputFormItem, {
+      titleFontSize: 14,
+      info: "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage.",
+    });
+
+    formBuilder.addFormItem(autoscaleMaxThroughputFormItem, { titleFontSize: 14, info: "" });
 
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
 
@@ -271,7 +285,7 @@ export const createNewCollectionDialog = async (
       .radioButton()
       .withProps({
         name: "databaseThroughput",
-        label: "Manual",
+        label: "Manual (400 - unlimited RU/s)",
         value: "manual",
         checked: !DEFAULT_IS_AUTOSCALE,
       })
@@ -298,7 +312,7 @@ export const createNewCollectionDialog = async (
 
     const databaseThroughtputFormItem = {
       component: view.modelBuilder.divContainer().withItems([databaseThroughputRadioButtons]).component(),
-      title: "Database Throughput (autoscale)",
+      title: "Database Throughput",
       required: true,
     };
 
