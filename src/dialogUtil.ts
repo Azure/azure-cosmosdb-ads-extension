@@ -234,9 +234,151 @@ export const createNewCollectionDialog = async (
 
       if (isCreateNew) {
         existingContainer.addItem(newDatabaseNameInput);
-        existingContainer.addItem(isSharedThroughput);
       } else {
         existingContainer.addItem(existingDatabaseIdsDropdown);
+      }
+    };
+
+    const createRadioButtonsFormItem = (
+      groupName: string,
+      option1Label: string,
+      option2Label: string,
+      isOption1Checked: boolean,
+      onOption1ChangeCheckState: (isChecked: boolean) => void,
+      title: string
+    ): azdata.FormComponent => {
+      const option1RadioButton = view.modelBuilder
+        .radioButton()
+        .withProps({
+          name: groupName,
+          label: option1Label,
+          value: option1Label,
+          checked: isOption1Checked,
+        })
+        .component();
+
+      option1RadioButton.onDidChangeCheckedState(onOption1ChangeCheckState);
+
+      const option2RadioButton = view.modelBuilder
+        .radioButton()
+        .withProps({
+          name: groupName,
+          label: option2Label,
+          value: option2Label,
+          checked: !isOption1Checked,
+        })
+        .component();
+
+      const radioButtonsContainer: azdata.FlexContainer = view.modelBuilder
+        .flexContainer()
+        .withLayout({ flexFlow: "row" })
+        .withItems([option1RadioButton, option2RadioButton])
+        .withProps({ ariaRole: "radiogroup" })
+        .component();
+
+      return {
+        component: radioButtonsContainer,
+        title,
+        required: true,
+      };
+    };
+
+    const renderModel = () => {
+      // Clear form
+      try {
+        formBuilder.removeFormItem(databaseNameFormItem);
+        formBuilder.removeFormItem(isSharedThroughputFormItem);
+        formBuilder.removeFormItem(databaseThroughputRadioButtonsFormItem);
+        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
+        formBuilder.removeFormItem(manualThroughputFormItem);
+        formBuilder.removeFormItem(separatorFormItem);
+        formBuilder.removeFormItem(collectionNameInputFormItem);
+        formBuilder.removeFormItem(collectionShardingRadioButtonsFormItem);
+        formBuilder.removeFormItem(shardKeyInputFormItem);
+      } catch (e) {
+        // Ignore errors. We might remove an item that wasn't added
+      }
+
+      formBuilder.addFormItem(databaseNameFormItem, {
+        titleFontSize: 14,
+        info: "A database is analogous to a namespace. It is the unit of management for a set of collections.",
+      });
+
+      if (model.isCreateNewDatabase) {
+        formBuilder.addFormItem(isSharedThroughputFormItem, {
+          titleFontSize: 14,
+          info: "Throughput configured at the database level will be shared across all collections within the database.",
+        });
+
+        databaseThroughputRadioButtonsFormItem = createRadioButtonsFormItem(
+          "databaseThroughput",
+          "Autoscale",
+          "Manual (400 - unlimited RU/s)",
+          model.newDatabaseInfo.isAutoScale,
+          (isAutoScale: boolean) => {
+            if (!model.newDatabaseInfo || model.newDatabaseInfo.isAutoScale === isAutoScale) {
+              return;
+            }
+
+            model.newDatabaseInfo.isAutoScale = isAutoScale;
+            renderModel();
+          },
+          "Database Throughput"
+        );
+
+        formBuilder.addFormItem(databaseThroughputRadioButtonsFormItem, {
+          titleFontSize: 14,
+          info: "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage.",
+        });
+
+        if (model.newDatabaseInfo.isAutoScale) {
+          formBuilder.addFormItem(autoscaleMaxThroughputFormItem, {
+            titleFontSize: 14,
+            componentHeight: 80,
+          });
+        } else {
+          formBuilder.addFormItem(manualThroughputFormItem, {
+            titleFontSize: 14,
+            componentHeight: 80,
+          });
+        }
+      }
+
+      formBuilder.addFormItem(separatorFormItem, {
+        titleFontSize: 14,
+        componentHeight: 40,
+      });
+
+      formBuilder.addFormItem(collectionNameInputFormItem, {
+        titleFontSize: 14,
+        info: "Unique identifier for the collection and used for id-based routing through REST and all SDKs.",
+      });
+
+      collectionShardingRadioButtonsFormItem = createRadioButtonsFormItem(
+        "collectionSharding",
+        "Unsharded",
+        "Sharded",
+        !model.isSharded,
+        (isUnsharded: boolean) => {
+          if (model.isSharded !== isUnsharded) {
+            return;
+          }
+          model.isSharded = !isUnsharded;
+          renderModel();
+        },
+        "Shard key"
+      );
+
+      formBuilder.addFormItem(collectionShardingRadioButtonsFormItem, {
+        titleFontSize: 14,
+        info: "Sharded collections split your data across many replica sets (shards) to achieve unlimited scalability. Sharded collections require choosing a shard key (field) to evenly distribute your data.",
+      });
+
+      if (model.isSharded) {
+        formBuilder.addFormItem(shardKeyInputFormItem, {
+          titleFontSize: 14,
+          info: "The shard key (field) is used to split your data across many replica sets (shards) to achieve unlimited scalability. It’s critical to choose a field that will evenly distribute your data.",
+        });
       }
     };
 
@@ -260,6 +402,11 @@ export const createNewCollectionDialog = async (
       (isSharedThroughput) => (model.newDatabaseInfo.isShareDatabaseThroughput = isSharedThroughput)
     );
 
+    const isSharedThroughputFormItem = {
+      component: isSharedThroughput,
+      title: "Provision throughput",
+    };
+
     const existingDatabaseIdsDropdown = view.modelBuilder
       .dropDown()
       .withProps({
@@ -271,57 +418,14 @@ export const createNewCollectionDialog = async (
       existingDatabaseIdsDropdown.value = model.existingDatabaseId;
     }
 
-    const autoScaleRadioButton = view.modelBuilder
-      .radioButton()
-      .withProps({
-        name: "databaseThroughput",
-        label: "Autoscale",
-        value: "autoscale",
-        checked: DEFAULT_IS_AUTOSCALE,
-      })
-      .component();
-
-    const manualThroughputRadioButton = view.modelBuilder
-      .radioButton()
-      .withProps({
-        name: "databaseThroughput",
-        label: "Manual (400 - unlimited RU/s)",
-        value: "manual",
-        checked: !DEFAULT_IS_AUTOSCALE,
-      })
-      .component();
-
-    const databaseThroughputRadioButtons: azdata.FlexContainer = view.modelBuilder
-      .flexContainer()
-      .withLayout({ flexFlow: "row" })
-      .withItems([autoScaleRadioButton, manualThroughputRadioButton])
-      .withProps({ ariaRole: "radiogroup" })
-      .component();
-
-    autoScaleRadioButton.onDidChangeCheckedState((isAutoScale: boolean) => {
-      model.newDatabaseInfo && (model.newDatabaseInfo.isAutoScale = isAutoScale);
-
-      if (isAutoScale) {
-        formBuilder.removeFormItem(manualThroughputFormItem);
-        formBuilder.insertFormItem(autoscaleMaxThroughputFormItem, 3);
-      } else {
-        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
-        formBuilder.insertFormItem(manualThroughputFormItem, 3);
-      }
-    });
-
-    const databaseThroughtputFormItem = {
-      component: view.modelBuilder.divContainer().withItems([databaseThroughputRadioButtons]).component(),
-      title: "Database Throughput",
-      required: true,
-    };
+    let databaseThroughputRadioButtonsFormItem: azdata.FormComponent; // Assigned by render
 
     const autoscaleMaxThroughputInput = view.modelBuilder
       .inputBox()
       .withProps({
         required: true,
         multiline: false,
-        value: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS.toString(),
+        value: model.newDatabaseInfo.databaseMaxThroughputRUPS.toString(),
         placeHolder: "Database Max throughput",
       })
       .component();
@@ -340,7 +444,7 @@ export const createNewCollectionDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: DEFAULT_DATABASE_REQUIRED_RUPS.toString(),
+        value: model.newDatabaseInfo.databaseRequiredThroughputRUPS.toString(),
         placeHolder: "Database required throughput",
       })
       .component();
@@ -383,20 +487,13 @@ export const createNewCollectionDialog = async (
       .component();
 
     useExistingRadioButton.onDidChangeCheckedState(async (state) => {
+      if (model.isCreateNewDatabase === !state) {
+        return;
+      }
+
       model.isCreateNewDatabase = !state;
       updateNewDatabaseFormItem(databaseSectionContainer, !state);
-      if (state) {
-        formBuilder.removeFormItem(databaseThroughtputFormItem);
-        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
-        formBuilder.removeFormItem(manualThroughputFormItem);
-      } else {
-        formBuilder.insertFormItem(databaseThroughtputFormItem, 2);
-        if (autoScaleRadioButton.checked) {
-          formBuilder.insertFormItem(autoscaleMaxThroughputFormItem, 3);
-        } else {
-          formBuilder.insertFormItem(manualThroughputFormItem, 3);
-        }
-      }
+      renderModel();
     });
 
     const databaseSectionContainer = view.modelBuilder
@@ -413,7 +510,7 @@ export const createNewCollectionDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: collectionName && DEFAULT_NEW_COLLECTION_NAME,
+        value: collectionName ?? DEFAULT_NEW_COLLECTION_NAME,
         placeHolder: "Enter new collection name",
       })
       .component();
@@ -425,36 +522,9 @@ export const createNewCollectionDialog = async (
         name: "collectionSharding",
         label: "Unsharded",
         value: "unsharded",
-        checked: true,
+        checked: !model.isSharded,
       })
       .component();
-
-    const collectionShardedRadioButton = view.modelBuilder
-      .radioButton()
-      .withProps({
-        name: "collectionSharding",
-        label: "Sharded",
-        value: "sharded",
-        checked: false,
-      })
-      .component();
-
-    const collectionShardingRadioButtons: azdata.FlexContainer = view.modelBuilder
-      .flexContainer()
-      .withLayout({ flexFlow: "row" })
-      .withItems([collectionUnshardedRadioButton, collectionShardedRadioButton])
-      .withProps({ ariaRole: "radiogroup" })
-      .component();
-
-    collectionUnshardedRadioButton.onDidChangeCheckedState((isUnsharded: boolean) => {
-      model.isSharded = !isUnsharded;
-
-      if (isUnsharded) {
-        formBuilder.removeFormItem(shardKeyInputFormItem);
-      } else {
-        formBuilder.addFormItem(shardKeyInputFormItem); // Fortunately for now, we just add at the end
-      }
-    });
 
     const shardKeyInput = view.modelBuilder
       .inputBox()
@@ -481,35 +551,21 @@ export const createNewCollectionDialog = async (
       required: true,
     };
 
-    const formBuilder = view.modelBuilder.formContainer().withFormItems(
-      [
-        {
-          components: [databaseNameFormItem, databaseThroughtputFormItem, autoscaleMaxThroughputFormItem],
-          title: "",
-        },
-        {
-          component: view.modelBuilder.separator().component(),
-          title: undefined,
-        },
-        {
-          component: collectionNameInput,
-          title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
-          required: true,
-        },
-        {
-          component: collectionShardingRadioButtons,
-          title: "Sharding", // localize('createSessionDialog.selectTemplates', "Select session template:")
-          required: true,
-        },
-        {
-          component: collectionShardingRadioButtons,
-          title: undefined, // localize('createSessionDialog.selectTemplates', "Select session template:")
-          required: true,
-        },
-      ],
-      { titleFontSize: 14 }
-    );
+    const separatorFormItem = {
+      component: view.modelBuilder.separator().component(),
+      title: undefined,
+    };
 
+    const collectionNameInputFormItem = {
+      component: collectionNameInput,
+      title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
+      required: true,
+    };
+
+    let collectionShardingRadioButtonsFormItem: azdata.FormComponent;
+
+    const formBuilder = view.modelBuilder.formContainer();
+    renderModel();
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
 
     // Initialization
