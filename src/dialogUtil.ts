@@ -26,6 +26,51 @@ const DEFAULT_NEW_COLLECTION_NAME = "";
 const DEFAULT_IS_SHARDED = false;
 const DEFAULT_SHARD_KEY = "";
 
+const createRadioButtonsFormItem = (
+  view: azdata.ModelView,
+  groupName: string,
+  option1Label: string,
+  option2Label: string,
+  isOption1Checked: boolean,
+  onOption1ChangeCheckState: (isChecked: boolean) => void,
+  title: string
+): azdata.FormComponent => {
+  const option1RadioButton = view.modelBuilder
+    .radioButton()
+    .withProps({
+      name: groupName,
+      label: option1Label,
+      value: option1Label,
+      checked: isOption1Checked,
+    })
+    .component();
+
+  option1RadioButton.onDidChangeCheckedState(onOption1ChangeCheckState);
+
+  const option2RadioButton = view.modelBuilder
+    .radioButton()
+    .withProps({
+      name: groupName,
+      label: option2Label,
+      value: option2Label,
+      checked: !isOption1Checked,
+    })
+    .component();
+
+  const radioButtonsContainer: azdata.FlexContainer = view.modelBuilder
+    .flexContainer()
+    .withLayout({ flexFlow: "row" })
+    .withItems([option1RadioButton, option2RadioButton])
+    .withProps({ ariaRole: "radiogroup" })
+    .component();
+
+  return {
+    component: radioButtonsContainer,
+    title,
+    required: true,
+  };
+};
+
 export const createNewDatabaseDialog = async (
   onCreateClick: (data: NewDatabaseFormData) => void,
   databaseName?: string
@@ -46,6 +91,65 @@ export const createNewDatabaseDialog = async (
   dialog.cancelButton.label = "Cancel";
 
   dialog.registerContent(async (view) => {
+    const renderModel = () => {
+      // Clear form
+      try {
+        formBuilder.removeFormItem(newDatabaseNameInputFormItem);
+        formBuilder.removeFormItem(isSharedThroughputFormItem);
+        formBuilder.removeFormItem(databaseThroughputRadioButtonsFormItem);
+        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
+        formBuilder.removeFormItem(manualThroughputFormItem);
+      } catch (e) {
+        // Ignore errors. We might remove an item that wasn't added
+      }
+
+      formBuilder.addFormItem(newDatabaseNameInputFormItem, {
+        titleFontSize: 14,
+        info: "A database is analogous to a namespace. It is the unit of management for a set of collections.",
+      });
+
+      formBuilder.addFormItem(isSharedThroughputFormItem, {
+        titleFontSize: 14,
+        info: "Throughput configured at the database level will be shared across all collections within the database.",
+      });
+
+      if (model.isShareDatabaseThroughput) {
+        databaseThroughputRadioButtonsFormItem = createRadioButtonsFormItem(
+          view,
+          "databaseThroughput",
+          "Autoscale",
+          "Manual (400 - unlimited RU/s)",
+          model.isAutoScale,
+          (isAutoScale: boolean) => {
+            if (model.isAutoScale === isAutoScale) {
+              return;
+            }
+
+            model.isAutoScale = isAutoScale;
+            renderModel();
+          },
+          "Database Throughput"
+        );
+
+        formBuilder.addFormItem(databaseThroughputRadioButtonsFormItem, {
+          titleFontSize: 14,
+          info: "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage.",
+        });
+
+        if (model.isAutoScale) {
+          formBuilder.addFormItem(autoscaleMaxThroughputFormItem, {
+            titleFontSize: 14,
+            componentHeight: 80,
+          });
+        } else {
+          formBuilder.addFormItem(manualThroughputFormItem, {
+            titleFontSize: 14,
+            componentHeight: 80,
+          });
+        }
+      }
+    };
+
     // Create new database
     const newDatabaseNameInput = view.modelBuilder
       .inputBox()
@@ -57,57 +161,29 @@ export const createNewDatabaseDialog = async (
       })
       .component();
     newDatabaseNameInput.onTextChanged((text) => (model.newDatabaseName = text));
+    const newDatabaseNameInputFormItem: azdata.FormComponent = {
+      component: newDatabaseNameInput,
+      title: "Database Id",
+    };
 
     const isSharedThroughput = view.modelBuilder
       .checkBox()
       .withProps({ checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT, label: "Share throughput across collections" })
       .component();
-    isSharedThroughput.onChanged((isSharedThroughput) => (model.isShareDatabaseThroughput = isSharedThroughput));
-
-    const autoScaleRadioButton = view.modelBuilder
-      .radioButton()
-      .withProps({
-        name: "databaseThroughput",
-        label: "Autoscale",
-        value: "autoscale",
-        checked: DEFAULT_IS_AUTOSCALE,
-      })
-      .component();
-
-    const manualThroughputRadioButton = view.modelBuilder
-      .radioButton()
-      .withProps({
-        name: "databaseThroughput",
-        label: "Manual (400 - unlimited RU/s)",
-        value: "manual",
-        checked: !DEFAULT_IS_AUTOSCALE,
-      })
-      .component();
-
-    const databaseThroughputRadioButtons: azdata.FlexContainer = view.modelBuilder
-      .flexContainer()
-      .withLayout({ flexFlow: "row" })
-      .withItems([autoScaleRadioButton, manualThroughputRadioButton])
-      .withProps({ ariaRole: "radiogroup" })
-      .component();
-
-    autoScaleRadioButton.onDidChangeCheckedState((isAutoScale: boolean) => {
-      model.isAutoScale = isAutoScale;
-
-      if (isAutoScale) {
-        formBuilder.removeFormItem(manualThroughputFormItem);
-        formBuilder.insertFormItem(autoscaleMaxThroughputFormItem, 3);
-      } else {
-        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
-        formBuilder.insertFormItem(manualThroughputFormItem, 3);
+    isSharedThroughput.onChanged((isSharedThroughput) => {
+      if (model.isShareDatabaseThroughput === isSharedThroughput) {
+        return;
       }
-    });
 
-    const databaseThroughtputFormItem = {
-      component: view.modelBuilder.divContainer().withItems([databaseThroughputRadioButtons]).component(),
-      title: "Database Throughput",
-      required: true,
+      model.isShareDatabaseThroughput = isSharedThroughput;
+      renderModel();
+    });
+    const isSharedThroughputFormItem: azdata.FormComponent = {
+      component: isSharedThroughput,
+      title: "Provision throughput",
     };
+
+    let databaseThroughputRadioButtonsFormItem: azdata.FormComponent;
 
     const autoscaleMaxThroughputInput = view.modelBuilder
       .inputBox()
@@ -148,37 +224,8 @@ export const createNewDatabaseDialog = async (
     };
 
     const formBuilder = view.modelBuilder.formContainer();
-    formBuilder.addFormItem(
-      {
-        component: newDatabaseNameInput,
-        title: "Database Id",
-      },
-      {
-        titleFontSize: 14,
-        info: "A database is analogous to a namespace. It is the unit of management for a set of collections.",
-      }
-    );
-
-    formBuilder.addFormItem(
-      {
-        component: isSharedThroughput,
-        title: "Provision throughput",
-      },
-      {
-        titleFontSize: 14,
-        info: "Throughput configured at the database level will be shared across all collections within the database.",
-      }
-    );
-
-    formBuilder.addFormItem(databaseThroughtputFormItem, {
-      titleFontSize: 14,
-      info: "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage.",
-    });
-
-    formBuilder.addFormItem(autoscaleMaxThroughputFormItem, { titleFontSize: 14, info: "" });
-
     const formModel = formBuilder.withLayout({ width: "100%" }).component();
-
+    renderModel();
     await view.initializeModel(formModel);
   });
 
@@ -239,50 +286,6 @@ export const createNewCollectionDialog = async (
       }
     };
 
-    const createRadioButtonsFormItem = (
-      groupName: string,
-      option1Label: string,
-      option2Label: string,
-      isOption1Checked: boolean,
-      onOption1ChangeCheckState: (isChecked: boolean) => void,
-      title: string
-    ): azdata.FormComponent => {
-      const option1RadioButton = view.modelBuilder
-        .radioButton()
-        .withProps({
-          name: groupName,
-          label: option1Label,
-          value: option1Label,
-          checked: isOption1Checked,
-        })
-        .component();
-
-      option1RadioButton.onDidChangeCheckedState(onOption1ChangeCheckState);
-
-      const option2RadioButton = view.modelBuilder
-        .radioButton()
-        .withProps({
-          name: groupName,
-          label: option2Label,
-          value: option2Label,
-          checked: !isOption1Checked,
-        })
-        .component();
-
-      const radioButtonsContainer: azdata.FlexContainer = view.modelBuilder
-        .flexContainer()
-        .withLayout({ flexFlow: "row" })
-        .withItems([option1RadioButton, option2RadioButton])
-        .withProps({ ariaRole: "radiogroup" })
-        .component();
-
-      return {
-        component: radioButtonsContainer,
-        title,
-        required: true,
-      };
-    };
-
     const renderModel = () => {
       // Clear form
       try {
@@ -311,6 +314,7 @@ export const createNewCollectionDialog = async (
         });
 
         databaseThroughputRadioButtonsFormItem = createRadioButtonsFormItem(
+          view,
           "databaseThroughput",
           "Autoscale",
           "Manual (400 - unlimited RU/s)",
@@ -355,6 +359,7 @@ export const createNewCollectionDialog = async (
       });
 
       collectionShardingRadioButtonsFormItem = createRadioButtonsFormItem(
+        view,
         "collectionSharding",
         "Unsharded",
         "Sharded",
@@ -481,7 +486,7 @@ export const createNewCollectionDialog = async (
 
     const createDatabaseRadioButtonsModel: azdata.FlexContainer = view.modelBuilder
       .flexContainer()
-      .withLayout({ flexFlow: "row" })
+      .withLayout({ flexFlow: "row", height: 30 })
       .withItems([createNewRadioButton, useExistingRadioButton])
       .withProps({ ariaRole: "radiogroup" })
       .component();
