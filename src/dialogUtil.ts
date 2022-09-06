@@ -3,10 +3,17 @@ import * as azdata from "azdata";
 export interface NewCollectionFormData {
   isCreateNewDatabase: boolean;
   existingDatabaseId: string;
-  newDatabaseInfo: NewDatabaseFormData;
+  newDatabaseInfo: {
+    newDatabaseName: string;
+    isShareDatabaseThroughput: boolean;
+  };
   newCollectionName: string;
   isSharded: boolean;
   shardKey: string | undefined;
+  isProvisionCollectionThroughput: boolean;
+  isAutoScale: boolean;
+  maxThroughputRUPS: number;
+  requiredThroughputRUPS: number;
 }
 
 export interface NewDatabaseFormData {
@@ -20,11 +27,12 @@ export interface NewDatabaseFormData {
 const DEFAULT_NEW_DATABASE_NAME = "";
 const DEFAULT_IS_SHARED_DATABASE_THROUGHPUT = true;
 const DEFAULT_IS_AUTOSCALE = true;
-const DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS = 4000;
-const DEFAULT_DATABASE_REQUIRED_RUPS = 400;
+const DEFAULT_MAX_THROUGHPUT_RUPS = 4000;
+const DEFAULT_REQUIRED_RUPS = 400;
 const DEFAULT_NEW_COLLECTION_NAME = "";
 const DEFAULT_IS_SHARDED = false;
 const DEFAULT_SHARD_KEY = "";
+const DEFAULT_IS_PROVISION_COLL_THROUGHPUT = false;
 
 const createRadioButtonsFormItem = (
   view: azdata.ModelView,
@@ -81,8 +89,8 @@ export const createNewDatabaseDialog = async (
     newDatabaseName: DEFAULT_NEW_DATABASE_NAME,
     isShareDatabaseThroughput: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
     isAutoScale: DEFAULT_IS_AUTOSCALE,
-    databaseMaxThroughputRUPS: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS,
-    databaseRequiredThroughputRUPS: DEFAULT_DATABASE_REQUIRED_RUPS,
+    databaseMaxThroughputRUPS: DEFAULT_MAX_THROUGHPUT_RUPS,
+    databaseRequiredThroughputRUPS: DEFAULT_REQUIRED_RUPS,
   };
 
   dialog.okButton.onClick(() => onCreateClick(model));
@@ -190,7 +198,7 @@ export const createNewDatabaseDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS.toString(),
+        value: DEFAULT_MAX_THROUGHPUT_RUPS.toString(),
         placeHolder: "Database Max throughput",
       })
       .component();
@@ -209,7 +217,7 @@ export const createNewDatabaseDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: DEFAULT_DATABASE_REQUIRED_RUPS.toString(),
+        value: DEFAULT_REQUIRED_RUPS.toString(),
         placeHolder: "Database required throughput",
       })
       .component();
@@ -234,7 +242,7 @@ export const createNewDatabaseDialog = async (
 
 export const createNewCollectionDialog = async (
   onCreateClick: (data: NewCollectionFormData) => void,
-  existingDatabaseIds: string[],
+  existingDatabaseIds: { id: string; isSharedThroughput: boolean }[],
   databaseName?: string,
   collectionName?: string
 ): Promise<azdata.window.Dialog> => {
@@ -246,18 +254,19 @@ export const createNewCollectionDialog = async (
     newDatabaseInfo: {
       newDatabaseName: DEFAULT_NEW_DATABASE_NAME,
       isShareDatabaseThroughput: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
-      isAutoScale: DEFAULT_IS_AUTOSCALE,
-      databaseMaxThroughputRUPS: DEFAULT_DATABASE_MAX_THROUGHPUT_RUPS,
-      databaseRequiredThroughputRUPS: DEFAULT_DATABASE_REQUIRED_RUPS,
     },
     newCollectionName: collectionName ?? DEFAULT_NEW_COLLECTION_NAME,
     isSharded: DEFAULT_IS_SHARDED,
     shardKey: DEFAULT_SHARD_KEY,
+    isProvisionCollectionThroughput: DEFAULT_IS_PROVISION_COLL_THROUGHPUT,
+    isAutoScale: DEFAULT_IS_AUTOSCALE,
+    maxThroughputRUPS: DEFAULT_MAX_THROUGHPUT_RUPS,
+    requiredThroughputRUPS: DEFAULT_REQUIRED_RUPS,
   };
 
   // If the provided databaseName exists already, we're not creating a new database
   if (databaseName) {
-    model.isCreateNewDatabase = existingDatabaseIds.indexOf(databaseName) === -1;
+    model.isCreateNewDatabase = existingDatabaseIds.find((d) => d.id === databaseName) === undefined;
     if (model.isCreateNewDatabase) {
       model.newDatabaseInfo.newDatabaseName;
     } else {
@@ -287,11 +296,47 @@ export const createNewCollectionDialog = async (
     };
 
     const renderModel = () => {
+      const addThroughputInputsToForm = () => {
+        throughputRadioButtonsFormItem = createRadioButtonsFormItem(
+          view,
+          "databaseThroughput",
+          "Autoscale",
+          "Manual (400 - unlimited RU/s)",
+          model.isAutoScale,
+          (isAutoScale: boolean) => {
+            if (!model.newDatabaseInfo || model.isAutoScale === isAutoScale) {
+              return;
+            }
+
+            model.isAutoScale = isAutoScale;
+            renderModel();
+          },
+          "Database Throughput"
+        );
+
+        formBuilder.addFormItem(throughputRadioButtonsFormItem, {
+          titleFontSize: 14,
+          info: "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage.",
+        });
+
+        if (model.isAutoScale) {
+          formBuilder.addFormItem(autoscaleMaxThroughputFormItem, {
+            titleFontSize: 14,
+            componentHeight: 80,
+          });
+        } else {
+          formBuilder.addFormItem(manualThroughputFormItem, {
+            titleFontSize: 14,
+            componentHeight: 80,
+          });
+        }
+      };
+
       // Clear form
       try {
         formBuilder.removeFormItem(databaseNameFormItem);
         formBuilder.removeFormItem(isSharedThroughputFormItem);
-        formBuilder.removeFormItem(databaseThroughputRadioButtonsFormItem);
+        formBuilder.removeFormItem(throughputRadioButtonsFormItem);
         formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
         formBuilder.removeFormItem(manualThroughputFormItem);
         formBuilder.removeFormItem(separatorFormItem);
@@ -313,38 +358,8 @@ export const createNewCollectionDialog = async (
           info: "Throughput configured at the database level will be shared across all collections within the database.",
         });
 
-        databaseThroughputRadioButtonsFormItem = createRadioButtonsFormItem(
-          view,
-          "databaseThroughput",
-          "Autoscale",
-          "Manual (400 - unlimited RU/s)",
-          model.newDatabaseInfo.isAutoScale,
-          (isAutoScale: boolean) => {
-            if (!model.newDatabaseInfo || model.newDatabaseInfo.isAutoScale === isAutoScale) {
-              return;
-            }
-
-            model.newDatabaseInfo.isAutoScale = isAutoScale;
-            renderModel();
-          },
-          "Database Throughput"
-        );
-
-        formBuilder.addFormItem(databaseThroughputRadioButtonsFormItem, {
-          titleFontSize: 14,
-          info: "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage.",
-        });
-
-        if (model.newDatabaseInfo.isAutoScale) {
-          formBuilder.addFormItem(autoscaleMaxThroughputFormItem, {
-            titleFontSize: 14,
-            componentHeight: 80,
-          });
-        } else {
-          formBuilder.addFormItem(manualThroughputFormItem, {
-            titleFontSize: 14,
-            componentHeight: 80,
-          });
+        if (model.newDatabaseInfo.isShareDatabaseThroughput) {
+          addThroughputInputsToForm();
         }
       }
 
@@ -385,6 +400,16 @@ export const createNewCollectionDialog = async (
           info: "The shard key (field) is used to split your data across many replica sets (shards) to achieve unlimited scalability. It’s critical to choose a field that will evenly distribute your data.",
         });
       }
+
+      if (model.isCreateNewDatabase) {
+        if (!model.newDatabaseInfo.isShareDatabaseThroughput) {
+          addThroughputInputsToForm();
+        }
+      } else {
+        if (model.isProvisionCollectionThroughput) {
+          addThroughputInputsToForm();
+        }
+      }
     };
 
     // Create new database
@@ -403,9 +428,15 @@ export const createNewCollectionDialog = async (
       .checkBox()
       .withProps({ checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT, label: "Share throughput across collections" })
       .component();
-    isSharedThroughput.onChanged(
-      (isSharedThroughput) => (model.newDatabaseInfo.isShareDatabaseThroughput = isSharedThroughput)
-    );
+    isSharedThroughput.onChanged((isSharedThroughput) => {
+      if (model.newDatabaseInfo.isShareDatabaseThroughput === isSharedThroughput) {
+        return;
+      }
+
+      model.newDatabaseInfo.isShareDatabaseThroughput = isSharedThroughput;
+      model.isProvisionCollectionThroughput = !model.newDatabaseInfo.isShareDatabaseThroughput;
+      renderModel();
+    });
 
     const isSharedThroughputFormItem = {
       component: isSharedThroughput,
@@ -415,27 +446,37 @@ export const createNewCollectionDialog = async (
     const existingDatabaseIdsDropdown = view.modelBuilder
       .dropDown()
       .withProps({
-        values: existingDatabaseIds,
+        values: existingDatabaseIds.map((d) => d.id),
       })
       .component();
-    existingDatabaseIdsDropdown.onValueChanged((databaseId) => (model.existingDatabaseId = databaseId.selected));
+    existingDatabaseIdsDropdown.onValueChanged((databaseId) => {
+      if (model.existingDatabaseId === databaseId.selected) {
+        return;
+      }
+
+      model.existingDatabaseId = databaseId.selected;
+      const dbInfo = existingDatabaseIds.find((d) => d.id === model.existingDatabaseId);
+      model.isProvisionCollectionThroughput = dbInfo === undefined || !dbInfo.isSharedThroughput;
+
+      renderModel();
+    });
     if (!model.isCreateNewDatabase) {
       existingDatabaseIdsDropdown.value = model.existingDatabaseId;
     }
 
-    let databaseThroughputRadioButtonsFormItem: azdata.FormComponent; // Assigned by render
+    let throughputRadioButtonsFormItem: azdata.FormComponent; // Assigned by render
 
     const autoscaleMaxThroughputInput = view.modelBuilder
       .inputBox()
       .withProps({
         required: true,
         multiline: false,
-        value: model.newDatabaseInfo.databaseMaxThroughputRUPS.toString(),
+        value: model.maxThroughputRUPS.toString(),
         placeHolder: "Database Max throughput",
       })
       .component();
     autoscaleMaxThroughputInput.onTextChanged(
-      (text) => !isNaN(text) && (model.newDatabaseInfo.databaseMaxThroughputRUPS = Number.parseInt(text))
+      (text) => !isNaN(text) && (model.maxThroughputRUPS = Number.parseInt(text))
     );
 
     const autoscaleMaxThroughputFormItem: azdata.FormComponent = {
@@ -449,12 +490,12 @@ export const createNewCollectionDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: model.newDatabaseInfo.databaseRequiredThroughputRUPS.toString(),
+        value: model.requiredThroughputRUPS.toString(),
         placeHolder: "Database required throughput",
       })
       .component();
     manualThroughputInput.onTextChanged(
-      (text) => !isNaN(text) && (model.newDatabaseInfo.databaseRequiredThroughputRUPS = Number.parseInt(text))
+      (text) => !isNaN(text) && (model.requiredThroughputRUPS = Number.parseInt(text))
     );
 
     const manualThroughputFormItem: azdata.FormComponent = {

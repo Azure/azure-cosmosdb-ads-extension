@@ -1298,16 +1298,18 @@ const createMongoDatabaseWithArm = async (
         },
       };
 
-      if (inputData.isAutoScale) {
-        createDbParams.options = {
-          autoscaleSettings: {
-            maxThroughput: inputData.databaseMaxThroughputRUPS,
-          },
-        };
-      } else {
-        createDbParams.options = {
-          throughput: inputData.databaseRequiredThroughputRUPS,
-        };
+      if (inputData.isShareDatabaseThroughput) {
+        if (inputData.isAutoScale) {
+          createDbParams.options = {
+            autoscaleSettings: {
+              maxThroughput: inputData.databaseMaxThroughputRUPS,
+            },
+          };
+        } else {
+          createDbParams.options = {
+            throughput: inputData.databaseRequiredThroughputRUPS,
+          };
+        }
       }
 
       try {
@@ -1345,57 +1347,66 @@ const createMongoDatabaseAndCollectionWithArm = async (
   // TODO: check resourceGroup here
   const { resourceGroup } = parsedAzureResourceId(azureResourceId);
 
-  const existingDatabases = (await client.mongoDBResources.listMongoDBDatabases(resourceGroup, cosmosDbAccountName))
-    .filter((db) => db.resource)
-    .map((db) => db.resource!.id);
+  const existingDatabases = (
+    await retrieveMongoDbDatabasesInfoFromArm(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName)
+  ).map((databasesInfo) => ({
+    id: databasesInfo.name,
+    isSharedThroughput: !!databasesInfo.throughputSetting,
+  }));
 
   return new Promise(async (resolve, reject) => {
     const dialog = await createNewCollectionDialog(
       async (inputData: NewCollectionFormData) => {
-        const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
-          resource: {
-            id: inputData.newDatabaseInfo.newDatabaseName,
-          },
-        };
-
-        if (inputData.isCreateNewDatabase) {
-          if (inputData.newDatabaseInfo.isAutoScale) {
-            createDbParams.options = {
-              autoscaleSettings: {
-                maxThroughput: inputData.newDatabaseInfo.databaseMaxThroughputRUPS,
-              },
-            };
-          } else {
-            createDbParams.options = {
-              throughput: inputData.newDatabaseInfo.databaseRequiredThroughputRUPS,
-            };
-          }
-        }
-
         try {
           showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB database"));
           let newDatabaseName;
           if (inputData.isCreateNewDatabase) {
-            const dbresult = await client.mongoDBResources
-              .createUpdateMongoDBDatabase(
-                resourceGroup,
-                cosmosDbAccountName,
-                inputData.newDatabaseInfo.newDatabaseName,
-                createDbParams
-              )
-              .catch((e) => reject(e));
+            // If database is shared throughput, we must create it separately, otherwise the
+            // createUpdateMongoDBCollection() call will create a plain database for us
+            if (inputData.newDatabaseInfo.isShareDatabaseThroughput) {
+              const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
+                resource: {
+                  id: inputData.newDatabaseInfo.newDatabaseName,
+                },
+              };
 
-            if (!dbresult || !dbresult.resource?.id) {
-              reject("Could not create database");
-              return;
+              // TODO Test if database shared throughput
+
+              if (inputData.isAutoScale) {
+                createDbParams.options = {
+                  autoscaleSettings: {
+                    maxThroughput: inputData.maxThroughputRUPS,
+                  },
+                };
+              } else {
+                createDbParams.options = {
+                  throughput: inputData.requiredThroughputRUPS,
+                };
+              }
+
+              const dbresult = await client.mongoDBResources
+                .createUpdateMongoDBDatabase(
+                  resourceGroup,
+                  cosmosDbAccountName,
+                  inputData.newDatabaseInfo.newDatabaseName,
+                  createDbParams
+                )
+                .catch((e) => reject(e));
+
+              if (!dbresult || !dbresult.resource?.id) {
+                reject("Could not create database");
+                return;
+              }
+
+              newDatabaseName = dbresult.resource.id;
+            } else {
+              newDatabaseName = inputData.newDatabaseInfo.newDatabaseName;
             }
-
-            newDatabaseName = dbresult.resource.id;
           } else {
             newDatabaseName = inputData.existingDatabaseId;
           }
 
-          if (inputData.newCollectionName !== undefined) {
+          if (inputData.newCollectionName !== undefined && newDatabaseName !== undefined) {
             const createCollParams: MongoDBCollectionCreateUpdateParameters = {
               resource: {
                 id: inputData.newCollectionName,
@@ -1404,6 +1415,20 @@ const createMongoDatabaseAndCollectionWithArm = async (
 
             if (inputData.isSharded) {
               createCollParams.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+            }
+
+            if (inputData.isProvisionCollectionThroughput) {
+              if (inputData.isAutoScale) {
+                createCollParams.options = {
+                  autoscaleSettings: {
+                    maxThroughput: inputData.maxThroughputRUPS,
+                  },
+                };
+              } else {
+                createCollParams.options = {
+                  throughput: inputData.requiredThroughputRUPS,
+                };
+              }
             }
 
             showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
@@ -1422,9 +1447,9 @@ const createMongoDatabaseAndCollectionWithArm = async (
               return;
             }
             collectionName = collResult.resource.id;
+            resolve({ databaseName: newDatabaseName, collectionName });
           }
-
-          resolve({ databaseName: newDatabaseName, collectionName });
+          reject("Collection or database not specified");
         } catch (e) {
           reject(e);
         } finally {
