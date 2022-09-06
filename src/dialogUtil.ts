@@ -41,7 +41,8 @@ const createRadioButtonsFormItem = (
   option2Label: string,
   isOption1Checked: boolean,
   onOption1ChangeCheckState: (isChecked: boolean) => void,
-  title: string
+  title: string,
+  additionalComponent?: azdata.Component
 ): azdata.FormComponent => {
   const option1RadioButton = view.modelBuilder
     .radioButton()
@@ -72,11 +73,41 @@ const createRadioButtonsFormItem = (
     .withProps({ ariaRole: "radiogroup" })
     .component();
 
-  return {
-    component: radioButtonsContainer,
-    title,
-    required: true,
-  };
+  return additionalComponent
+    ? {
+        component: view.modelBuilder.divContainer().withItems([radioButtonsContainer, additionalComponent]).component(),
+        title,
+        required: true,
+      }
+    : {
+        component: radioButtonsContainer,
+        title,
+        required: true,
+      };
+};
+
+const createTextToCalculatorContainer = (view: azdata.ModelView) => {
+  return view.modelBuilder
+    .flexContainer()
+    .withLayout({ flexFlow: "row", justifyContent: "flex-start", alignItems: "center" })
+    .withItems(
+      [
+        view.modelBuilder
+          .text()
+          .withProps({ value: "Estimate your required RU/s with", CSSStyles: { marginTop: 0, marginBottom: 0 } })
+          .component(),
+        view.modelBuilder
+          .text()
+          .withProps({ value: "_", CSSStyles: { marginTop: 0, marginBottom: 0, opacity: 0 } })
+          .component(),
+        view.modelBuilder
+          .hyperlink()
+          .withProps({ label: "capacity calculator", url: "https://cosmos.azure.com/capacitycalculator/" })
+          .component(),
+      ],
+      { flex: "0 0 auto" }
+    )
+    .component();
 };
 
 export const createNewDatabaseDialog = async (
@@ -136,7 +167,8 @@ export const createNewDatabaseDialog = async (
             model.isAutoScale = isAutoScale;
             renderModel();
           },
-          "Database Throughput"
+          "Database Throughput",
+          createTextToCalculatorContainer(view)
         );
 
         formBuilder.addFormItem(databaseThroughputRadioButtonsFormItem, {
@@ -311,7 +343,8 @@ export const createNewCollectionDialog = async (
             model.isAutoScale = isAutoScale;
             renderModel();
           },
-          "Database Throughput"
+          "Database Throughput",
+          createTextToCalculatorContainer(view)
         );
 
         formBuilder.addFormItem(throughputRadioButtonsFormItem, {
