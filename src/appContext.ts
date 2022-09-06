@@ -602,21 +602,26 @@ const throughputSettingToString = (throughputSetting: ThroughputSettingsGetPrope
   }
 };
 
+/**
+ *
+ * @param client
+ * @param resourceGroupName
+ * @param accountName
+ * @param databaseName
+ * @param monitorARmClient
+ * @param resourceUri
+ * @param fetchThroughputOnly meant as an optimization
+ * @returns
+ */
 const retrieveMongoDbDatabaseInfoFromArm = async (
   client: CosmosDBManagementClient,
   resourceGroupName: string,
   accountName: string,
   databaseName: string,
   monitorARmClient: MonitorManagementClient,
-  resourceUri: string
+  resourceUri: string,
+  fetchThroughputOnly?: boolean
 ): Promise<ICosmosDbDatabaseInfo> => {
-  showStatusBarItem(localize("retrievingMongoDbCollection", "Retrieving mongodb collections..."));
-  const collections = await client.mongoDBResources.listMongoDBCollections(
-    resourceGroupName,
-    accountName,
-    databaseName
-  );
-
   let throughputSetting = "";
   let isAutoscale: boolean = false;
   let currentThroughput: number | undefined;
@@ -638,7 +643,25 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   } finally {
     hideStatusBarItem();
   }
+  if (fetchThroughputOnly) {
+    return {
+      name: databaseName,
+      nbCollections: undefined,
+      throughputSetting,
+      usageSizeKB: undefined,
+      isAutoscale,
+      currentThroughput,
+    };
+  }
 
+  showStatusBarItem(localize("retrievingMongoDbCollection", "Retrieving mongodb collections..."));
+  const collections = await client.mongoDBResources.listMongoDBCollections(
+    resourceGroupName,
+    accountName,
+    databaseName
+  );
+
+  showStatusBarItem(localize("retrievingMongoDbDatabaseThroughput", "Retrieving mongodb database usage..."));
   const usageSizeKB = await getUsageSizeInKB(monitorARmClient, resourceUri, databaseName);
 
   return {
@@ -655,11 +678,21 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
 export const getAccountName = (connectionInfo: azdata.ConnectionInfo): string => connectionInfo.options["server"];
 export const getAccountNameFromOptions = (connectionOptions: IConnectionOptions): string => connectionOptions.server;
 
+/**
+ *
+ * @param azureAccountId
+ * @param azureTenantId
+ * @param azureResourceId
+ * @param cosmosDbAccountName
+ * @param fetchThroughputOnly Optimization to not fetch everything
+ * @returns
+ */
 export const retrieveMongoDbDatabasesInfoFromArm = async (
   azureAccountId: string,
   azureTenantId: string,
   azureResourceId: string,
-  cosmosDbAccountName: string
+  cosmosDbAccountName: string,
+  fetchThroughputOnly?: boolean
 ): Promise<ICosmosDbDatabaseInfo[]> => {
   const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
@@ -687,7 +720,8 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
         cosmosDbAccountName,
         resource.name!,
         monitorArmClient,
-        azureResourceId
+        azureResourceId,
+        fetchThroughputOnly
       )
     );
 
@@ -1347,12 +1381,14 @@ const createMongoDatabaseAndCollectionWithArm = async (
   // TODO: check resourceGroup here
   const { resourceGroup } = parsedAzureResourceId(azureResourceId);
 
+  showStatusBarItem(localize("retrievingExistingDatabases", "Retrieving existing databases"));
   const existingDatabases = (
-    await retrieveMongoDbDatabasesInfoFromArm(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName)
+    await retrieveMongoDbDatabasesInfoFromArm(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName, true)
   ).map((databasesInfo) => ({
     id: databasesInfo.name,
     isSharedThroughput: !!databasesInfo.throughputSetting,
   }));
+  hideStatusBarItem();
 
   return new Promise(async (resolve, reject) => {
     const dialog = await createNewCollectionDialog(
@@ -1369,8 +1405,6 @@ const createMongoDatabaseAndCollectionWithArm = async (
                   id: inputData.newDatabaseInfo.newDatabaseName,
                 },
               };
-
-              // TODO Test if database shared throughput
 
               if (inputData.isAutoScale) {
                 createDbParams.options = {

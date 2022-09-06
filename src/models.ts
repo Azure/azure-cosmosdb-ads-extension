@@ -18,7 +18,7 @@ export interface ICosmosDbDatabaseAccountInfo {
 
 export interface ICosmosDbDatabaseInfo {
   name: string;
-  nbCollections: number;
+  nbCollections: number | undefined;
   throughputSetting: string;
   usageSizeKB: number | undefined;
   isAutoscale: boolean;
