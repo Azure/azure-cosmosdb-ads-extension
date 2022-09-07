@@ -1,4 +1,7 @@
 import * as azdata from "azdata";
+import * as nls from "vscode-nls";
+
+const localize = nls.loadMessageBundle();
 
 export interface NewCollectionFormData {
   isCreateNewDatabase: boolean;
@@ -94,7 +97,10 @@ const createTextToCalculatorContainer = (view: azdata.ModelView) => {
       [
         view.modelBuilder
           .text()
-          .withProps({ value: "Estimate your required RU/s with", CSSStyles: { marginTop: 0, marginBottom: 0 } })
+          .withProps({
+            value: localize("estimateYourRequiredRU", "Estimate your required RU/s with"),
+            CSSStyles: { marginTop: 0, marginBottom: 0 },
+          })
           .component(),
         view.modelBuilder
           .text()
@@ -102,7 +108,10 @@ const createTextToCalculatorContainer = (view: azdata.ModelView) => {
           .component(),
         view.modelBuilder
           .hyperlink()
-          .withProps({ label: "capacity calculator", url: "https://cosmos.azure.com/capacitycalculator/" })
+          .withProps({
+            label: localize("capacityCalculator", "capacity calculator"),
+            url: "https://cosmos.azure.com/capacitycalculator/",
+          })
           .component(),
       ],
       { flex: "0 0 auto" }
@@ -114,7 +123,7 @@ export const createNewDatabaseDialog = async (
   onCreateClick: (data: NewDatabaseFormData) => void,
   databaseName?: string
 ): Promise<azdata.window.Dialog> => {
-  const dialog = azdata.window.createModelViewDialog("New Database");
+  const dialog = azdata.window.createModelViewDialog(localize("newDatabase", "New Database"));
 
   const model: NewDatabaseFormData = {
     newDatabaseName: DEFAULT_NEW_DATABASE_NAME,
@@ -126,8 +135,8 @@ export const createNewDatabaseDialog = async (
 
   dialog.okButton.onClick(() => onCreateClick(model));
   dialog.cancelButton.onClick(() => {});
-  dialog.okButton.label = "Create";
-  dialog.cancelButton.label = "Cancel";
+  dialog.okButton.label = localize("create", "Create");
+  dialog.cancelButton.label = localize("cancel", "Cancel");
 
   dialog.registerContent(async (view) => {
     const renderModel = () => {
@@ -144,20 +153,26 @@ export const createNewDatabaseDialog = async (
 
       formBuilder.addFormItem(newDatabaseNameInputFormItem, {
         titleFontSize: 14,
-        info: "A database is analogous to a namespace. It is the unit of management for a set of collections.",
+        info: localize(
+          "databaseHelperInfo",
+          "A database is analogous to a namespace. It is the unit of management for a set of collections."
+        ),
       });
 
       formBuilder.addFormItem(isSharedThroughputFormItem, {
         titleFontSize: 14,
-        info: "Throughput configured at the database level will be shared across all collections within the database.",
+        info: localize(
+          "throughputHelperInfo",
+          "Throughput configured at the database level will be shared across all collections within the database."
+        ),
       });
 
       if (model.isShareDatabaseThroughput) {
         databaseThroughputRadioButtonsFormItem = createRadioButtonsFormItem(
           view,
           "databaseThroughput",
-          "Autoscale",
-          "Manual (400 - unlimited RU/s)",
+          localize("autoscale", "Autoscale"),
+          localize("manual400toUnlimited", "Manual (400 - unlimited RU/s)"),
           model.isAutoScale,
           (isAutoScale: boolean) => {
             if (model.isAutoScale === isAutoScale) {
@@ -167,13 +182,16 @@ export const createNewDatabaseDialog = async (
             model.isAutoScale = isAutoScale;
             renderModel();
           },
-          "Database Throughput",
+          localize("databaseThroughput", "Database Throughput"),
           createTextToCalculatorContainer(view)
         );
 
         formBuilder.addFormItem(databaseThroughputRadioButtonsFormItem, {
           titleFontSize: 14,
-          info: "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage.",
+          info: localize(
+            "througphputRequestHelperInfo",
+            "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage."
+          ),
         });
 
         if (model.isAutoScale) {
@@ -197,18 +215,21 @@ export const createNewDatabaseDialog = async (
         required: true,
         multiline: false,
         value: databaseName ?? DEFAULT_NEW_DATABASE_NAME,
-        placeHolder: "Enter new database name",
+        placeHolder: localize("enterNewDatabaseName", "Enter new database name"),
       })
       .component();
     newDatabaseNameInput.onTextChanged((text) => (model.newDatabaseName = text));
     const newDatabaseNameInputFormItem: azdata.FormComponent = {
       component: newDatabaseNameInput,
-      title: "Database Id",
+      title: localize("databaseId", "Database Id"),
     };
 
     const isSharedThroughput = view.modelBuilder
       .checkBox()
-      .withProps({ checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT, label: "Share throughput across collections" })
+      .withProps({
+        checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
+        label: localize("shareThroughputAcrossCollections", "Share throughput across collections"),
+      })
       .component();
     isSharedThroughput.onChanged((isSharedThroughput) => {
       if (model.isShareDatabaseThroughput === isSharedThroughput) {
@@ -220,7 +241,7 @@ export const createNewDatabaseDialog = async (
     });
     const isSharedThroughputFormItem: azdata.FormComponent = {
       component: isSharedThroughput,
-      title: "Provision throughput",
+      title: localize("provisionThroughput", "Provision throughput"),
     };
 
     let databaseThroughputRadioButtonsFormItem: azdata.FormComponent;
@@ -231,7 +252,7 @@ export const createNewDatabaseDialog = async (
         required: true,
         multiline: false,
         value: DEFAULT_MAX_THROUGHPUT_RUPS.toString(),
-        placeHolder: "Database Max throughput",
+        placeHolder: localize("databaseMaxThroughput", "Database Max throughput"),
       })
       .component();
     autoscaleMaxThroughputInput.onTextChanged(
@@ -240,7 +261,7 @@ export const createNewDatabaseDialog = async (
 
     const autoscaleMaxThroughputFormItem: azdata.FormComponent = {
       component: autoscaleMaxThroughputInput,
-      title: "Database Max RU/s",
+      title: localize("databaseMaxRu", "Database Max RU/s"),
       required: true,
     };
 
@@ -250,7 +271,7 @@ export const createNewDatabaseDialog = async (
         required: true,
         multiline: false,
         value: DEFAULT_REQUIRED_RUPS.toString(),
-        placeHolder: "Database required throughput",
+        placeHolder: localize("databaseRequiredThroughput", "Database required throughput"),
       })
       .component();
     manualThroughputInput.onTextChanged(
@@ -259,7 +280,7 @@ export const createNewDatabaseDialog = async (
 
     const manualThroughputFormItem: azdata.FormComponent = {
       component: manualThroughputInput,
-      title: "Database Required RU/s",
+      title: localize("databaseRequiredRu", "Database Required RU/s"),
       required: true,
     };
 
@@ -278,7 +299,7 @@ export const createNewCollectionDialog = async (
   databaseName?: string,
   collectionName?: string
 ): Promise<azdata.window.Dialog> => {
-  const dialog = azdata.window.createModelViewDialog("New Collection");
+  const dialog = azdata.window.createModelViewDialog(localize("newCollection", "New Collection"));
 
   const model: NewCollectionFormData = {
     isCreateNewDatabase: true,
@@ -308,8 +329,8 @@ export const createNewCollectionDialog = async (
 
   dialog.okButton.onClick(() => onCreateClick(model));
   dialog.cancelButton.onClick(() => {});
-  dialog.okButton.label = "Create";
-  dialog.cancelButton.label = "Cancel";
+  dialog.okButton.label = localize("create", "Create");
+  dialog.cancelButton.label = localize("cancel", "Cancel");
 
   dialog.registerContent(async (view) => {
     /**
@@ -332,8 +353,8 @@ export const createNewCollectionDialog = async (
         throughputRadioButtonsFormItem = createRadioButtonsFormItem(
           view,
           "databaseThroughput",
-          "Autoscale",
-          "Manual (400 - unlimited RU/s)",
+          localize("autoscale", "Autoscale"),
+          localize("manual400toUnlimited", "Manual (400 - unlimited RU/s)"),
           model.isAutoScale,
           (isAutoScale: boolean) => {
             if (!model.newDatabaseInfo || model.isAutoScale === isAutoScale) {
@@ -343,13 +364,16 @@ export const createNewCollectionDialog = async (
             model.isAutoScale = isAutoScale;
             renderModel();
           },
-          "Database Throughput",
+          localize("databaseThroughput", "Database Throughput"),
           createTextToCalculatorContainer(view)
         );
 
         formBuilder.addFormItem(throughputRadioButtonsFormItem, {
           titleFontSize: 14,
-          info: "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage.",
+          info: localize(
+            "througphputRequestHelperInfo",
+            "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage."
+          ),
         });
 
         if (model.isAutoScale) {
@@ -382,13 +406,19 @@ export const createNewCollectionDialog = async (
 
       formBuilder.addFormItem(databaseNameFormItem, {
         titleFontSize: 14,
-        info: "A database is analogous to a namespace. It is the unit of management for a set of collections.",
+        info: localize(
+          "databaseHelperInfo",
+          "A database is analogous to a namespace. It is the unit of management for a set of collections."
+        ),
       });
 
       if (model.isCreateNewDatabase) {
         formBuilder.addFormItem(isSharedThroughputFormItem, {
           titleFontSize: 14,
-          info: "Throughput configured at the database level will be shared across all collections within the database.",
+          info: localize(
+            "throughputHelperInfo",
+            "Throughput configured at the database level will be shared across all collections within the database."
+          ),
         });
 
         if (model.newDatabaseInfo.isShareDatabaseThroughput) {
@@ -403,14 +433,17 @@ export const createNewCollectionDialog = async (
 
       formBuilder.addFormItem(collectionNameInputFormItem, {
         titleFontSize: 14,
-        info: "Unique identifier for the collection and used for id-based routing through REST and all SDKs.",
+        info: localize(
+          "collectionHelperInfo",
+          "Unique identifier for the collection and used for id-based routing through REST and all SDKs."
+        ),
       });
 
       collectionShardingRadioButtonsFormItem = createRadioButtonsFormItem(
         view,
         "collectionSharding",
-        "Unsharded",
-        "Sharded",
+        localize("unsharded", "Unsharded"),
+        localize("sharded", "Sharded"),
         !model.isSharded,
         (isUnsharded: boolean) => {
           if (model.isSharded !== isUnsharded) {
@@ -419,18 +452,24 @@ export const createNewCollectionDialog = async (
           model.isSharded = !isUnsharded;
           renderModel();
         },
-        "Shard key"
+        localize("shardKey", "Shard key")
       );
 
       formBuilder.addFormItem(collectionShardingRadioButtonsFormItem, {
         titleFontSize: 14,
-        info: "Sharded collections split your data across many replica sets (shards) to achieve unlimited scalability. Sharded collections require choosing a shard key (field) to evenly distribute your data.",
+        info: localize(
+          "shardKeyTitleInfoHelper",
+          "Sharded collections split your data across many replica sets (shards) to achieve unlimited scalability. Sharded collections require choosing a shard key (field) to evenly distribute your data."
+        ),
       });
 
       if (model.isSharded) {
         formBuilder.addFormItem(shardKeyInputFormItem, {
           titleFontSize: 14,
-          info: "The shard key (field) is used to split your data across many replica sets (shards) to achieve unlimited scalability. It’s critical to choose a field that will evenly distribute your data.",
+          info: localize(
+            "shardKeyInputInfoHelper",
+            "The shard key (field) is used to split your data across many replica sets (shards) to achieve unlimited scalability. It’s critical to choose a field that will evenly distribute your data."
+          ),
         });
       }
 
@@ -452,14 +491,17 @@ export const createNewCollectionDialog = async (
         required: true,
         multiline: false,
         value: databaseName ?? DEFAULT_NEW_DATABASE_NAME,
-        placeHolder: "Enter new database name",
+        placeHolder: localize("enterNewDatabaseName", "Enter new database name"),
       })
       .component();
     newDatabaseNameInput.onTextChanged((text) => (model.newDatabaseInfo.newDatabaseName = text));
 
     const isSharedThroughput = view.modelBuilder
       .checkBox()
-      .withProps({ checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT, label: "Share throughput across collections" })
+      .withProps({
+        checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
+        label: localize("shareThroughputAcrossCollections", "Share throughput across collections"),
+      })
       .component();
     isSharedThroughput.onChanged((isSharedThroughput) => {
       if (model.newDatabaseInfo.isShareDatabaseThroughput === isSharedThroughput) {
@@ -473,7 +515,7 @@ export const createNewCollectionDialog = async (
 
     const isSharedThroughputFormItem = {
       component: isSharedThroughput,
-      title: "Provision throughput",
+      title: localize("provisionThroughput", "Provision throughput"),
     };
 
     const existingDatabaseIdsDropdown = view.modelBuilder
@@ -505,7 +547,7 @@ export const createNewCollectionDialog = async (
         required: true,
         multiline: false,
         value: model.maxThroughputRUPS.toString(),
-        placeHolder: "Database Max throughput",
+        placeHolder: localize("databaseMaxThroughput", "Database Max throughput"),
       })
       .component();
     autoscaleMaxThroughputInput.onTextChanged(
@@ -514,7 +556,7 @@ export const createNewCollectionDialog = async (
 
     const autoscaleMaxThroughputFormItem: azdata.FormComponent = {
       component: autoscaleMaxThroughputInput,
-      title: "Database Max RU/s",
+      title: localize("databaseMaxRu", "Database Max RU/s"),
       required: true,
     };
 
@@ -524,7 +566,7 @@ export const createNewCollectionDialog = async (
         required: true,
         multiline: false,
         value: model.requiredThroughputRUPS.toString(),
-        placeHolder: "Database required throughput",
+        placeHolder: localize("databaseRequiredThroughput", "Database required throughput"),
       })
       .component();
     manualThroughputInput.onTextChanged(
@@ -533,7 +575,7 @@ export const createNewCollectionDialog = async (
 
     const manualThroughputFormItem: azdata.FormComponent = {
       component: manualThroughputInput,
-      title: "Database Required RU/s",
+      title: localize("databaseRequiredRu", "Database Required RU/s"),
       required: true,
     };
 
@@ -542,7 +584,7 @@ export const createNewCollectionDialog = async (
       .radioButton()
       .withProps({
         name: "createNewOrExisting",
-        label: "Create New",
+        label: localize("createNew", "Create New"),
         value: "new",
         checked: model.isCreateNewDatabase,
       })
@@ -552,7 +594,7 @@ export const createNewCollectionDialog = async (
       .radioButton()
       .withProps({
         name: "createNewOrExisting",
-        label: "Use existing",
+        label: localize("useExisting", "Use existing"),
         value: "existing",
         checked: !model.isCreateNewDatabase,
       })
@@ -590,20 +632,10 @@ export const createNewCollectionDialog = async (
         required: true,
         multiline: false,
         value: collectionName ?? DEFAULT_NEW_COLLECTION_NAME,
-        placeHolder: "Enter new collection name",
+        placeHolder: localize("enterNewCollectionName", "Enter new collection name"),
       })
       .component();
     collectionNameInput.onTextChanged((text) => (model.newCollectionName = text));
-
-    const collectionUnshardedRadioButton = view.modelBuilder
-      .radioButton()
-      .withProps({
-        name: "collectionSharding",
-        label: "Unsharded",
-        value: "unsharded",
-        checked: !model.isSharded,
-      })
-      .component();
 
     const shardKeyInput = view.modelBuilder
       .inputBox()
@@ -618,7 +650,7 @@ export const createNewCollectionDialog = async (
 
     const shardKeyInputFormItem: azdata.FormComponent = {
       component: shardKeyInput,
-      title: "Shard key",
+      title: localize("shardKey", "Shard key"),
     };
 
     const databaseNameFormItem: azdata.FormComponent = {
@@ -626,7 +658,7 @@ export const createNewCollectionDialog = async (
         .divContainer()
         .withItems([createDatabaseRadioButtonsModel, databaseSectionContainer])
         .component(),
-      title: "Database Name", // localize('createSessionDialog.selectTemplates', "Select session template:")
+      title: localize("databaseName", "Database Name"),
       required: true,
     };
 
@@ -637,7 +669,7 @@ export const createNewCollectionDialog = async (
 
     const collectionNameInputFormItem = {
       component: collectionNameInput,
-      title: "Enter Collection name", // localize('createSessionDialog.selectTemplates', "Select session template:")
+      title: localize("enterCollectionName", "Enter Collection name"),
       required: true,
     };
 

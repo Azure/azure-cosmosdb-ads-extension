@@ -11,7 +11,6 @@ import {
   MongoDBCollectionCreateUpdateParameters,
   MongoDBDatabaseCreateUpdateParameters,
   ThroughputSettingsGetPropertiesResource,
-  ThroughputSettingsResource,
 } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
@@ -1428,7 +1427,7 @@ const createMongoDatabaseAndCollectionWithArm = async (
                 .catch((e) => reject(e));
 
               if (!dbresult || !dbresult.resource?.id) {
-                reject("Could not create database");
+                reject(localize("failedCreatingDatabase", "Failed creating database"));
                 return;
               }
 
@@ -1477,13 +1476,13 @@ const createMongoDatabaseAndCollectionWithArm = async (
               .catch((e) => reject(e));
 
             if (!collResult || !collResult.resource?.id) {
-              reject("Could not create collection");
+              reject(localize("failedCreatingCollection", "Failed creating collection"));
               return;
             }
             collectionName = collResult.resource.id;
             resolve({ databaseName: newDatabaseName, collectionName });
           }
-          reject("Collection or database not specified");
+          reject(localize("collectionOrDatabaseNotSpecified", "Collection or database not specified"));
         } catch (e) {
           reject(e);
         } finally {
