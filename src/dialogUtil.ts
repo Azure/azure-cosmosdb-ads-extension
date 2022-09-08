@@ -31,11 +31,76 @@ const DEFAULT_NEW_DATABASE_NAME = "";
 const DEFAULT_IS_SHARED_DATABASE_THROUGHPUT = true;
 const DEFAULT_IS_AUTOSCALE = true;
 const DEFAULT_MAX_THROUGHPUT_RUPS = 4000;
-const DEFAULT_REQUIRED_RUPS = 400;
+const MIN_REQUIRED_RUPS = 400;
 const DEFAULT_NEW_COLLECTION_NAME = "";
 const DEFAULT_IS_SHARDED = false;
 const DEFAULT_SHARD_KEY = "";
 const DEFAULT_IS_PROVISION_COLL_THROUGHPUT = false;
+
+const COSMOSDB_NAME_MIN_LENGTH = 3;
+const COSMOSDB_DATABASE_NAME_MAX_LENGTH = 44;
+const COSMOSDB_COLLECTION_NAME_MAX_LENGTH = 63;
+
+/**
+ * From https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Cosmos.AccountName/
+ * Between 3 and 44 characters long.
+ * Lowercase letters, numbers, and hyphens.
+ * Start and end with letters and numbers.
+ * @param component
+ * @returns
+ */
+const validateCosmosDbDatabaseName = (component: azdata.InputBoxComponent): boolean =>
+  validateCosmosDbName(component, COSMOSDB_NAME_MIN_LENGTH, COSMOSDB_DATABASE_NAME_MAX_LENGTH);
+
+/**
+ * https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/cosmos-db/sql/how-to-dotnet-create-container.md
+ * Keep container names between 3 and 63 characters long
+ * Container names can only contain lowercase letters, numbers, or the dash (-) character.
+ * Container names must start with a lowercase letter or number.
+ * @param component
+ * @returns
+ */
+const validateCosmosDbCollectionName = (component: azdata.InputBoxComponent): boolean =>
+  validateCosmosDbName(component, COSMOSDB_NAME_MIN_LENGTH, COSMOSDB_COLLECTION_NAME_MAX_LENGTH);
+
+const validateCosmosDbName = (component: azdata.InputBoxComponent, minLength: number, maxLength: number): boolean => {
+  // Don't update message if no change as it incurs a new validation call and we end up in a loop
+  const updateComponentMessage = (message: string) => {
+    if ((component.validationErrorMessage ?? "") !== message) {
+      // Update the message if needed
+      component.validationErrorMessage = message;
+    }
+  };
+
+  const value = component.value;
+  if (value === undefined || value === "") {
+    updateComponentMessage(localize("nameEmptyError", "Cannot be empty"));
+    return false;
+  }
+
+  if (value.length < COSMOSDB_NAME_MIN_LENGTH) {
+    updateComponentMessage(localize("nameMinError", "Minimum character length: {0}", minLength));
+    return false;
+  }
+
+  if (value.length > maxLength) {
+    updateComponentMessage(localize("nameMaxError", "Maximum character length: {0}", maxLength));
+    return false;
+  }
+
+  if (!value.match(/^[a-z0-9-]*$/g)) {
+    updateComponentMessage(localize("nameWrongCharError", "Must contain only lowercase letters, numbers and hyphens"));
+    return false;
+  }
+
+  if (!value.match(/^[a-z0-9].*(?:[a-z0-9]+)+$/g)) {
+    updateComponentMessage(localize("startEndCharError", "Must start and end with lowercase letter or number"));
+    return false;
+  }
+
+  updateComponentMessage("");
+  return true;
+};
 
 const createRadioButtonsFormItem = (
   view: azdata.ModelView,
@@ -130,7 +195,7 @@ export const createNewDatabaseDialog = async (
     isShareDatabaseThroughput: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
     isAutoScale: DEFAULT_IS_AUTOSCALE,
     databaseMaxThroughputRUPS: DEFAULT_MAX_THROUGHPUT_RUPS,
-    databaseRequiredThroughputRUPS: DEFAULT_REQUIRED_RUPS,
+    databaseRequiredThroughputRUPS: MIN_REQUIRED_RUPS,
   };
 
   dialog.okButton.onClick(() => onCreateClick(model));
@@ -217,6 +282,7 @@ export const createNewDatabaseDialog = async (
         value: databaseName ?? DEFAULT_NEW_DATABASE_NAME,
         placeHolder: localize("enterNewDatabaseName", "Enter new database name"),
       })
+      .withValidation((component) => validateCosmosDbDatabaseName(component))
       .component();
     newDatabaseNameInput.onTextChanged((text) => (model.newDatabaseName = text));
     const newDatabaseNameInputFormItem: azdata.FormComponent = {
@@ -252,6 +318,7 @@ export const createNewDatabaseDialog = async (
         required: true,
         multiline: false,
         value: DEFAULT_MAX_THROUGHPUT_RUPS.toString(),
+        inputType: "number",
         placeHolder: localize("databaseMaxThroughput", "Database Max throughput"),
       })
       .component();
@@ -270,7 +337,9 @@ export const createNewDatabaseDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: DEFAULT_REQUIRED_RUPS.toString(),
+        value: MIN_REQUIRED_RUPS.toString(),
+        min: MIN_REQUIRED_RUPS,
+        inputType: "number",
         placeHolder: localize("databaseRequiredThroughput", "Database required throughput"),
       })
       .component();
@@ -314,7 +383,7 @@ export const createNewCollectionDialog = async (
     isProvisionCollectionThroughput: DEFAULT_IS_PROVISION_COLL_THROUGHPUT,
     isAutoScale: DEFAULT_IS_AUTOSCALE,
     maxThroughputRUPS: DEFAULT_MAX_THROUGHPUT_RUPS,
-    requiredThroughputRUPS: DEFAULT_REQUIRED_RUPS,
+    requiredThroughputRUPS: MIN_REQUIRED_RUPS,
   };
 
   // If the provided databaseName exists already, we're not creating a new database
@@ -493,6 +562,7 @@ export const createNewCollectionDialog = async (
         value: databaseName ?? DEFAULT_NEW_DATABASE_NAME,
         placeHolder: localize("enterNewDatabaseName", "Enter new database name"),
       })
+      .withValidation((component) => validateCosmosDbDatabaseName(component))
       .component();
     newDatabaseNameInput.onTextChanged((text) => (model.newDatabaseInfo.newDatabaseName = text));
 
@@ -546,6 +616,7 @@ export const createNewCollectionDialog = async (
       .withProps({
         required: true,
         multiline: false,
+        inputType: "number",
         value: model.maxThroughputRUPS.toString(),
         placeHolder: localize("databaseMaxThroughput", "Database Max throughput"),
       })
@@ -565,6 +636,8 @@ export const createNewCollectionDialog = async (
       .withProps({
         required: true,
         multiline: false,
+        inputType: "number",
+        min: MIN_REQUIRED_RUPS,
         value: model.requiredThroughputRUPS.toString(),
         placeHolder: localize("databaseRequiredThroughput", "Database required throughput"),
       })
@@ -634,6 +707,7 @@ export const createNewCollectionDialog = async (
         value: collectionName ?? DEFAULT_NEW_COLLECTION_NAME,
         placeHolder: localize("enterNewCollectionName", "Enter new collection name"),
       })
+      .withValidation((component) => validateCosmosDbCollectionName(component))
       .component();
     collectionNameInput.onTextChanged((text) => (model.newCollectionName = text));
 
