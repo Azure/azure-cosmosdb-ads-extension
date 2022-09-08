@@ -50,7 +50,18 @@ const COSMOSDB_COLLECTION_NAME_MAX_LENGTH = 63;
  * @returns
  */
 const validateCosmosDbDatabaseName = (component: azdata.InputBoxComponent): boolean =>
-  validateCosmosDbName(component, COSMOSDB_NAME_MIN_LENGTH, COSMOSDB_DATABASE_NAME_MAX_LENGTH);
+  validateCosmosDbName(
+    component.value,
+    (message: string) => {
+      // Don't update message if no change as it incurs a new validation call and we end up in a loop
+      if ((component.validationErrorMessage ?? "") !== message) {
+        // Update the message if needed
+        component.validationErrorMessage = message;
+      }
+    },
+    COSMOSDB_NAME_MIN_LENGTH,
+    COSMOSDB_DATABASE_NAME_MAX_LENGTH
+  );
 
 /**
  * https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/cosmos-db/sql/how-to-dotnet-create-container.md
@@ -61,44 +72,51 @@ const validateCosmosDbDatabaseName = (component: azdata.InputBoxComponent): bool
  * @returns
  */
 const validateCosmosDbCollectionName = (component: azdata.InputBoxComponent): boolean =>
-  validateCosmosDbName(component, COSMOSDB_NAME_MIN_LENGTH, COSMOSDB_COLLECTION_NAME_MAX_LENGTH);
+  validateCosmosDbName(
+    component.value,
+    (message: string) => {
+      // Don't update message if no change as it incurs a new validation call and we end up in a loop
+      if ((component.validationErrorMessage ?? "") !== message) {
+        // Update the message if needed
+        component.validationErrorMessage = message;
+      }
+    },
+    COSMOSDB_NAME_MIN_LENGTH,
+    COSMOSDB_COLLECTION_NAME_MAX_LENGTH
+  );
 
-const validateCosmosDbName = (component: azdata.InputBoxComponent, minLength: number, maxLength: number): boolean => {
-  // Don't update message if no change as it incurs a new validation call and we end up in a loop
-  const updateComponentMessage = (message: string) => {
-    if ((component.validationErrorMessage ?? "") !== message) {
-      // Update the message if needed
-      component.validationErrorMessage = message;
-    }
-  };
-
-  const value = component.value;
+export const validateCosmosDbName = (
+  value: string | undefined,
+  onError: (errorMessage: string) => void,
+  minLength: number,
+  maxLength: number
+): boolean => {
   if (value === undefined || value === "") {
-    updateComponentMessage(localize("nameEmptyError", "Cannot be empty"));
+    onError(localize("nameEmptyError", "Cannot be empty"));
     return false;
   }
 
-  if (value.length < COSMOSDB_NAME_MIN_LENGTH) {
-    updateComponentMessage(localize("nameMinError", "Minimum character length: {0}", minLength));
+  if (value.length < minLength) {
+    onError(localize("nameMinError", "Minimum character length: {0}", minLength));
     return false;
   }
 
   if (value.length > maxLength) {
-    updateComponentMessage(localize("nameMaxError", "Maximum character length: {0}", maxLength));
+    onError(localize("nameMaxError", "Maximum character length: {0}", maxLength));
     return false;
   }
 
   if (!value.match(/^[a-z0-9-]*$/g)) {
-    updateComponentMessage(localize("nameWrongCharError", "Must contain only lowercase letters, numbers and hyphens"));
+    onError(localize("nameWrongCharError", "Must contain only lowercase letters, numbers and hyphens"));
     return false;
   }
 
   if (!value.match(/^[a-z0-9].*(?:[a-z0-9]+)+$/g)) {
-    updateComponentMessage(localize("startEndCharError", "Must start and end with lowercase letter or number"));
+    onError(localize("startEndCharError", "Must start and end with lowercase letter or number"));
     return false;
   }
 
-  updateComponentMessage("");
+  onError("");
   return true;
 };
 
