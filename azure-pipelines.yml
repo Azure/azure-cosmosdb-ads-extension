@@ -35,6 +35,9 @@ jobs:
     displayName: 'Install Node.js'
   - script: yarn install
     displayName: 'Yarn install'
+
+  # Use for linux: xvfb-run -a yarn run test
+  # For some reason, azuredatastudio for linux does not execute the tests.
   - script: yarn run test
     displayName: 'Run unit tests'
   - script: yarn run publish
