@@ -36,9 +36,6 @@ jobs:
   - script: yarn install
     displayName: 'Yarn install'
 
-  - script: yarn run format && git diff
-    displayName: 'debug format'
-
   # Use for linux: xvfb-run -a yarn run test
   # For some reason, azuredatastudio for linux does not execute the tests.
   - script: yarn run test
