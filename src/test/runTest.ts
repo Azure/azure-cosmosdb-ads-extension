@@ -35,9 +35,9 @@ async function main() {
       process.exit(1);
     }
 
+    console.log("Executing unit tests...");
     await runTests({ vscodeExecutablePath: adsExecutablePath, extensionDevelopmentPath, extensionTestsPath });
-
-    console.log("Finished");
+    console.log("Finished test execution");
   } catch (err) {
     console.error("Failed to run tests", err);
     process.exit(1);

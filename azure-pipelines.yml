@@ -33,8 +33,11 @@ jobs:
     inputs:
       versionSpec: '14.x'
     displayName: 'Install Node.js'
-  - script: |
-      yarn install && xvfb-run -a yarn run test && yarn run publish
+  - script: yarn install
+    displayName: 'Yarn install'
+  - script: xvfb-run -a yarn run test
+    displayName: 'Run unit tests'
+  - script: yarn run publish
     displayName: 'Yarn publish'
   - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
     inputs:
