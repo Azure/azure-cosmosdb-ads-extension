@@ -278,7 +278,7 @@
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "watch": "tsc -watch -p ./",
-    "pretest": "yarn run compile && yarn run lint",
+    "pretest": "yarn run compile && yarn run lint && yarn run format:check",
     "test": "node ./out/test/runTest.js",
     "format": "prettier --write \"{src,test}/**/*.{ts,tsx,html}\" \"*.{js,html}\"",
     "format:check": "prettier --check \"{src,test}/**/*.{ts,tsx,html}\" \"*.{js,html}\"",
