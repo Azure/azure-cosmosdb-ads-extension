@@ -25,7 +25,7 @@ jobs:
 - job: Job_2
   displayName: Build job
   pool:
-    vmImage: windows-2019
+    vmImage: windows-latest
   steps:
   - checkout: self
     clean: true
