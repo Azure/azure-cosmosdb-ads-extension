@@ -35,7 +35,7 @@ jobs:
     displayName: 'Install Node.js'
   - script: yarn install
     displayName: 'Yarn install'
-  - script: xvfb-run -a yarn run test
+  - script: yarn run test
     displayName: 'Run unit tests'
   - script: yarn run publish
     displayName: 'Yarn publish'
