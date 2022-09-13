@@ -49,7 +49,7 @@ const getADSExecutableFilename = () => {
     case "win32":
       return "azuredatastudio.exe";
     default:
-      return "azuredatastudio-linux-x64/azuredatastudio";
+      return "azuredatastudio-linux-x64/bin/azuredatastudio";
   }
 };
 
