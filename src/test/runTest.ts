@@ -57,7 +57,7 @@ const getDownloadUrl = () => {
   switch (process.platform) {
     case "darwin":
       return "https://go.microsoft.com/fwlink/?linkid=2204569";
-    case "linux":
+    case "win32":
       return "https://go.microsoft.com/fwlink/?linkid=2204772";
     default:
       /* linux */
