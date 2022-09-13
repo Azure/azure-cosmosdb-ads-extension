@@ -19,7 +19,7 @@ async function main() {
     // const testpath = await downloadAndUnzipVSCode("1.35.0");
     // console.log("testpath", testpath);
 
-    const unitTestDirectory = path.resolve(__dirname, "./ads-binary");
+    const unitTestDirectory = path.resolve(extensionDevelopmentPath, "ads-binary");
     const downloadUrl = getDownloadUrl();
     console.log(`Downloading: ${downloadUrl} to ${unitTestDirectory}`);
 
@@ -67,7 +67,7 @@ const getDownloadUrl = () => {
 
 const downloadADSFile = async (url: string, targetFolder: string): Promise<string> => {
   if (fs.existsSync(targetFolder)) {
-    fs.rmdirSync(targetFolder);
+    fs.rmdirSync(targetFolder, { recursive: true });
   }
   fs.mkdirSync(targetFolder);
 
