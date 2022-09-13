@@ -49,7 +49,7 @@ const getADSExecutableFilename = () => {
     case "win32":
       return "azuredatastudio.exe";
     default:
-      return "azuredatastudio";
+      return "azuredatastudio-linux-x64/azuredatastudio";
   }
 };
 
@@ -57,7 +57,7 @@ const getDownloadUrl = () => {
   switch (process.platform) {
     case "darwin":
       return "https://go.microsoft.com/fwlink/?linkid=2204569";
-    case "win32":
+    case "linux":
       return "https://go.microsoft.com/fwlink/?linkid=2204772";
     default:
       /* linux */
