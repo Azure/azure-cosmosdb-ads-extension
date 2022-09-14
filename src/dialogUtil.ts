@@ -111,7 +111,7 @@ export const validateCosmosDbName = (
     return false;
   }
 
-  if (!value.match(/^[a-z0-9].*(?:[a-z0-9]+)+$/g)) {
+  if (!value[0].match(/[a-z0-9]/g) || !value[value.length - 1].match(/[a-z0-9]/g)) {
     onError(localize("startEndCharError", "Must start and end with lowercase letter or number"));
     return false;
   }
