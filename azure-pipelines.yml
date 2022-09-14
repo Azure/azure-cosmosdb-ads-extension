@@ -25,7 +25,7 @@ jobs:
 - job: Job_2
   displayName: Build job
   pool:
-    vmImage: ubuntu-latest
+    vmImage: windows-latest
   steps:
   - checkout: self
     clean: true
@@ -33,9 +33,14 @@ jobs:
     inputs:
       versionSpec: '14.x'
     displayName: 'Install Node.js'
-  - script: |
-      yarn install
-      yarn run publish
+  - script: yarn install
+    displayName: 'Yarn install'
+
+  # Use for linux: xvfb-run -a yarn run test
+  # For some reason, azuredatastudio for linux does not execute the tests.
+  - script: yarn run test
+    displayName: 'Run unit tests'
+  - script: yarn run publish
     displayName: 'Yarn publish'
   - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
     inputs:

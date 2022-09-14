@@ -18,7 +18,7 @@ export interface ICosmosDbDatabaseAccountInfo {
 
 export interface ICosmosDbDatabaseInfo {
   name: string;
-  nbCollections: number;
+  nbCollections: number | undefined;
   throughputSetting: string;
   usageSizeKB: number | undefined;
   isAutoscale: boolean;
@@ -32,6 +32,7 @@ export interface ICosmosDbCollectionInfo {
   usageSizeKB: number | undefined;
   isAutoscale: boolean;
   currentThroughput: number | undefined;
+  shardKey: { [propertyName: string]: string } | undefined;
 }
 
 export interface IMongoShellOptions {

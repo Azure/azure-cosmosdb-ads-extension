@@ -201,6 +201,7 @@ const buildCollectionsAreaAzure = async (
         },
         collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
         collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
+        collection.shardKey === undefined ? "" : Object.keys(collection.shardKey)[0],
         <azdata.HyperlinkColumnCellValue>{
           title: collection.throughputSetting,
         },
@@ -227,6 +228,10 @@ const buildCollectionsAreaAzure = async (
         },
         {
           value: localize("documents", "Documents"),
+          type: azdata.ColumnType.text,
+        },
+        {
+          value: localize("shardKey", "Shard key"),
           type: azdata.ColumnType.text,
         },
         <azdata.HyperlinkColumn>{

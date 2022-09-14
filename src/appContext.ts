@@ -7,7 +7,11 @@ import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { ResourceGraphClient } from "@azure/arm-resourcegraph";
 import { TokenCredentials } from "@azure/ms-rest-js";
-import { ThroughputSettingsGetPropertiesResource, ThroughputSettingsResource } from "@azure/arm-cosmosdb/esm/models";
+import {
+  MongoDBCollectionCreateUpdateParameters,
+  MongoDBDatabaseCreateUpdateParameters,
+  ThroughputSettingsGetPropertiesResource,
+} from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "./Dashboards/ServerUXStates";
 import { getUsageSizeInKB } from "./Dashboards/getCollectionDataUsageSize";
 import { isCosmosDBAccount } from "./MongoShell/mongoUtils";
@@ -24,6 +28,12 @@ import {
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "./extension";
 import { createNodePath } from "./Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
+import {
+  createNewCollectionDialog,
+  createNewDatabaseDialog,
+  NewCollectionFormData,
+  NewDatabaseFormData,
+} from "./dialogUtil";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -117,11 +127,70 @@ export class AppContext {
     });
   }
 
-  public createMongoCollection(
+  /**
+   * Create collection with mongodb driver
+   * @param connectionOptions
+   * @param databaseName
+   * @returns
+   */
+  public createMongoDatabase(
+    connectionOptions: IConnectionOptions,
+    databaseName?: string
+  ): Promise<{ databaseName: string }> {
+    if (isAzureAuthType(connectionOptions.authenticationType)) {
+      return createMongoDatabaseWithArm(
+        connectionOptions.azureAccount,
+        connectionOptions.azureTenantId,
+        connectionOptions.azureResourceId,
+        getAccountNameFromOptions(connectionOptions),
+        databaseName
+      );
+    } else {
+      // In MongoDB, a database cannot be empty.
+      return this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, undefined);
+    }
+  }
+
+  /**
+   * Create collection with mongodb driver
+   * @param connectionOptions
+   * @param createDatabaseOnly
+   * @param databaseName
+   * @param collectionName
+   * @returns
+   */
+  public createMongoDatabaseAndCollection(
     connectionOptions: IConnectionOptions,
     databaseName?: string,
     collectionName?: string
-  ): Promise<{ collection: Collection; databaseName: string }> {
+  ): Promise<{ databaseName: string; collectionName: string | undefined }> {
+    if (isAzureAuthType(connectionOptions.authenticationType)) {
+      return createMongoDatabaseAndCollectionWithArm(
+        connectionOptions.azureAccount,
+        connectionOptions.azureTenantId,
+        connectionOptions.azureResourceId,
+        getAccountNameFromOptions(connectionOptions),
+        databaseName,
+        collectionName
+      );
+    } else {
+      // In MongoDB, a database cannot be empty.
+      return this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, collectionName);
+    }
+  }
+
+  /**
+   * Create collection with mongodb driver
+   * @param connectionOptions
+   * @param databaseName
+   * @param collectionName
+   * @returns
+   */
+  public createMongoDbCollectionWithMongoDbClient(
+    connectionOptions: IConnectionOptions,
+    databaseName?: string,
+    collectionName?: string
+  ): Promise<{ collectionName: string; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
       if (!databaseName) {
         databaseName = await vscode.window.showInputBox({
@@ -171,7 +240,7 @@ export class AppContext {
         try {
           let collection;
           collection = await mongoClient.db(databaseName).createCollection(collectionName);
-          resolve({ collection, databaseName: databaseName! });
+          resolve({ collectionName: collection.collectionName, databaseName: databaseName! });
         } catch (e) {
           reject(e);
           return;
@@ -532,21 +601,26 @@ const throughputSettingToString = (throughputSetting: ThroughputSettingsGetPrope
   }
 };
 
+/**
+ *
+ * @param client
+ * @param resourceGroupName
+ * @param accountName
+ * @param databaseName
+ * @param monitorARmClient
+ * @param resourceUri
+ * @param fetchThroughputOnly meant as an optimization
+ * @returns
+ */
 const retrieveMongoDbDatabaseInfoFromArm = async (
   client: CosmosDBManagementClient,
   resourceGroupName: string,
   accountName: string,
   databaseName: string,
   monitorARmClient: MonitorManagementClient,
-  resourceUri: string
+  resourceUri: string,
+  fetchThroughputOnly?: boolean
 ): Promise<ICosmosDbDatabaseInfo> => {
-  showStatusBarItem(localize("retrievingMongoDbCollection", "Retrieving mongodb collections..."));
-  const collections = await client.mongoDBResources.listMongoDBCollections(
-    resourceGroupName,
-    accountName,
-    databaseName
-  );
-
   let throughputSetting = "";
   let isAutoscale: boolean = false;
   let currentThroughput: number | undefined;
@@ -568,7 +642,25 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
   } finally {
     hideStatusBarItem();
   }
+  if (fetchThroughputOnly) {
+    return {
+      name: databaseName,
+      nbCollections: undefined,
+      throughputSetting,
+      usageSizeKB: undefined,
+      isAutoscale,
+      currentThroughput,
+    };
+  }
 
+  showStatusBarItem(localize("retrievingMongoDbCollection", "Retrieving mongodb collections..."));
+  const collections = await client.mongoDBResources.listMongoDBCollections(
+    resourceGroupName,
+    accountName,
+    databaseName
+  );
+
+  showStatusBarItem(localize("retrievingMongoDbDatabaseThroughput", "Retrieving mongodb database usage..."));
   const usageSizeKB = await getUsageSizeInKB(monitorARmClient, resourceUri, databaseName);
 
   return {
@@ -585,11 +677,21 @@ const retrieveMongoDbDatabaseInfoFromArm = async (
 export const getAccountName = (connectionInfo: azdata.ConnectionInfo): string => connectionInfo.options["server"];
 export const getAccountNameFromOptions = (connectionOptions: IConnectionOptions): string => connectionOptions.server;
 
+/**
+ *
+ * @param azureAccountId
+ * @param azureTenantId
+ * @param azureResourceId
+ * @param cosmosDbAccountName
+ * @param fetchThroughputOnly Optimization to not fetch everything
+ * @returns
+ */
 export const retrieveMongoDbDatabasesInfoFromArm = async (
   azureAccountId: string,
   azureTenantId: string,
   azureResourceId: string,
-  cosmosDbAccountName: string
+  cosmosDbAccountName: string,
+  fetchThroughputOnly?: boolean
 ): Promise<ICosmosDbDatabaseInfo[]> => {
   const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
@@ -617,7 +719,8 @@ export const retrieveMongoDbDatabasesInfoFromArm = async (
         cosmosDbAccountName,
         resource.name!,
         monitorArmClient,
-        azureResourceId
+        azureResourceId,
+        fetchThroughputOnly
       )
     );
 
@@ -690,6 +793,24 @@ const retrieveMongoDbCollectionInfoFromArm = async (
     hideStatusBarItem();
   }
 
+  // Retrieve shard key
+  let shardKey;
+  try {
+    showStatusBarItem(localize("retrievingMongoCollectionInfo", "Retrieving mongodb collection information..."));
+    const collInfoResponse = await client.mongoDBResources.getMongoDBCollection(
+      resourceGroupName,
+      accountName,
+      databaseName,
+      collectionName
+    );
+    shardKey = collInfoResponse.resource?.shardKey;
+  } catch (e) {
+    console.error(e);
+    // TODO Rethrow?
+  } finally {
+    hideStatusBarItem();
+  }
+
   return {
     name: collectionName,
     documentCount,
@@ -697,6 +818,7 @@ const retrieveMongoDbCollectionInfoFromArm = async (
     usageSizeKB: usageDataKB,
     isAutoscale,
     currentThroughput,
+    shardKey,
   };
 };
 
@@ -1187,6 +1309,192 @@ const updateMongoDbDatabaseThroughput = async (
   } finally {
     hideStatusBarItem();
   }
+};
+
+const createMongoDatabaseWithArm = async (
+  azureAccountId: string,
+  azureTenantId: string,
+  azureResourceId: string,
+  cosmosDbAccountName: string,
+  databaseName?: string
+): Promise<{ databaseName: string }> => {
+  return new Promise(async (resolve, reject) => {
+    const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+    azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+    // TODO: check resourceGroup here
+    const { resourceGroup } = parsedAzureResourceId(azureResourceId);
+
+    const dialog = await createNewDatabaseDialog(async (inputData: NewDatabaseFormData) => {
+      const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
+        resource: {
+          id: inputData.newDatabaseName,
+        },
+      };
+
+      if (inputData.isShareDatabaseThroughput) {
+        if (inputData.isAutoScale) {
+          createDbParams.options = {
+            autoscaleSettings: {
+              maxThroughput: inputData.databaseMaxThroughputRUPS,
+            },
+          };
+        } else {
+          createDbParams.options = {
+            throughput: inputData.databaseRequiredThroughputRUPS,
+          };
+        }
+      }
+
+      try {
+        showStatusBarItem(localize("creatingMongoDatabase", "Creating CosmosDB database"));
+        const dbresult = await client.mongoDBResources
+          .createUpdateMongoDBDatabase(resourceGroup, cosmosDbAccountName, inputData.newDatabaseName, createDbParams)
+          .catch((e) => reject(e));
+
+        if (!dbresult || !dbresult.resource?.id) {
+          reject("Could not create database");
+          return;
+        }
+
+        resolve({ databaseName: dbresult.resource.id });
+      } catch (e) {
+        reject(e);
+      } finally {
+        hideStatusBarItem();
+      }
+    }, databaseName);
+    azdata.window.openDialog(dialog);
+  });
+};
+
+const createMongoDatabaseAndCollectionWithArm = async (
+  azureAccountId: string,
+  azureTenantId: string,
+  azureResourceId: string,
+  cosmosDbAccountName: string,
+  databaseName?: string,
+  collectionName?: string
+): Promise<{ databaseName: string; collectionName: string | undefined }> => {
+  const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+  // TODO: check resourceGroup here
+  const { resourceGroup } = parsedAzureResourceId(azureResourceId);
+
+  showStatusBarItem(localize("retrievingExistingDatabases", "Retrieving existing databases"));
+  const existingDatabases = (
+    await retrieveMongoDbDatabasesInfoFromArm(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName, true)
+  ).map((databasesInfo) => ({
+    id: databasesInfo.name,
+    isSharedThroughput: !!databasesInfo.throughputSetting,
+  }));
+  hideStatusBarItem();
+
+  return new Promise(async (resolve, reject) => {
+    const dialog = await createNewCollectionDialog(
+      async (inputData: NewCollectionFormData) => {
+        try {
+          showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB database"));
+          let newDatabaseName;
+          if (inputData.isCreateNewDatabase) {
+            // If database is shared throughput, we must create it separately, otherwise the
+            // createUpdateMongoDBCollection() call will create a plain database for us
+            if (inputData.newDatabaseInfo.isShareDatabaseThroughput) {
+              const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
+                resource: {
+                  id: inputData.newDatabaseInfo.newDatabaseName,
+                },
+              };
+
+              if (inputData.isAutoScale) {
+                createDbParams.options = {
+                  autoscaleSettings: {
+                    maxThroughput: inputData.maxThroughputRUPS,
+                  },
+                };
+              } else {
+                createDbParams.options = {
+                  throughput: inputData.requiredThroughputRUPS,
+                };
+              }
+
+              const dbresult = await client.mongoDBResources
+                .createUpdateMongoDBDatabase(
+                  resourceGroup,
+                  cosmosDbAccountName,
+                  inputData.newDatabaseInfo.newDatabaseName,
+                  createDbParams
+                )
+                .catch((e) => reject(e));
+
+              if (!dbresult || !dbresult.resource?.id) {
+                reject(localize("failedCreatingDatabase", "Failed creating database"));
+                return;
+              }
+
+              newDatabaseName = dbresult.resource.id;
+            } else {
+              newDatabaseName = inputData.newDatabaseInfo.newDatabaseName;
+            }
+          } else {
+            newDatabaseName = inputData.existingDatabaseId;
+          }
+
+          if (inputData.newCollectionName !== undefined && newDatabaseName !== undefined) {
+            const createCollParams: MongoDBCollectionCreateUpdateParameters = {
+              resource: {
+                id: inputData.newCollectionName,
+              },
+            };
+
+            if (inputData.isSharded) {
+              createCollParams.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+            }
+
+            if (inputData.isProvisionCollectionThroughput) {
+              if (inputData.isAutoScale) {
+                createCollParams.options = {
+                  autoscaleSettings: {
+                    maxThroughput: inputData.maxThroughputRUPS,
+                  },
+                };
+              } else {
+                createCollParams.options = {
+                  throughput: inputData.requiredThroughputRUPS,
+                };
+              }
+            }
+
+            showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
+            const collResult = await client.mongoDBResources
+              .createUpdateMongoDBCollection(
+                resourceGroup,
+                cosmosDbAccountName,
+                newDatabaseName,
+                inputData.newCollectionName,
+                createCollParams
+              )
+              .catch((e) => reject(e));
+
+            if (!collResult || !collResult.resource?.id) {
+              reject(localize("failedCreatingCollection", "Failed creating collection"));
+              return;
+            }
+            collectionName = collResult.resource.id;
+            resolve({ databaseName: newDatabaseName, collectionName });
+          }
+          reject(localize("collectionOrDatabaseNotSpecified", "Collection or database not specified"));
+        } catch (e) {
+          reject(e);
+        } finally {
+          hideStatusBarItem();
+        }
+      },
+      existingDatabases,
+      databaseName,
+      collectionName
+    );
+    azdata.window.openDialog(dialog);
+  });
 };
 
 export const openAccountDashboard = async (accountName: string) => {

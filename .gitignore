@@ -359,3 +359,6 @@ output/
 
 # Mongoshell download
 mongoshellexecutable/
+
+# ADS executable for testing
+ads-binary/
