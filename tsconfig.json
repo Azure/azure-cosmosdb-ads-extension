@@ -20,7 +20,6 @@
     "output",
 		"mongoshellexecutable",
 		"resources",
-    "ads-binary",
-		"NOTICES.txt"
+    "ads-binary"
 	]
 }
