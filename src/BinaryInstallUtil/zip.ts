@@ -9,6 +9,7 @@ import * as mkdirp from "mkdirp";
 import { Sequencer } from "./async";
 import { Readable } from "stream";
 import { WriteStream, createWriteStream } from "fs";
+import * as tar from "tar";
 
 export type ExtractErrorType = "CorruptZip" | "Incomplete";
 
@@ -179,3 +180,15 @@ function modeFromEntry(entry: Entry): number {
     .map((mask) => attr & mask)
     .reduce((a, b) => a + b, attr & 61440 /* S_IFMT */);
 }
+
+export const extract = (archivePath: string, targetPath: string): Promise<void> => {
+  if (archivePath.match(/\.tar\.gz|\.tar|\.gz$/i)) {
+    return tar.x({
+      file: archivePath,
+      cwd: targetPath,
+    });
+  } else {
+    // Default to zip extracting if it's not a tarball
+    return new Unzipper().extract(archivePath, targetPath);
+  }
+};

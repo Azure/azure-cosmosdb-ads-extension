@@ -2,8 +2,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { runTests } from "@vscode/test-electron";
 import fetch from "node-fetch";
-import * as tar from "tar";
-import { Unzipper } from "../BinaryInstallUtil/zip";
+import { extract } from "../BinaryInstallUtil/zip";
 
 async function main() {
   try {
@@ -83,18 +82,6 @@ const downloadADSFile = async (url: string, targetFolder: string): Promise<strin
   });
 
   return fullPath;
-};
-
-const extract = (archivePath: string, targetPath: string): Promise<void> => {
-  if (archivePath.match(/\.tar\.gz|\.tar|\.gz$/i)) {
-    return tar.x({
-      file: archivePath,
-      cwd: targetPath,
-    });
-  } else {
-    // Default to zip extracting if it's not a tarball
-    return new Unzipper().extract(archivePath, targetPath);
-  }
 };
 
 main();

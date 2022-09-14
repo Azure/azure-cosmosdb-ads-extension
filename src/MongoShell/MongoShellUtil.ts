@@ -2,8 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { PlatformInformation, Runtime } from "../BinaryInstallUtil/platform";
-import * as tar from "tar";
-import { Unzipper } from "../BinaryInstallUtil/zip";
+import { extract } from "../BinaryInstallUtil/zip";
 import * as fs from "fs";
 
 const localize = nls.loadMessageBundle();
@@ -56,16 +55,4 @@ export const installMongoShell = async (extensionPath: string): Promise<string |
 
   statusView.hide();
   return binaryFullPath;
-};
-
-const extract = (archivePath: string, targetPath: string): Promise<void> => {
-  if (archivePath.match(/\.tar\.gz|\.tar|\.gz$/i)) {
-    return tar.x({
-      file: archivePath,
-      cwd: targetPath,
-    });
-  } else {
-    // Default to zip extracting if it's not a tarball
-    return new Unzipper().extract(archivePath, targetPath);
-  }
 };
