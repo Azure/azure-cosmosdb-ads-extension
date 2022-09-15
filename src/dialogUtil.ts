@@ -529,7 +529,7 @@ export const createNewCollectionDialog = async (
       collectionShardingRadioButtonsFormItem = createRadioButtonsFormItem(
         view,
         "collectionSharding",
-        localize("unsharded", "Unsharded"),
+        localize("unsharded", "Unsharded (20GB limit)"),
         localize("sharded", "Sharded"),
         !model.isSharded,
         (isUnsharded: boolean) => {
