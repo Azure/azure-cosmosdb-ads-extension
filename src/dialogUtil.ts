@@ -77,7 +77,7 @@ export const validateCosmosDbName = (value: string | undefined, onError: (errorM
     return false;
   }
 
-  if (!value.match(/[^\/?#\\]*[^\/?# \\]/g)) {
+  if (!value.match(/[^\/?#\\]*[^\/?# \\]$/g)) {
     onError(localize("nameWrongCharError", "May not end with space nor contain characters '\\' '/' '#' '?'"));
     return false;
   }
