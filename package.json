@@ -3,7 +3,7 @@
   "displayName": "Cosmos DB ADS Extension",
   "description": "Cosmos DB Azure Data Studio extension",
   "publisher": "Microsoft",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "icon": "resources/catalog/CosmosDBExtension.png",
   "aiKey": "AIF-37eefaf0-8022-4671-a3fb-64752724682e",
   "preview": true,
