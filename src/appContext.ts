@@ -34,6 +34,7 @@ import {
   NewCollectionFormData,
   NewDatabaseFormData,
 } from "./dialogUtil";
+import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -162,7 +163,8 @@ export class AppContext {
   public createMongoDatabaseAndCollection(
     connectionOptions: IConnectionOptions,
     databaseName?: string,
-    collectionName?: string
+    collectionName?: string,
+    cdbCreateInfo?: CdbCollectionCreateInfo
   ): Promise<{ databaseName: string; collectionName: string | undefined }> {
     if (isAzureAuthType(connectionOptions.authenticationType)) {
       return createMongoDatabaseAndCollectionWithArm(
@@ -171,7 +173,8 @@ export class AppContext {
         connectionOptions.azureResourceId,
         getAccountNameFromOptions(connectionOptions),
         databaseName,
-        collectionName
+        collectionName,
+        cdbCreateInfo
       );
     } else {
       // In MongoDB, a database cannot be empty.
@@ -274,7 +277,8 @@ export class AppContext {
   public async insertDocuments(
     databaseDashboardInfo: IDatabaseDashboardInfo,
     sampleData: SampleData,
-    collectionName: string
+    collectionName: string,
+    cdbCreateInfo: CdbCollectionCreateInfo
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected
@@ -288,12 +292,30 @@ export class AppContext {
         ...databaseDashboardInfo,
         nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
       };
-      const collection = await vscode.commands.executeCommand<Collection<Document>>(
+      const createResult = await vscode.commands.executeCommand<{ databaseName: string; collectionName: string }>(
         "cosmosdb-ads-extension.createMongoCollection",
         undefined,
         param,
-        collectionName
+        collectionName,
+        cdbCreateInfo
       );
+
+      if (!createResult.collectionName) {
+        reject(localize("failCreateCollection", "Failed to create collection {0}", collectionName));
+        return;
+      }
+
+      if (!client) {
+        reject(localize("notConnected", "Not connected"));
+        return;
+      }
+
+      // Connect to collection
+      const collection = await client.db(createResult.databaseName).collection(createResult.collectionName);
+      if (!collection) {
+        reject(localize("failFindCollection", "Failed to find collection {0}", createResult.collectionName));
+        return;
+      }
 
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
       try {
@@ -1367,13 +1389,24 @@ const createMongoDatabaseWithArm = async (
   });
 };
 
+/**
+ * Do not bring up UI if database and collection are already specified
+ * @param azureAccountId
+ * @param azureTenantId
+ * @param azureResourceId
+ * @param cosmosDbAccountName
+ * @param databaseName
+ * @param collectionName
+ * @returns
+ */
 const createMongoDatabaseAndCollectionWithArm = async (
   azureAccountId: string,
   azureTenantId: string,
   azureResourceId: string,
   cosmosDbAccountName: string,
   databaseName?: string,
-  collectionName?: string
+  collectionName?: string,
+  cdbCreateInfo?: CdbCollectionCreateInfo
 ): Promise<{ databaseName: string; collectionName: string | undefined }> => {
   const client = await createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
   azureResourceId = await retrieveResourceId(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
@@ -1390,105 +1423,132 @@ const createMongoDatabaseAndCollectionWithArm = async (
   hideStatusBarItem();
 
   return new Promise(async (resolve, reject) => {
-    const dialog = await createNewCollectionDialog(
-      async (inputData: NewCollectionFormData) => {
-        try {
-          showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB database"));
-          let newDatabaseName;
-          if (inputData.isCreateNewDatabase) {
-            // If database is shared throughput, we must create it separately, otherwise the
-            // createUpdateMongoDBCollection() call will create a plain database for us
-            if (inputData.newDatabaseInfo.isShareDatabaseThroughput) {
-              const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
-                resource: {
-                  id: inputData.newDatabaseInfo.newDatabaseName,
-                },
-              };
+    const COLLECTION_DEFAULT_THROUGHPUT_RUPS = 400;
 
-              if (inputData.isAutoScale) {
-                createDbParams.options = {
-                  autoscaleSettings: {
-                    maxThroughput: inputData.maxThroughputRUPS,
-                  },
-                };
-              } else {
-                createDbParams.options = {
-                  throughput: inputData.requiredThroughputRUPS,
-                };
-              }
-
-              const dbresult = await client.mongoDBResources
-                .createUpdateMongoDBDatabase(
-                  resourceGroup,
-                  cosmosDbAccountName,
-                  inputData.newDatabaseInfo.newDatabaseName,
-                  createDbParams
-                )
-                .catch((e) => reject(e));
-
-              if (!dbresult || !dbresult.resource?.id) {
-                reject(localize("failedCreatingDatabase", "Failed creating database"));
-                return;
-              }
-
-              newDatabaseName = dbresult.resource.id;
-            } else {
-              newDatabaseName = inputData.newDatabaseInfo.newDatabaseName;
-            }
-          } else {
-            newDatabaseName = inputData.existingDatabaseId;
-          }
-
-          if (inputData.newCollectionName !== undefined && newDatabaseName !== undefined) {
-            const createCollParams: MongoDBCollectionCreateUpdateParameters = {
+    const createDatabaseCollectioNCB = async (inputData: NewCollectionFormData) => {
+      try {
+        showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB database"));
+        let newDatabaseName;
+        if (inputData.isCreateNewDatabase) {
+          // If database is shared throughput, we must create it separately, otherwise the
+          // createUpdateMongoDBCollection() call will create a plain database for us
+          if (inputData.newDatabaseInfo.isShareDatabaseThroughput) {
+            const createDbParams: MongoDBDatabaseCreateUpdateParameters = {
               resource: {
-                id: inputData.newCollectionName,
+                id: inputData.newDatabaseInfo.newDatabaseName,
               },
             };
 
-            if (inputData.isSharded) {
-              createCollParams.resource.shardKey = { [inputData.shardKey! /** TODO Add Validation!! */]: "Hash" };
+            if (inputData.isAutoScale) {
+              createDbParams.options = {
+                autoscaleSettings: {
+                  maxThroughput: inputData.maxThroughputRUPS,
+                },
+              };
+            } else {
+              createDbParams.options = {
+                throughput: inputData.requiredThroughputRUPS,
+              };
             }
 
-            if (inputData.isProvisionCollectionThroughput) {
-              if (inputData.isAutoScale) {
-                createCollParams.options = {
-                  autoscaleSettings: {
-                    maxThroughput: inputData.maxThroughputRUPS,
-                  },
-                };
-              } else {
-                createCollParams.options = {
-                  throughput: inputData.requiredThroughputRUPS,
-                };
-              }
-            }
-
-            showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
-            const collResult = await client.mongoDBResources
-              .createUpdateMongoDBCollection(
+            const dbresult = await client.mongoDBResources
+              .createUpdateMongoDBDatabase(
                 resourceGroup,
                 cosmosDbAccountName,
-                newDatabaseName,
-                inputData.newCollectionName,
-                createCollParams
+                inputData.newDatabaseInfo.newDatabaseName,
+                createDbParams
               )
               .catch((e) => reject(e));
 
-            if (!collResult || !collResult.resource?.id) {
-              reject(localize("failedCreatingCollection", "Failed creating collection"));
+            if (!dbresult || !dbresult.resource?.id) {
+              reject(localize("failedCreatingDatabase", "Failed creating database"));
               return;
             }
-            collectionName = collResult.resource.id;
-            resolve({ databaseName: newDatabaseName, collectionName });
+
+            newDatabaseName = dbresult.resource.id;
+          } else {
+            newDatabaseName = inputData.newDatabaseInfo.newDatabaseName;
           }
-          reject(localize("collectionOrDatabaseNotSpecified", "Collection or database not specified"));
-        } catch (e) {
-          reject(e);
-        } finally {
-          hideStatusBarItem();
+        } else {
+          newDatabaseName = inputData.existingDatabaseId;
         }
-      },
+
+        if (inputData.newCollectionName !== undefined && newDatabaseName !== undefined) {
+          const createCollParams: MongoDBCollectionCreateUpdateParameters = {
+            resource: {
+              id: inputData.newCollectionName,
+            },
+          };
+
+          if (inputData.isSharded) {
+            createCollParams.resource.shardKey = {
+              [inputData.shardKey!]: "Hash",
+            };
+          }
+
+          if (inputData.isProvisionCollectionThroughput) {
+            if (inputData.isAutoScale) {
+              createCollParams.options = {
+                autoscaleSettings: {
+                  maxThroughput: inputData.maxThroughputRUPS,
+                },
+              };
+            } else {
+              createCollParams.options = {
+                throughput: inputData.requiredThroughputRUPS,
+              };
+            }
+          }
+
+          showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
+          const collResult = await client.mongoDBResources
+            .createUpdateMongoDBCollection(
+              resourceGroup,
+              cosmosDbAccountName,
+              newDatabaseName,
+              inputData.newCollectionName,
+              createCollParams
+            )
+            .catch((e) => reject(e));
+
+          if (!collResult || !collResult.resource?.id) {
+            reject(localize("failedCreatingCollection", "Failed creating collection"));
+            return;
+          }
+          collectionName = collResult.resource.id;
+          resolve({ databaseName: newDatabaseName, collectionName });
+        }
+        reject(localize("collectionOrDatabaseNotSpecified", "Collection or database not specified"));
+      } catch (e) {
+        reject(e);
+      } finally {
+        hideStatusBarItem();
+      }
+    };
+
+    if (databaseName !== undefined && collectionName !== undefined) {
+      // If database and collection are specified, do not bring up UI
+      // Assumption is database already exists
+      createDatabaseCollectioNCB({
+        isCreateNewDatabase: false,
+        existingDatabaseId: databaseName,
+        newDatabaseInfo: {
+          newDatabaseName: "",
+          isShareDatabaseThroughput: false,
+        },
+        newCollectionName: collectionName,
+        isSharded: true,
+        shardKey: cdbCreateInfo?.shardKey,
+        isProvisionCollectionThroughput: true,
+        isAutoScale: false,
+        maxThroughputRUPS: 0,
+        requiredThroughputRUPS: cdbCreateInfo?.requiredThroughputRUPS ?? COLLECTION_DEFAULT_THROUGHPUT_RUPS,
+      });
+      return;
+    }
+
+    const dialog = await createNewCollectionDialog(
+      createDatabaseCollectioNCB,
       existingDatabases,
       databaseName,
       collectionName

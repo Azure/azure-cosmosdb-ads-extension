@@ -10,43 +10,49 @@ suite("CosmosDB name validation", () => {
 
   test("Correct value", () =>
     assert.strictEqual(
-      validateCosmosDbName("db-col123", (_) => {}, 3, 15),
+      validateCosmosDbName("db-col123P", (_) => {}),
+      true
+    ));
+
+  test("Special characters ok", () =>
+    assert.strictEqual(
+      validateCosmosDbName(" !@$%^&*()_+-=", (_) => {}),
       true
     ));
 
   test("Undefined value invalid", () =>
     assert.strictEqual(
-      validateCosmosDbName(undefined, (_) => {}, 3, 9),
+      validateCosmosDbName(undefined, (_) => {}),
       false
     ));
 
-  test("min characters", () =>
+  test("May not end with space", () =>
     assert.strictEqual(
-      validateCosmosDbName("ac", (_) => {}, 3, 9),
+      validateCosmosDbName("abc ", (_) => {}),
       false
     ));
 
-  test("max characters", () =>
+  test("Cannot contain character '\\'", () =>
     assert.strictEqual(
-      validateCosmosDbName("1234567890", (_) => {}, 3, 9),
+      validateCosmosDbName("abc\\123", (_) => {}),
       false
     ));
 
-  test("Lowercase, numbers and hyphens", () =>
+  test("Cannot contain character '/'", () =>
     assert.strictEqual(
-      validateCosmosDbName("!@#$%^&*()", (_) => {}, 3, 9),
+      validateCosmosDbName("abc/123", (_) => {}),
       false
     ));
 
-  test("starts with lowercase or number", () =>
+  test("Cannot contain character '#'", () =>
     assert.strictEqual(
-      validateCosmosDbName("-abcd", (_) => {}, 3, 9),
+      validateCosmosDbName("abc#123", (_) => {}),
       false
     ));
 
-  test("ends with lowercase or number", () =>
+  test("Cannot contain character '?'", () =>
     assert.strictEqual(
-      validateCosmosDbName("absd-", (_) => {}, 3, 9),
+      validateCosmosDbName("abc?123", (_) => {}),
       false
     ));
 });

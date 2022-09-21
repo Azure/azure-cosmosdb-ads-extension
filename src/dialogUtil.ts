@@ -37,10 +37,6 @@ const DEFAULT_IS_SHARDED = false;
 const DEFAULT_SHARD_KEY = "";
 const DEFAULT_IS_PROVISION_COLL_THROUGHPUT = false;
 
-const COSMOSDB_NAME_MIN_LENGTH = 3;
-const COSMOSDB_DATABASE_NAME_MAX_LENGTH = 44;
-const COSMOSDB_COLLECTION_NAME_MAX_LENGTH = 63;
-
 /**
  * From https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Cosmos.AccountName/
  * Between 3 and 44 characters long.
@@ -50,18 +46,13 @@ const COSMOSDB_COLLECTION_NAME_MAX_LENGTH = 63;
  * @returns
  */
 const validateCosmosDbDatabaseName = (component: azdata.InputBoxComponent): boolean =>
-  validateCosmosDbName(
-    component.value,
-    (message: string) => {
-      // Don't update message if no change as it incurs a new validation call and we end up in a loop
-      if ((component.validationErrorMessage ?? "") !== message) {
-        // Update the message if needed
-        component.validationErrorMessage = message;
-      }
-    },
-    COSMOSDB_NAME_MIN_LENGTH,
-    COSMOSDB_DATABASE_NAME_MAX_LENGTH
-  );
+  validateCosmosDbName(component.value, (message: string) => {
+    // Don't update message if no change as it incurs a new validation call and we end up in a loop
+    if ((component.validationErrorMessage ?? "") !== message) {
+      // Update the message if needed
+      component.validationErrorMessage = message;
+    }
+  });
 
 /**
  * https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/cosmos-db/sql/how-to-dotnet-create-container.md
@@ -72,47 +63,22 @@ const validateCosmosDbDatabaseName = (component: azdata.InputBoxComponent): bool
  * @returns
  */
 const validateCosmosDbCollectionName = (component: azdata.InputBoxComponent): boolean =>
-  validateCosmosDbName(
-    component.value,
-    (message: string) => {
-      // Don't update message if no change as it incurs a new validation call and we end up in a loop
-      if ((component.validationErrorMessage ?? "") !== message) {
-        // Update the message if needed
-        component.validationErrorMessage = message;
-      }
-    },
-    COSMOSDB_NAME_MIN_LENGTH,
-    COSMOSDB_COLLECTION_NAME_MAX_LENGTH
-  );
+  validateCosmosDbName(component.value, (message: string) => {
+    // Don't update message if no change as it incurs a new validation call and we end up in a loop
+    if ((component.validationErrorMessage ?? "") !== message) {
+      // Update the message if needed
+      component.validationErrorMessage = message;
+    }
+  });
 
-export const validateCosmosDbName = (
-  value: string | undefined,
-  onError: (errorMessage: string) => void,
-  minLength: number,
-  maxLength: number
-): boolean => {
+export const validateCosmosDbName = (value: string | undefined, onError: (errorMessage: string) => void): boolean => {
   if (value === undefined || value === "") {
     onError(localize("nameEmptyError", "Cannot be empty"));
     return false;
   }
 
-  if (value.length < minLength) {
-    onError(localize("nameMinError", "Minimum character length: {0}", minLength));
-    return false;
-  }
-
-  if (value.length > maxLength) {
-    onError(localize("nameMaxError", "Maximum character length: {0}", maxLength));
-    return false;
-  }
-
-  if (!value.match(/^[a-z0-9-]*$/g)) {
-    onError(localize("nameWrongCharError", "Must contain only lowercase letters, numbers and hyphens"));
-    return false;
-  }
-
-  if (!value[0].match(/[a-z0-9]/g) || !value[value.length - 1].match(/[a-z0-9]/g)) {
-    onError(localize("startEndCharError", "Must start and end with lowercase letter or number"));
+  if (!value.match(/^[^\/?#\\]*[^\/?# \\]$/g)) {
+    onError(localize("nameWrongCharError", "May not end with space nor contain characters '\\' '/' '#' '?'"));
     return false;
   }
 
@@ -529,7 +495,7 @@ export const createNewCollectionDialog = async (
       collectionShardingRadioButtonsFormItem = createRadioButtonsFormItem(
         view,
         "collectionSharding",
-        localize("unsharded", "Unsharded"),
+        localize("unsharded", "Unsharded (20GB limit)"),
         localize("sharded", "Sharded"),
         !model.isSharded,
         (isUnsharded: boolean) => {
