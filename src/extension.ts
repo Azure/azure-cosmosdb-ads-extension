@@ -29,6 +29,7 @@ import { convertToConnectionOptions, IConnectionOptions } from "./models";
 import { Collection, Document } from "mongodb";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { getPackageInfo } from "./Dashboards/util";
+import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -113,8 +114,9 @@ export function activate(context: vscode.ExtensionContext) {
       async (
         objectExplorerContext: azdata.ObjectExplorerContext,
         connectionNodeInfo: IConnectionNodeInfo,
-        collectionName?: string
-      ): Promise<void> => {
+        collectionName?: string,
+        cdbCreateInfo?: CdbCollectionCreateInfo
+      ): Promise<{ databaseName: string; collectionName: string }> => {
         if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
           vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
           return Promise.reject();
@@ -151,22 +153,24 @@ export function activate(context: vscode.ExtensionContext) {
         const { databaseName } = getMongoInfo(connectionNodeInfo.nodePath!);
 
         try {
-          const { collectionName: newCollectionName } = await appContext.createMongoDatabaseAndCollection(
+          const createResult = await appContext.createMongoDatabaseAndCollection(
             connectionNodeInfo,
             databaseName,
-            collectionName
+            collectionName,
+            cdbCreateInfo
           );
-          if (newCollectionName) {
+          if (createResult.collectionName) {
             vscode.window.showInformationMessage(
-              localize("successCreateCollection", "Successfully created: {0}", newCollectionName)
+              localize("successCreateCollection", "Successfully created: {0}", createResult.collectionName)
             );
             objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
-            return Promise.resolve();
+            return Promise.resolve({ ...createResult, collectionName: createResult.collectionName! });
           }
         } catch (e) {
           vscode.window.showErrorMessage(`${localize("failedCreateCollection", "Failed to create collection")}: ${e}`);
           return Promise.reject();
         }
+        vscode.window.showErrorMessage(localize("failedCreateCollection", "Failed to create collection"));
         return Promise.reject();
       }
     )
@@ -253,6 +257,13 @@ export function activate(context: vscode.ExtensionContext) {
         });
 
         if (response !== mongoInfo.collectionName) {
+          vscode.window.showErrorMessage(
+            localize(
+              "incorrectDeleteCollection",
+              "Incorrect name supplied to delete collection {0}",
+              mongoInfo.collectionName
+            )
+          );
           return;
         }
 

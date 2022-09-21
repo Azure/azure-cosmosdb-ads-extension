@@ -1,12 +1,16 @@
 import * as vscode from "vscode";
-import * as azdata from "azdata";
 import * as nls from "vscode-nls";
-import { AppContext, isAzureConnection, validateMongoCollectionName } from "../appContext";
+import { AppContext, validateMongoCollectionName } from "../appContext";
 import { promises as fs } from "fs";
 import * as path from "path";
 import { IDatabaseDashboardInfo } from "../extension";
 
 const localize = nls.loadMessageBundle();
+
+export interface CdbCollectionCreateInfo {
+  requiredThroughputRUPS: number;
+  shardKey: string;
+}
 
 export const ingestSampleMongoData = async (
   appContext: AppContext,
@@ -63,24 +67,35 @@ export const ingestSampleMongoData = async (
       }
 
       let _count, _elapsedTimeMS;
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async (progress) => {
-          progress.report({
-            message: localize("importingSampleData", "Importing sample data..."),
-          });
-          const { count, elapsedTimeMS } = await appContext.insertDocuments(
-            databaseDashboardInfo,
-            sampleData,
-            collectionToCreate
-          );
-          _count = count;
-          _elapsedTimeMS = elapsedTimeMS;
-        }
-      );
+
+      try {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async (progress) => {
+            progress.report({
+              message: localize("importingSampleData", "Importing sample data..."),
+            });
+            const { count, elapsedTimeMS } = await appContext.insertDocuments(
+              databaseDashboardInfo,
+              sampleData,
+              collectionToCreate,
+              {
+                requiredThroughputRUPS: sampleData.offerThroughput,
+                shardKey: sampleData.shardKey,
+              }
+            );
+            _count = count;
+            _elapsedTimeMS = elapsedTimeMS;
+          }
+        );
+      } catch (e: any) {
+        vscode.window.showErrorMessage(e.message);
+        return;
+      }
+
       vscode.window.showInformationMessage(
         localize(
           "successInsertDoc",
