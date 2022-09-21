@@ -20,3 +20,12 @@
 ### Bug fixes
 * Restrict dashboard to COSMOSDB_MONGO provider
 
+## [0.1.3] - 9/15/2022
+### New changes
+* Add a New Database and New Collection dialogs in order to allow user to input Cosmos DB-specific parameters such as Throughput, or Shard Key
+* Breadcrumb in database dashboard
+* Rename sample data collection from to "Customer Data". Properly create sharded collection
+* For CosmosDB account, display throughput and shard key information in the dashboards
+### Bug fixes
+* Fix github ci (thanks JoeCalvert!)
+* Fix bug: mistyping collection name when deleting collection fails silently
