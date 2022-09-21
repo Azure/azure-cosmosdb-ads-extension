@@ -257,6 +257,13 @@ export function activate(context: vscode.ExtensionContext) {
         });
 
         if (response !== mongoInfo.collectionName) {
+          vscode.window.showErrorMessage(
+            localize(
+              "incorrectDeleteCollection",
+              "Incorrect name supplied to delete collection {0}",
+              mongoInfo.collectionName
+            )
+          );
           return;
         }
 
