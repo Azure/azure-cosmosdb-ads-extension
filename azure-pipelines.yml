@@ -44,7 +44,7 @@ jobs:
     displayName: 'Yarn publish'
   - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
     inputs:
-      ConnectedServiceName: 'ESRP Code Sign 2022'
+      ConnectedServiceName: 'ESRP Official Codesigning'
       FolderPath: '$(Build.SourcesDirectory)'
       Pattern: '*.vsix'
       signConfigType: inlineSignParams
