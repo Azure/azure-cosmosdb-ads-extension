@@ -12,8 +12,8 @@
     "url": "https://github.com/Azure/azure-cosmosdb-ads-extension"
   },
   "engines": {
-    "vscode": "^1.39.0",
-    "azdata": "*"
+    "vscode": "*",
+    "azdata": "^1.39.0"
   },
   "categories": [
     "Other"
