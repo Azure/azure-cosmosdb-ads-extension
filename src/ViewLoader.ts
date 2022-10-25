@@ -51,52 +51,84 @@ export default class ViewLoader {
     this._panel!.webview.postMessage(initMsg);
   }
 
-  private getWebviewContent(): string {
-    // const hostname = "https://localhost:5001";
-    const hostname = "https://localhost:44329";
-    const site = `${hostname}/notebookClient/dist/index.html`;
+  private getWebviewContent() {
+    const jsFile = "query-editor.js";
+    const cssFile = "query-editor.css";
+    const localServerUrl = "http://localhost:3000";
+
+    let scriptUrl = null;
+    let cssUrl = null;
+
+    const isProduction = true;
+
+    if (isProduction) {
+      scriptUrl = this._panel?.webview.asWebviewUri(vscode.Uri.file(path.join(this._extensionPath, 'out', jsFile))).toString();
+      cssUrl = this._panel?.webview.asWebviewUri(vscode.Uri.file(path.join(this._extensionPath, 'out', cssFile))).toString();
+    } else {
+      scriptUrl = `${localServerUrl}/${jsFile}`;
+    }
 
     return `<!DOCTYPE html>
     <html lang="en">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Open Query</title>
-
-        <meta http-equiv="Content-Security-Policy"
-                    content="
-														 connect-src *;
-                             img-src https:;
-                             script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
-                             style-src vscode-resource: 'unsafe-inline';">
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      ${isProduction ? `<link href="${cssUrl}" rel="stylesheet">` : ''}
     </head>
     <body>
-      <iframe
-				id="nbclient"
-        title="nbclient"
-        width="300"
-        height="200"
-        src="${site}">
-      </iframe>
-			<script>
-				const iframe = document.getElementById('nbclient');
-        // Handle the message inside the webview
-        window.addEventListener('message', event => {
-            const message = event.data; // The JSON data our extension sent
-						console.log('Webview forwarding', message);
-						iframe.contentWindow.postMessage(message, '${hostname}');
-        });
+      <div id="root"></div>
 
-				iframe.onload = function (){
-					const vscode = window.acquireVsCodeApi();
-					vscode.postMessage({
-						action: 'ready'
-					});
-				};
-    </script>
+      <script src="${scriptUrl}" />
     </body>
     </html>`;
   }
+
+  // private getWebviewContent(): string {
+  //   // const hostname = "https://localhost:5001";
+  //   const hostname = "https://localhost:44329";
+  //   const site = `${hostname}/notebookClient/dist/index.html`;
+
+  //   return `<!DOCTYPE html>
+  //   <html lang="en">
+  //   <head>
+  //       <meta charset="UTF-8">
+  //       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //       <title>Open Query</title>
+
+  //       <meta http-equiv="Content-Security-Policy"
+  //                   content="
+	// 													 connect-src *;
+  //                            img-src https:;
+  //                            script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
+  //                            style-src vscode-resource: 'unsafe-inline';">
+  //   </head>
+  //   <body>
+  //     <iframe
+	// 			id="nbclient"
+  //       title="nbclient"
+  //       width="300"
+  //       height="200"
+  //       src="${site}">
+  //     </iframe>
+	// 		<script>
+	// 			const iframe = document.getElementById('nbclient');
+  //       // Handle the message inside the webview
+  //       window.addEventListener('message', event => {
+  //           const message = event.data; // The JSON data our extension sent
+	// 					console.log('Webview forwarding', message);
+	// 					iframe.contentWindow.postMessage(message, '${hostname}');
+  //       });
+
+	// 			iframe.onload = function (){
+	// 				const vscode = window.acquireVsCodeApi();
+	// 				vscode.postMessage({
+	// 					action: 'ready'
+	// 				});
+	// 			};
+  //   </script>
+  //   </body>
+  //   </html>`;
+  // }
 
   // TODO No iframe version
   // private getWebviewContent(): string {
