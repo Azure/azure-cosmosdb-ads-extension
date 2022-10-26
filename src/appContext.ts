@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as azdata from "azdata";
 import { ProviderId } from "./Providers/connectionProvider";
-import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
+import { CosmosDBManagementClient, Database } from "@azure/arm-cosmosdb";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { ResourceGraphClient } from "@azure/arm-resourcegraph";
 import { TokenCredentials } from "@azure/ms-rest-js";
@@ -46,6 +46,8 @@ type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem
  */
 export class AppContext {
   public static readonly CONNECTION_INFO_KEY_PROP = "server"; // Unique key to store connection info against
+  private static readonly MAX_QUERY_RESULTS = 20; // avoid overloading UI
+
   private _mongoClients = new Map<string, MongoClient>();
   public reporter: TelemetryReporter | undefined = undefined;
 
@@ -344,6 +346,33 @@ export class AppContext {
         hideStatusBarItem();
       }
     });
+  }
+
+  public async submitQuery(connectionOptions: IConnectionOptions, databaseName: string, collectionName: string, query: string): Promise<any[]> {
+      if (!this._mongoClients.has(connectionOptions.server)) {
+        throw new Error(`Unknown server: ${connectionOptions.server}`); // Should we connect?
+      }
+      const client = this._mongoClients.get(connectionOptions.server);
+      const database = client!.db(databaseName);
+      const collection = database.collection(collectionName);
+
+      const filter = JSON.parse(query); // e.g. { runtime: { $lt: 15 } }
+      // const options = {
+      //   // sort returned documents in ascending order by title (A->Z)
+      //   sort: { title: 1 },
+      //   // Include only the `title` and `imdb` fields in each returned document
+      //   projection: { _id: 0, title: 1, imdb: 1 },
+      // };
+      const cursor = collection.find(filter, /* options */);
+      // replace console.dir with your callback to access individual elements
+      const results = <any>[];
+      await cursor.forEach(doc => {
+        // TODO Figure out how to only loop through the first MAX_QUERY_RESULTS
+        if (results.length < AppContext.MAX_QUERY_RESULTS) {
+          results.push(doc);
+        }
+      });
+      return results;
   }
 }
 

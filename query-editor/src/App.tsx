@@ -1,23 +1,35 @@
-import React from 'react';
-import logo from './logo.svg';
+import { useState } from 'react';
 import './App.css';
 
-function App() {
+export interface AppProps {
+  connectionId: string;
+  databaseName: string;
+  collectionName: string;
+  queryResult?: any;
+  onSubmitQuery: (connectionId: string, query: string) => void;
+};
+
+const App = (props: AppProps) => {
+  const [query, setQuery] = useState<string>('{ "firstName": "Franklin" }');
+
+  const handleSubmit = () => {
+    if (props.connectionId && props.onSubmitQuery) {
+      props.onSubmitQuery(props.connectionId, query);
+    }
+  };
+
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <p>Connection ID: {props.connectionId}</p>
+        <p>Database: {props.databaseName} Collection: {props.collectionName}</p>
+        <input value={query} onChange={evt => setQuery(evt.target.value)} />
+        <p>Query is: <code>{query}</code></p>
+        <button onClick={handleSubmit}>Submit</button>
+        {props.queryResult && props.queryResult.map((r: any) => (
+          <p key={r["_id"]}>{JSON.stringify(r)}</p>
+          )
+        )}
       </header>
     </div>
   );

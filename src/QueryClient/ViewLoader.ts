@@ -2,25 +2,24 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import * as nls from "vscode-nls";
-import { NotebookServiceInfo } from "./appContext";
+import { QuerEditorCommand, QueryEditorMessage } from "./messageContract";
 
 const localize = nls.loadMessageBundle();
 
-interface ICommand {
-  action: "ready";
+export interface ViewLoaderOptions {
+  extensionPath: string;
+  title: string;
+  onReady: () => void;
+  onQuerySubmit: (query: string) => void;
 }
 
 export default class ViewLoader {
   private readonly _panel: vscode.WebviewPanel | undefined;
-  private readonly _extensionPath: string;
   private _disposables: vscode.Disposable[] = [];
 
-  constructor(extensionPath: string, callback: () => void) {
-    this._extensionPath = extensionPath;
-
-    this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", localize("query", "Query"), vscode.ViewColumn.One, {
+  constructor(private readonly _options: ViewLoaderOptions) {
+    this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", this._options.title, vscode.ViewColumn.One, {
       enableScripts: true,
-
       // localResourceRoots: [
       // 	vscode.Uri.file(path.join(extensionPath, "index.cde5ef"))
       // ]
@@ -29,11 +28,17 @@ export default class ViewLoader {
     this._panel.webview.html = this.getWebviewContent();
 
     this._panel.webview.onDidReceiveMessage(
-      (command: ICommand) => {
-        switch (command.action) {
+      (msg: QuerEditorCommand) => {
+        console.log("onDidReceiveMessage", msg);
+        switch (msg.action) {
           case "ready":
-            callback();
+            this._options.onReady();
             return;
+            case "submitQuery":
+              this._options.onQuerySubmit(msg.query);
+              return;
+          default:
+            console.error("Unrecognized message", JSON.stringify(msg));
         }
       },
       undefined,
@@ -41,14 +46,13 @@ export default class ViewLoader {
     );
   }
 
-  public sendInitializeMessage(initMsg: NotebookServiceInfo) {
-    console.log("sending message from webview", initMsg);
+  public sendCommand(command: QueryEditorMessage) {
     if (!this._panel) {
       console.error("panel not ready, yet");
       return;
     }
 
-    this._panel!.webview.postMessage(initMsg);
+    this._panel!.webview.postMessage(command);
   }
 
   private getWebviewContent() {
@@ -59,11 +63,11 @@ export default class ViewLoader {
     let scriptUrl = null;
     let cssUrl = null;
 
-    const isProduction = true;
+    const isProduction = false;
 
     if (isProduction) {
-      scriptUrl = this._panel?.webview.asWebviewUri(vscode.Uri.file(path.join(this._extensionPath, 'out', jsFile))).toString();
-      cssUrl = this._panel?.webview.asWebviewUri(vscode.Uri.file(path.join(this._extensionPath, 'out', cssFile))).toString();
+      scriptUrl = this._panel?.webview.asWebviewUri(vscode.Uri.file(path.join(this._options.extensionPath, 'out', jsFile))).toString();
+      cssUrl = this._panel?.webview.asWebviewUri(vscode.Uri.file(path.join(this._options.extensionPath, 'out', cssFile))).toString();
     } else {
       scriptUrl = `${localServerUrl}/${jsFile}`;
     }

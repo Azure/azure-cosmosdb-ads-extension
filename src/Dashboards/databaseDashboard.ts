@@ -252,11 +252,18 @@ const buildCollectionsAreaAzure = async (
   tableComponent.onCellAction &&
     tableComponent.onCellAction(async (arg: any /* Bug with definition: ICellActionEventArgs */) => {
       if (arg.name === "collection") {
+        // vscode.commands.executeCommand(
+        //   "cosmosdb-ads-extension.openMongoShell",
+        //   { ...databaseDashboardInfo },
+        //   databaseDashboardInfo.databaseName
+        // );
         vscode.commands.executeCommand(
-          "cosmosdb-ads-extension.openMongoShell",
+          "cosmosdb-ads-extension.openQuery",
           { ...databaseDashboardInfo },
-          databaseDashboardInfo.databaseName
+          databaseDashboardInfo.databaseName,
+          collections[arg.row].name
         );
+
         appContext.reporter?.sendActionEvent(
           Telemetry.sources.databaseDashboard,
           Telemetry.actions.click,
