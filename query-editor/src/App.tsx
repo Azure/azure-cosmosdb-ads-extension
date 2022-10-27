@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import {JsonEditor} from "react-jsondata-editor";
 import './App.css';
 
 export interface AppProps {
   connectionId: string;
   databaseName: string;
   collectionName: string;
-  queryResult?: any;
+  queryResultJson?: string;
   onSubmitQuery: (connectionId: string, query: string) => void;
 };
 
@@ -24,12 +25,16 @@ const App = (props: AppProps) => {
         <p>Connection ID: {props.connectionId}</p>
         <p>Database: {props.databaseName} Collection: {props.collectionName}</p>
         <input value={query} onChange={evt => setQuery(evt.target.value)} />
-        <p>Query is: <code>{query}</code></p>
         <button onClick={handleSubmit}>Submit</button>
-        {props.queryResult && props.queryResult.map((r: any) => (
+
+        {props.queryResultJson && (
+          <JsonEditor jsonObject={props.queryResultJson} onChange={(output: any)=> {console.log(output)} } />
+        )}
+
+        {/* {props.queryResult && props.queryResult.map((r: any) => (
           <p key={r["_id"]}>{JSON.stringify(r)}</p>
           )
-        )}
+        )} */}
       </header>
     </div>
   );

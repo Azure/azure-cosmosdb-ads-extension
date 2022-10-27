@@ -29,11 +29,11 @@ const Bootstrapper = (props: { onReady: () => void }) => {
   return <>Not initialized yet</>;
 }
 
-let connectionId: string, collectionName: string, databaseName: string, queryResult: any;
+let connectionId: string, collectionName: string, databaseName: string, queryResultJson: string;
 
 window.addEventListener('message', event => {
   const message: QueryEditorMessage = event.data; // The JSON data our extension sent
-	console.log('Webview received', message);
+	// console.log('Webview received', message);
 
   let mustRender = false;
   switch(message.type) {
@@ -44,11 +44,11 @@ window.addEventListener('message', event => {
       mustRender = true;
       break;
     case "queryResult":
-      queryResult = message.data.queryResult;
+      queryResultJson = JSON.stringify(message.data.queryResult, null, "");
       mustRender = true;
       break;
     default:
-      console.log("Unknown type", message);
+      // console.log("Unknown type", message);
   }
 
   if (mustRender) {
@@ -58,7 +58,7 @@ window.addEventListener('message', event => {
           connectionId={/* message.connectionId */ JSON.stringify(connectionId)}
           collectionName={collectionName}
           databaseName={databaseName}
-          queryResult={ queryResult }
+          queryResultJson={ queryResultJson }
           onSubmitQuery={onSubmitQuery}
         />
       </React.StrictMode>

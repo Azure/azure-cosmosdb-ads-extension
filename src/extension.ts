@@ -367,7 +367,7 @@ export function activate(context: vscode.ExtensionContext) {
           onQuerySubmit: async (query: string) => {
             console.log('submitquery', query);
             const queryResult = await appContext.submitQuery(connectionOptions, databaseName, collectionName, query);
-            console.log("query result:", queryResult);
+            console.log("query # results:", queryResult.length);
             view.sendCommand({
               type: "queryResult",
               data: {

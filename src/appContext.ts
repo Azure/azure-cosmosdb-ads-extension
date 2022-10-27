@@ -367,10 +367,7 @@ export class AppContext {
       // replace console.dir with your callback to access individual elements
       const results = <any>[];
       await cursor.forEach(doc => {
-        // TODO Figure out how to only loop through the first MAX_QUERY_RESULTS
-        if (results.length < AppContext.MAX_QUERY_RESULTS) {
           results.push(doc);
-        }
       });
       return results;
   }
