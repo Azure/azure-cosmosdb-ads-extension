@@ -29,3 +29,7 @@
 ### Bug fixes
 * Fix github ci (thanks JoeCalvert!)
 * Fix bug: mistyping collection name when deleting collection fails silently
+
+## [0.1.4] - 11/01/2022
+### Bug fixes
+* Fix "Basic" authentication. Also made it work for CosmosDB accounts.
