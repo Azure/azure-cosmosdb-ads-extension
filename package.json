@@ -166,7 +166,7 @@
           "specialValueType": "serverName",
           "isIdentity": true,
           "name": "server",
-          "displayName": "Hostname:port or Cosmos DB account name",
+          "displayName": "Hostname:port or Cosmos DB host:port",
           "description": "Hostname(s) or Mongo Account",
           "groupName": "Source",
           "valueType": "string",

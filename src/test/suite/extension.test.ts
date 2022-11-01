@@ -30,13 +30,13 @@ suite("Connection String Test Suite", () => {
     isServer: boolean;
   }[] = [
     {
-      cs: "mongodb://test-mongo:password@test-mongo.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@test-mongo@",
+      cs: "mongodb://test-mongo:password@test-mongo.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=987&appName=@test-mongo@",
       server: "test-mongo.mongo.cosmos.azure.com:10255",
       user: "test-mongo",
       password: "password",
       authenticationType: "SqlLogin",
       pathname: "/",
-      search: "?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@test-mongo@",
+      search: "?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=987&appName=@test-mongo@",
       isServer: false,
     },
     {
@@ -200,19 +200,75 @@ suite("Connection String Test Suite", () => {
     };
     assert.strictEqual(buildMongoConnectionString(options), "mongodb+srv://server");
   });
+
+  test("Build connection string cosmosdb account", () => {
+    const options = {
+      authenticationType: "SqlLogin",
+      user: "username",
+      password: "password",
+      server: "server.cosmos.azure.com",
+      pathname: "",
+      search: "",
+      isServer: false,
+    };
+    const cs = buildMongoConnectionString(options);
+    assert.strictEqual(cs !== undefined, true);
+    assert.match(cs!, /ssl=true/);
+    assert.match(cs!, /replicaSet=globaldb/);
+    assert.match(cs!, /retrywrites=false/);
+    assert.match(cs!, /maxIdleTimeMS=120000/);
+    assert.match(cs!, /appName=%40username%40/);
+  });
+
+  test("Build connection string cosmosdb account with port number", () => {
+    const options = {
+      authenticationType: "SqlLogin",
+      user: "username",
+      password: "password",
+      server: "server.cosmos.azure.com:1234",
+      pathname: "",
+      search: "",
+      isServer: false,
+    };
+    const cs = buildMongoConnectionString(options);
+    assert.strictEqual(cs !== undefined, true);
+    assert.match(cs!, /ssl=true/);
+    assert.match(cs!, /replicaSet=globaldb/);
+    assert.match(cs!, /retrywrites=false/);
+    assert.match(cs!, /maxIdleTimeMS=120000/);
+    assert.match(cs!, /appName=%40username%40/);
+  });
+
+  test("Build connection string cosmosdb account: do not overwrite maxIdleTimeMS", () => {
+    const options = {
+      authenticationType: "SqlLogin",
+      user: "username",
+      password: "password",
+      server: "server.cosmos.azure.com:1234",
+      pathname: "",
+      search: "maxIdleTimeMS=123",
+      isServer: false,
+    };
+    const cs = buildMongoConnectionString(options);
+    assert.match(cs!, /maxIdleTimeMS=123/);
+  });
 });
 
 const areUrlEquivalent = (urlString1: string, urlString2: string): boolean => {
   const url1 = new ConnectionString(urlString1);
   const url2 = new ConnectionString(urlString2);
 
-  // Normalize: mongodb://localhost is equivalent to mongodb://localhost/
-  if (url1.pathname === "/") {
-    url1.pathname = "";
-  }
-  if (url2.pathname === "/") {
-    url2.pathname = "";
+  for (const [key1, value1] of url1.searchParams) {
+    if (!url2.searchParams.has(key1) || url2.searchParams.get(key1) !== value1) {
+      return false;
+    }
   }
 
-  return url1.toString() === url2.toString();
+  for (const [key2, value2] of url2.searchParams) {
+    if (!url1.searchParams.has(key2) || url1.searchParams.get(key2) !== value2) {
+      return false;
+    }
+  }
+
+  return true;
 };
