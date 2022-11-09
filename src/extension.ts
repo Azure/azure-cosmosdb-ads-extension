@@ -361,19 +361,19 @@ export function activate(context: vscode.ExtensionContext) {
               data: {
                 connectionId: connectionOptions.server,
                 databaseName,
-                collectionName
-              }
+                collectionName,
+              },
             });
           },
           onQuerySubmit: async (query: MongoQuery) => {
-            console.log('submitquery', query);
+            console.log("submitquery", query);
             const queryResult = await appContext.submitQuery(connectionOptions, databaseName, collectionName, query);
             console.log("query # results:", queryResult.documents.length, queryResult.offset, queryResult.limit);
             view.sendCommand({
               type: "queryResult",
-              data: queryResult
+              data: queryResult,
             });
-          }
+          },
         });
       }
     )
@@ -459,66 +459,62 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "cosmosdb-ads-extension.startProxy",
-      async () => {
-        console.log('Starting proxy');
-        // Download mongosh
-        const executablePath = "C:\\CosmosDB\\ADS\\CosmosDbProxy\\CosmosDbProxy\\bin\\Debug\\net6.0\\CosmosDbProxy.exe";
-        const childProcess = cp.exec(executablePath, (err, stdout, stderr) => {
-          console.log("stdout: " + stdout);
-          console.log("stderr: " + stderr);
-          if (err) {
-            console.log("error: " + err);
-          }
-        });
-        console.log("proxy was started", childProcess);
-
-        // childProcess.stdin.setEncoding("utf8");
-        // childProcess.stdin.on("data",)
-
-        if (!childProcess || !childProcess.stdout || !childProcess.stderr || !childProcess.stdin) {
-          console.error("Error executing", executablePath);
-          return;
+    vscode.commands.registerCommand("cosmosdb-ads-extension.startProxy", async () => {
+      console.log("Starting proxy");
+      // Download mongosh
+      const executablePath = "C:\\CosmosDB\\ADS\\CosmosDbProxy\\CosmosDbProxy\\bin\\Debug\\net6.0\\CosmosDbProxy.exe";
+      const childProcess = cp.exec(executablePath, (err, stdout, stderr) => {
+        console.log("stdout: " + stdout);
+        console.log("stderr: " + stderr);
+        if (err) {
+          console.log("error: " + err);
         }
+      });
+      console.log("proxy was started", childProcess);
 
-        console.log('Listening to stdout and stderr');
+      // childProcess.stdin.setEncoding("utf8");
+      // childProcess.stdin.on("data",)
 
-        childProcess.stdout.setEncoding("utf8");
-        childProcess.stdout.on("data", function (data) {
-          //Here is where the output goes
-
-          console.log("New data on stdout: " + data);
-
-          data = data.toString();
-        });
-
-        childProcess.stderr.setEncoding("utf8");
-        childProcess.stderr.on("data", function (data) {
-          //Here is where the error output goes
-
-          console.log("New data on stderr: " + data);
-
-          data = data.toString();
-        });
-
-        childProcess.on("close", function (code) {
-          //Here you can get the exit code of the script
-
-          console.log("closing code: " + code);
-        });
-
-        console.log('Sending messages');
-
-        childProcess.stdin.write("BLAH");
-        setTimeout(() => {
-          childProcess && childProcess.stdin?.write("query");
-        }, 5000);
-
-        console.log('Done');
-
+      if (!childProcess || !childProcess.stdout || !childProcess.stderr || !childProcess.stdin) {
+        console.error("Error executing", executablePath);
+        return;
       }
-    )
+
+      console.log("Listening to stdout and stderr");
+
+      childProcess.stdout.setEncoding("utf8");
+      childProcess.stdout.on("data", function (data) {
+        //Here is where the output goes
+
+        console.log("New data on stdout: " + data);
+
+        data = data.toString();
+      });
+
+      childProcess.stderr.setEncoding("utf8");
+      childProcess.stderr.on("data", function (data) {
+        //Here is where the error output goes
+
+        console.log("New data on stderr: " + data);
+
+        data = data.toString();
+      });
+
+      childProcess.on("close", function (code) {
+        //Here you can get the exit code of the script
+
+        console.log("closing code: " + code);
+      });
+
+      console.log("Sending messages");
+
+      childProcess.stdin.write("BLAH");
+      setTimeout(() => {
+        childProcess && childProcess.stdin?.write("query");
+      }, 5000);
+
+      console.log("Done");
+    })
   );
 
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));

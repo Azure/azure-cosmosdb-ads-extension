@@ -13,6 +13,7 @@ export interface AppProps {
 
 const App = (props: AppProps) => {
   const [query, setQuery] = useState<string>('{ "firstName": "Franklin" }');
+  const [renderAsTree, setRenderAsTree] = useState(true);
 
   const handleSubmit = (offset: number | undefined) => {
     if (props.connectionId && props.onSubmitQuery) {
@@ -35,20 +36,30 @@ const App = (props: AppProps) => {
         <p>Database: {props.databaseName} Collection: {props.collectionName}</p>
         <input value={query} onChange={evt => setQuery(evt.target.value)} />
         <button onClick={() => handleSubmit(offset)}>Submit</button>
+        <input type="radio" name="renderJson" value="tree" checked={renderAsTree} onChange={() => setRenderAsTree(true)} />Tree
+        <input type="radio" name="renderJson" value="text" checked={!renderAsTree} onChange={() => setRenderAsTree(false)} />Text
         {queryResult && (
           <div>
-            <span>{offset} to {offset! + limit!} of {queryResult.total} </span>
+            <span>Showing {offset} to {offset! + limit!} of {queryResult.total} </span>
             <button disabled={queryResult.offset <= 0} onClick={() => handleSubmit(offset !== undefined && limit !== undefined ? offset - limit: undefined)}>&#60;</button>
             <button disabled={queryResult.offset + queryResult.documents.length >= queryResult.total }
                onClick={() => handleSubmit(offset !== undefined && limit !== undefined ? offset + limit: undefined)}>&#62;</button>
-            <div className="jsonEditor">
-              <JsonEditor
-                jsonObject={JSON.stringify(queryResult.documents, null, "")}
-                onChange={(output: any) => { console.log(output) }}
-                hideInsertObjectButton={true}
-                expandToGeneration={0}
-              />
-            </div>
+            {renderAsTree && (
+              <div className="jsonEditor">
+                <JsonEditor
+                  jsonObject={JSON.stringify(queryResult.documents, null, "")}
+                  onChange={(output: any) => { console.log(output) }}
+
+                  hideInsertObjectButton={true}
+                  expandToGeneration={0}
+                />
+              </div>
+            )}
+            {!renderAsTree && (
+              <div>
+                <pre>{JSON.stringify(queryResult.documents, null, 2)}</pre>
+              </div>
+            )}
           </div>
         )}
 

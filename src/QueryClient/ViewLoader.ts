@@ -20,7 +20,7 @@ export default class ViewLoader {
   constructor(private readonly _options: ViewLoaderOptions) {
     this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", this._options.title, vscode.ViewColumn.One, {
       enableScripts: true,
-      retainContextWhenHidden: true // TODO use vscode getState, setState to save/restore react state
+      retainContextWhenHidden: true, // TODO use vscode getState, setState to save/restore react state
       // localResourceRoots: [
       // 	vscode.Uri.file(path.join(extensionPath, "index.cde5ef"))
       // ]
@@ -35,9 +35,9 @@ export default class ViewLoader {
           case "ready":
             this._options.onReady();
             return;
-            case "submitQuery":
-              this._options.onQuerySubmit(msg.query);
-              return;
+          case "submitQuery":
+            this._options.onQuerySubmit(msg.query);
+            return;
           default:
             console.error("Unrecognized message", JSON.stringify(msg));
         }
@@ -67,8 +67,12 @@ export default class ViewLoader {
     const isProduction = false;
 
     if (isProduction) {
-      scriptUrl = this._panel?.webview.asWebviewUri(vscode.Uri.file(path.join(this._options.extensionPath, 'out', jsFile))).toString();
-      cssUrl = this._panel?.webview.asWebviewUri(vscode.Uri.file(path.join(this._options.extensionPath, 'out', cssFile))).toString();
+      scriptUrl = this._panel?.webview
+        .asWebviewUri(vscode.Uri.file(path.join(this._options.extensionPath, "out", jsFile)))
+        .toString();
+      cssUrl = this._panel?.webview
+        .asWebviewUri(vscode.Uri.file(path.join(this._options.extensionPath, "out", cssFile)))
+        .toString();
     } else {
       scriptUrl = `${localServerUrl}/${jsFile}`;
     }
@@ -78,7 +82,7 @@ export default class ViewLoader {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      ${isProduction ? `<link href="${cssUrl}" rel="stylesheet">` : ''}
+      ${isProduction ? `<link href="${cssUrl}" rel="stylesheet">` : ""}
     </head>
     <body>
       <div id="root"></div>
@@ -102,34 +106,34 @@ export default class ViewLoader {
 
   //       <meta http-equiv="Content-Security-Policy"
   //                   content="
-	// 													 connect-src *;
+  // 													 connect-src *;
   //                            img-src https:;
   //                            script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
   //                            style-src vscode-resource: 'unsafe-inline';">
   //   </head>
   //   <body>
   //     <iframe
-	// 			id="nbclient"
+  // 			id="nbclient"
   //       title="nbclient"
   //       width="300"
   //       height="200"
   //       src="${site}">
   //     </iframe>
-	// 		<script>
-	// 			const iframe = document.getElementById('nbclient');
+  // 		<script>
+  // 			const iframe = document.getElementById('nbclient');
   //       // Handle the message inside the webview
   //       window.addEventListener('message', event => {
   //           const message = event.data; // The JSON data our extension sent
-	// 					console.log('Webview forwarding', message);
-	// 					iframe.contentWindow.postMessage(message, '${hostname}');
+  // 					console.log('Webview forwarding', message);
+  // 					iframe.contentWindow.postMessage(message, '${hostname}');
   //       });
 
-	// 			iframe.onload = function (){
-	// 				const vscode = window.acquireVsCodeApi();
-	// 				vscode.postMessage({
-	// 					action: 'ready'
-	// 				});
-	// 			};
+  // 			iframe.onload = function (){
+  // 				const vscode = window.acquireVsCodeApi();
+  // 				vscode.postMessage({
+  // 					action: 'ready'
+  // 				});
+  // 			};
   //   </script>
   //   </body>
   //   </html>`;

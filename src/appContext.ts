@@ -348,40 +348,51 @@ export class AppContext {
     });
   }
 
-  public async submitQuery(connectionOptions: IConnectionOptions, databaseName: string, collectionName: string, query: MongoQuery): Promise<QueryResult> {
-      if (!this._mongoClients.has(connectionOptions.server)) {
-        throw new Error(`Unknown server: ${connectionOptions.server}`); // Should we connect?
-      }
-      const client = this._mongoClients.get(connectionOptions.server);
-      const database = client!.db(databaseName);
-      const collection = database.collection(collectionName);
+  public async submitQuery(
+    connectionOptions: IConnectionOptions,
+    databaseName: string,
+    collectionName: string,
+    query: MongoQuery
+  ): Promise<QueryResult> {
+    if (!this._mongoClients.has(connectionOptions.server)) {
+      throw new Error(`Unknown server: ${connectionOptions.server}`); // Should we connect?
+    }
+    const client = this._mongoClients.get(connectionOptions.server);
+    const database = client!.db(databaseName);
+    const collection = database.collection(collectionName);
 
-      const filter = JSON.parse(query.query); // e.g. { runtime: { $lt: 15 } }
+    const filter = JSON.parse(query.query); // e.g. { runtime: { $lt: 15 } }
 
-      // If a limit is specified, use it. Else default to 20
-      let limit = query.limit ?? 20;
-      if (limit < 1) { limit = 20; }
-      if (limit > 50) { limit = 50; }
-      // If an offset is specified, use it. Else default to 0
-      // i.e no offset -> first page
-      let skip = query.offset ?? 0;
-      if (skip < 1) { skip = 0; }
+    // If a limit is specified, use it. Else default to 20
+    let limit = query.limit ?? 20;
+    if (limit < 1) {
+      limit = 20;
+    }
+    if (limit > 50) {
+      limit = 50;
+    }
+    // If an offset is specified, use it. Else default to 0
+    // i.e no offset -> first page
+    let skip = query.offset ?? 0;
+    if (skip < 1) {
+      skip = 0;
+    }
 
-      const cursor = collection.find(filter, { limit, skip });
-      // replace console.dir with your callback to access individual elements
-      const documents = <any>[];
-      await cursor.forEach(doc => {
-        documents.push(doc);
-      });
+    const cursor = collection.find(filter, { limit, skip });
+    // replace console.dir with your callback to access individual elements
+    const documents = <any>[];
+    await cursor.forEach((doc) => {
+      documents.push(doc);
+    });
 
-      const total = await collection.countDocuments(filter, {});
+    const total = await collection.countDocuments(filter, {});
 
-      return {
-        documents,
-        total,
-        limit,
-        offset: skip
-      };
+    return {
+      documents,
+      total,
+      limit,
+      offset: skip,
+    };
   }
 }
 
