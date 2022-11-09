@@ -31,6 +31,7 @@ import { Collection, Document } from "mongodb";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { getPackageInfo } from "./Dashboards/util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
+import { MongoQuery } from "./QueryClient/messageContract";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -364,35 +365,16 @@ export function activate(context: vscode.ExtensionContext) {
               }
             });
           },
-          onQuerySubmit: async (query: string) => {
+          onQuerySubmit: async (query: MongoQuery) => {
             console.log('submitquery', query);
             const queryResult = await appContext.submitQuery(connectionOptions, databaseName, collectionName, query);
-            console.log("query # results:", queryResult.length);
+            console.log("query # results:", queryResult.documents.length, queryResult.offset, queryResult.limit);
             view.sendCommand({
               type: "queryResult",
-              data: {
-                queryResult
-              }
+              data: queryResult
             });
           }
         });
-
-
-        // // REMOVE code
-        // try {
-        //   const initMsg: NotebookServiceInfo = await getNbServiceInfo();
-        //   const view = new ViewLoader(
-        //     context.extensionPath,
-        //     () => {
-        //       view.sendInitializeMessage(initMsg);
-        //     },
-        //     (query: string) => {
-        //       // appContext.runQuery(query);
-        //     }
-        //   );
-        // } catch (e) {
-        //   vscode.window.showErrorMessage(localize("failOpenNotebookClient", "Error opening notebook client"));
-        // }
       }
     )
   );

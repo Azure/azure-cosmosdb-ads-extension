@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import * as nls from "vscode-nls";
-import { QuerEditorCommand, QueryEditorMessage } from "./messageContract";
+import { MongoQuery, QuerEditorCommand, QueryEditorMessage } from "./messageContract";
 
 const localize = nls.loadMessageBundle();
 
@@ -10,7 +10,7 @@ export interface ViewLoaderOptions {
   extensionPath: string;
   title: string;
   onReady: () => void;
-  onQuerySubmit: (query: string) => void;
+  onQuerySubmit: (query: MongoQuery) => void;
 }
 
 export default class ViewLoader {

@@ -35,6 +35,7 @@ import {
   NewDatabaseFormData,
 } from "./dialogUtil";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
+import { MongoQuery, QueryResult } from "./QueryClient/messageContract";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -347,7 +348,7 @@ export class AppContext {
     });
   }
 
-  public async submitQuery(connectionOptions: IConnectionOptions, databaseName: string, collectionName: string, query: string): Promise<any[]> {
+  public async submitQuery(connectionOptions: IConnectionOptions, databaseName: string, collectionName: string, query: MongoQuery): Promise<QueryResult> {
       if (!this._mongoClients.has(connectionOptions.server)) {
         throw new Error(`Unknown server: ${connectionOptions.server}`); // Should we connect?
       }
@@ -355,20 +356,32 @@ export class AppContext {
       const database = client!.db(databaseName);
       const collection = database.collection(collectionName);
 
-      const filter = JSON.parse(query); // e.g. { runtime: { $lt: 15 } }
-      // const options = {
-      //   // sort returned documents in ascending order by title (A->Z)
-      //   sort: { title: 1 },
-      //   // Include only the `title` and `imdb` fields in each returned document
-      //   projection: { _id: 0, title: 1, imdb: 1 },
-      // };
-      const cursor = collection.find(filter, /* options */);
+      const filter = JSON.parse(query.query); // e.g. { runtime: { $lt: 15 } }
+
+      // If a limit is specified, use it. Else default to 20
+      let limit = query.limit ?? 20;
+      if (limit < 1) { limit = 20; }
+      if (limit > 50) { limit = 50; }
+      // If an offset is specified, use it. Else default to 0
+      // i.e no offset -> first page
+      let skip = query.offset ?? 0;
+      if (skip < 1) { skip = 0; }
+
+      const cursor = collection.find(filter, { limit, skip });
       // replace console.dir with your callback to access individual elements
-      const results = <any>[];
+      const documents = <any>[];
       await cursor.forEach(doc => {
-          results.push(doc);
+        documents.push(doc);
       });
-      return results;
+
+      const total = await collection.countDocuments(filter, {});
+
+      return {
+        documents,
+        total,
+        limit,
+        offset: skip
+      };
   }
 }
 

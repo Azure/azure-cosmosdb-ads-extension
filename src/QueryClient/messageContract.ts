@@ -1,3 +1,9 @@
+export interface MongoQuery {
+  query: string;
+  offset?: number;
+  limit?: number;
+}
+
 /**
  * query-editor --> Webview
  */
@@ -5,7 +11,14 @@ export type QuerEditorCommand = {
   action: "ready";
 } | {
   action: "submitQuery";
-  query: string;
+  query: MongoQuery;
+};
+
+export interface QueryResult {
+  documents: any[];
+  total: number;
+  offset: number;
+  limit: number;
 };
 
 /**
@@ -20,8 +33,5 @@ export type QueryEditorMessage = {
   }
 } | {
   type: "queryResult";
-  data: {
-    queryResult: any;
-    // TODO Add flag to indicate whether results have been clipped
-  }
+  data: QueryResult;
 };
