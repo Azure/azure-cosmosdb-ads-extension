@@ -16,5 +16,5 @@
         "no-throw-literal": "warn",
         "semi": "off"
     },
-    "ignorePatterns": [ "react-json-editor/**/*.js" ]
+    "ignorePatterns": [ "src/react-json-editor/**/*.js" ]
 }
