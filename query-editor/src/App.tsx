@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import {JsonEditor} from "react-jsondata-editor";
+import {JsonEditor} from "./react-json-editor/index";
 import './App.css';
 
 export interface AppProps {
@@ -28,7 +28,12 @@ const App = (props: AppProps) => {
         <button onClick={handleSubmit}>Submit</button>
 
         {props.queryResultJson && (
-          <JsonEditor jsonObject={props.queryResultJson} onChange={(output: any)=> {console.log(output)} } />
+          <JsonEditor
+            jsonObject={props.queryResultJson}
+            onChange={(output: any)=> {console.log(output)}}
+            hideInsertObjectButton={true}
+            expandToGeneration={0}
+          />
         )}
 
         {/* {props.queryResult && props.queryResult.map((r: any) => (

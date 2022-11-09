@@ -20,6 +20,7 @@ export default class ViewLoader {
   constructor(private readonly _options: ViewLoaderOptions) {
     this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", this._options.title, vscode.ViewColumn.One, {
       enableScripts: true,
+      retainContextWhenHidden: true // TODO use vscode getState, setState to save/restore react state
       // localResourceRoots: [
       // 	vscode.Uri.file(path.join(extensionPath, "index.cde5ef"))
       // ]
