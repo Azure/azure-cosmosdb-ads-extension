@@ -63,6 +63,11 @@
         "command": "cosmosdb-ads-extension.openMongoShell",
         "title": "Open Mongo Shell",
         "category": "Cosmos DB Mongo"
+      },
+      {
+        "command": "cosmosdb-ads-extension.startProxy",
+        "title": "Start Proxy",
+        "category": "Cosmos DB Mongo"
       }
     ],
     "menus": {
@@ -291,6 +296,7 @@
     "@azure/arm-resourcegraph": "4.2.1",
     "@microsoft/ads-extension-telemetry": "1.2.0",
     "@types/node-fetch": "2.6.2",
+    "child_process": "1.0.2",
     "mkdirp": "1.0.4",
     "mongodb-connection-string-url": "2.5.2",
     "mongodb": "4.5.0",
