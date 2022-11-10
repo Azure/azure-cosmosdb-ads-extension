@@ -64,7 +64,7 @@ export default class ViewLoader {
     let scriptUrl = null;
     let cssUrl = null;
 
-    const isProduction = false;
+    const isProduction = true;
 
     if (isProduction) {
       scriptUrl = this._panel?.webview
