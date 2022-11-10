@@ -65,8 +65,16 @@ export const buildMongoConnectionString = (options: {
     url.password = options["password"];
   }
 
-  url.pathname = options["pathname"];
-  url.search = options["search"];
+  url.pathname = options["pathname"] || "";
+  url.search = options["search"] || "";
 
+  // CosmosDB account need these parameters (hostname ends with cosmos.azure.com)
+  if (options.server.match(/\.cosmos\.azure\.com(:[0-9]*)*$/g)) {
+    url.searchParams.set("ssl", "true");
+    url.searchParams.set("replicaSet", "globaldb");
+    url.searchParams.set("retrywrites", "false");
+    url.searchParams.set("maxIdleTimeMS", url.searchParams.get("maxIdleTimeMS") || "120000");
+    url.searchParams.set("appName", `@${options.user}@`);
+  }
   return url.toString();
 };
