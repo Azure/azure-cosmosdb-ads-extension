@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as fs from "fs";
+import * as path from "path";
 
 // The module 'azdata' contains the Azure Data Studio extensibility API
 // This is a complementary set of APIs that add SQL / Data-specific functionality to the app
@@ -24,12 +25,13 @@ import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
 import ViewLoader from "./ViewLoader";
-import { installMongoShell } from "./MongoShell/MongoShellUtil";
+import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
 import { convertToConnectionOptions, IConnectionOptions } from "./models";
 import { Collection, Document } from "mongodb";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { getPackageInfo } from "./Dashboards/util";
+import { getMongoShellConfig, getPackageInfo } from "./Dashboards/util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
+import { LOCAL_RESOURCES_DIR, SAMPLE_DATA_VERSION } from "./constant";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -50,9 +52,54 @@ export interface IDatabaseDashboardInfo extends IConnectionOptions {
   connectionId: string;
 }
 
+/**
+ * Delete all files in this folderPath except exceptName
+ * @param folderPath
+ * @param exceptName
+ */
+const deleteAllFilesExcept = (folderPath: string, exceptName: string) => {
+  fs.readdir(folderPath, { withFileTypes: true }, (err, files) => {
+    if (err) {
+      return;
+    } else {
+      files
+        .filter((dirent) => dirent.isDirectory() && dirent.name !== exceptName)
+        .forEach((dirent) => {
+          const dirToDeletePath = path.join(folderPath, dirent.name);
+          fs.rmdir(
+            dirToDeletePath,
+            { recursive: true },
+            (err) => err && console.error(`Unable to remove folder ${dirToDeletePath} ${err}`)
+          );
+        });
+    }
+  });
+};
+
+/**
+ * Delete local resources if the version is not the correct one
+ */
+const cleanupLocalResources = (extensionPath: string): void => {
+  // Delete legacy location
+  let mongoShellPath = path.join(extensionPath, "mongoshellexecutable");
+  fs.rmdir(
+    mongoShellPath,
+    { recursive: true },
+    (err) => err && console.error(`Unable to remove folder ${mongoShellPath} ${err}`)
+  );
+
+  // Find and remove all subfolders that aren't the current version
+  mongoShellPath = path.join(extensionPath, LOCAL_RESOURCES_DIR, "mongoshell");
+  const currentMongoShellVersion = getMongoShellConfig().version;
+  deleteAllFilesExcept(mongoShellPath, currentMongoShellVersion);
+  deleteAllFilesExcept(path.join(extensionPath, LOCAL_RESOURCES_DIR, "sampledata"), SAMPLE_DATA_VERSION);
+};
+
 let appContext: AppContext;
 
 export function activate(context: vscode.ExtensionContext) {
+  cleanupLocalResources(context.extensionPath);
+
   const terminalMap = new Map<string, number>(); // terminal name <-> counter
 
   context.subscriptions.push(
@@ -399,7 +446,7 @@ export function activate(context: vscode.ExtensionContext) {
         terminalMap.set(terminalName, ++counter);
 
         // Download mongosh
-        const executablePath = await installMongoShell(context.extensionPath);
+        const executablePath = await downloadMongoShell(context.extensionPath);
 
         if (!executablePath) {
           vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));

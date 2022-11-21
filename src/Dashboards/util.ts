@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import * as azdata from "azdata";
 const packageJson = require("../../package.json");
+const mongoShellConfigJson = require("../../mongoShellConfig.json");
 
 export const buildHeroCard = (
   view: azdata.ModelView,
@@ -39,6 +40,23 @@ export interface IPackageInfo {
   version: string;
   aiKey: string;
 }
+
+export interface IMongoShellConfig {
+  downloadUrl: string;
+  version: string;
+  downloadFileNames: { [platform: string]: string };
+  installDirectory: string;
+  executableFiles: string[];
+  retry: {
+    retries: number;
+    factor: number;
+    minTimeout: number;
+    maxTimeout: number;
+    randomize: boolean;
+  };
+}
+
+export const getMongoShellConfig = (): IMongoShellConfig => mongoShellConfigJson;
 
 export function getPackageInfo(): IPackageInfo {
   return {
