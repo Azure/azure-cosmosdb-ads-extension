@@ -1,5 +1,5 @@
 {
-	"downloadUrl": "https://cosmosdb4ads.z22.web.core.windows.net/resources/mongoshell/{#version#}/{#fileName#}",
+	"downloadUrl": "https://sqlopsextensions.blob.core.windows.net/extensions/azure-cosmosdb-ads-extension/resources/mongoshell/{#version#}/{#fileName#}",
 	"version": "1.6.0",
 	"downloadFileNames": {
 		"Windows_86": "",
