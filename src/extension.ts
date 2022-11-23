@@ -27,11 +27,10 @@ import { UriHandler } from "./protocol/UriHandler";
 import ViewLoader from "./ViewLoader";
 import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
 import { convertToConnectionOptions, IConnectionOptions } from "./models";
-import { Collection, Document } from "mongodb";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { getMongoShellConfig, getPackageInfo } from "./Dashboards/util";
+import { getPackageInfo } from "./Dashboards/util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
-import { LOCAL_RESOURCES_DIR, SAMPLE_DATA_VERSION } from "./constant";
+import { LOCAL_RESOURCES_DIR } from "./constant";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -89,10 +88,9 @@ const cleanupLocalResources = (extensionPath: string): void => {
   );
 
   // Find and remove all subfolders that aren't the current version
-  mongoShellPath = path.join(extensionPath, LOCAL_RESOURCES_DIR, "mongoshell");
-  const currentMongoShellVersion = getMongoShellConfig().version;
-  deleteAllFilesExcept(mongoShellPath, currentMongoShellVersion);
-  deleteAllFilesExcept(path.join(extensionPath, LOCAL_RESOURCES_DIR, "sampledata"), SAMPLE_DATA_VERSION);
+  mongoShellPath = path.join(extensionPath, LOCAL_RESOURCES_DIR);
+  const currentVersion = getPackageInfo().version;
+  deleteAllFilesExcept(mongoShellPath, currentVersion);
 };
 
 let appContext: AppContext;

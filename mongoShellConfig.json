@@ -1,20 +1,20 @@
 {
-	"downloadUrl": "https://sqlopsextensions.blob.core.windows.net/extensions/azure-cosmosdb-ads-extension/resources/mongoshell/{#version#}/{#fileName#}",
-	"version": "1.6.0",
+	"downloadUrl": "https://github.com/Azure/azure-cosmosdb-ads-extension/releases/download/{#version#}/mongoshell-{#fileName#}",
+	"version": "0.2.0",
 	"downloadFileNames": {
 		"Windows_86": "",
-		"Windows_64": "win32-x64.zip",
-		"OSX": "darwin-x64.zip",
-		"CentOS_7": "linux-x64.tgz",
-		"Debian_8": "linux-x64.tgz",
-		"Fedora_23": "linux-x64.tgz",
-		"OpenSUSE_13_2": "linux-x64.tgz",
-		"RHEL_7": "linux-x64.tgz",
-		"SLES_12_2": "linux-x64.tgz",
-		"Ubuntu_14": "linux-x64.tgz",
-		"Ubuntu_16": "linux-x64.tgz"
+		"Windows_64": "1.6.0-win32-x64.zip",
+		"OSX": "1.6.0-darwin-x64.zip",
+		"CentOS_7": "1.6.0-linux-x64.tgz",
+		"Debian_8": "1.6.0-linux-x64.tgz",
+		"Fedora_23": "1.6.0-linux-x64.tgz",
+		"OpenSUSE_13_2": "1.6.0-linux-x64.tgz",
+		"RHEL_7": "1.6.0-linux-x64.tgz",
+		"SLES_12_2": "1.6.0-linux-x64.tgz",
+		"Ubuntu_14": "1.6.0-linux-x64.tgz",
+		"Ubuntu_16": "1.6.0-linux-x64.tgz"
 	},
-	"installDirectory": "./local-resources/mongoshell/{#platform#}/{#version#}",
+	"installDirectory": "./local-resources/{#version#}/mongoshell/{#platform#}",
 	"executableFiles": [
 		"mongosh.exe",
 		"mongosh"

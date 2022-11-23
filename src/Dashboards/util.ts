@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import * as azdata from "azdata";
 const packageJson = require("../../package.json");
-const mongoShellConfigJson = require("../../mongoShellConfig.json");
 
 export const buildHeroCard = (
   view: azdata.ModelView,
@@ -55,8 +54,6 @@ export interface IMongoShellConfig {
     randomize: boolean;
   };
 }
-
-export const getMongoShellConfig = (): IMongoShellConfig => mongoShellConfigJson;
 
 export function getPackageInfo(): IPackageInfo {
   return {

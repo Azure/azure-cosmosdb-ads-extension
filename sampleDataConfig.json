@@ -1,6 +1,6 @@
 {
-	"downloadUrl": "https://sqlopsextensions.blob.core.windows.net/extensions/azure-cosmosdb-ads-extension/resources/sampledata/{#version#}/{#fileName#}",
-	"version": "1.0.0",
+	"downloadUrl": "https://github.com/Azure/azure-cosmosdb-ads-extension/releases/download/{#version#}/sampledata-{#fileName#}",
+	"version": "0.2.0",
   "downloadFileNames": {
 		"Windows_86": "customer.zip",
 		"Windows_64": "customer.zip",
@@ -14,7 +14,7 @@
 		"Ubuntu_14": "customer.zip",
 		"Ubuntu_16": "customer.zip"
 	},
-	"installDirectory": "./local-resources/sampledata/{#version#}",
+	"installDirectory": "./local-resources/{#version#}/sampledata/",
 	"executableFiles": [ "customer.json" ],
 	"retry": {
 		"retries": 15,
