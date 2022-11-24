@@ -14,7 +14,7 @@
 		"Ubuntu_14": "customer.zip",
 		"Ubuntu_16": "customer.zip"
 	},
-	"installDirectory": "./local-resources/{#version#}/sampledata/",
+	"installDirectory": "./local-resources/{#version#}/sampledata",
 	"executableFiles": [ "customer.json" ],
 	"retry": {
 		"retries": 15,
