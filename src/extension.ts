@@ -75,29 +75,9 @@ const deleteAllFilesExcept = (folderPath: string, exceptName: string) => {
   });
 };
 
-/**
- * Delete local resources if the version is not the correct one
- */
-const cleanupLocalResources = (extensionPath: string): void => {
-  // Delete legacy location
-  let mongoShellPath = path.join(extensionPath, "mongoshellexecutable");
-  fs.rmdir(
-    mongoShellPath,
-    { recursive: true },
-    (err) => err && console.error(`Unable to remove folder ${mongoShellPath} ${err}`)
-  );
-
-  // Find and remove all subfolders that aren't the current version
-  mongoShellPath = path.join(extensionPath, LOCAL_RESOURCES_DIR);
-  const currentVersion = getPackageInfo().version;
-  deleteAllFilesExcept(mongoShellPath, currentVersion);
-};
-
 let appContext: AppContext;
 
 export function activate(context: vscode.ExtensionContext) {
-  cleanupLocalResources(context.extensionPath);
-
   const terminalMap = new Map<string, number>(); // terminal name <-> counter
 
   context.subscriptions.push(
@@ -455,6 +435,7 @@ export function activate(context: vscode.ExtensionContext) {
         const terminalOptions: vscode.TerminalOptions = {
           name: `Mongo Shell: ${terminalName}-${counter}`,
           shellPath: executablePath,
+          isTransient: true
         };
         if (mongoShellOptions) {
           terminalOptions.shellArgs = undefined;
