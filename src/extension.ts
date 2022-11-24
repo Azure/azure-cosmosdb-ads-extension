@@ -435,7 +435,7 @@ export function activate(context: vscode.ExtensionContext) {
         const terminalOptions: vscode.TerminalOptions = {
           name: `Mongo Shell: ${terminalName}-${counter}`,
           shellPath: executablePath,
-          isTransient: true
+          isTransient: true,
         };
         if (mongoShellOptions) {
           terminalOptions.shellArgs = undefined;
