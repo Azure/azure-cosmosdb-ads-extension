@@ -19,7 +19,9 @@ import {
   askUserForConnectionProfile,
   createStatusBarItem,
   getNbServiceInfo,
+  hideStatusBarItem,
   NotebookServiceInfo,
+  showStatusBarItem,
 } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
@@ -424,7 +426,19 @@ export function activate(context: vscode.ExtensionContext) {
         terminalMap.set(terminalName, ++counter);
 
         // Download mongosh
-        const executablePath = await downloadMongoShell(context.extensionPath);
+        let executablePath;
+        try {
+          showStatusBarItem(localize("downloadingMongoShell", "Downloading mongo shell..."));
+          executablePath = await downloadMongoShell(context.extensionPath);
+          hideStatusBarItem();
+        } catch (e) {
+          if (!executablePath) {
+            vscode.window.showErrorMessage(
+              `${localize("failInstallMongoShell", "Unable to install mongo shell")}: ${e}`
+            );
+            return;
+          }
+        }
 
         if (!executablePath) {
           vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));

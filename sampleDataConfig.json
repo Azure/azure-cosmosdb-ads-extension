@@ -1,6 +1,6 @@
 {
 	"downloadUrl": "https://github.com/Azure/azure-cosmosdb-ads-extension/releases/download/{#version#}/sampledata-{#fileName#}",
-	"version": "0.2.0",
+	"version": "v0.2.0",
   "downloadFileNames": {
 		"Windows_86": "customer.zip",
 		"Windows_64": "customer.zip",

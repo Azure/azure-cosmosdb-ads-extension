@@ -3,8 +3,10 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as fs from "fs";
 import { ServerProvider, Events } from "@microsoft/ads-service-downloader";
+import { showStatusBarItem } from "../appContext";
 
 const localize = nls.loadMessageBundle();
+let outputChannel: vscode.OutputChannel;
 
 export const downloadMongoShell = async (extensionPath: string): Promise<string> => {
   const rawConfig = await fs.readFileSync(path.join(extensionPath, "mongoShellConfig.json"));
@@ -14,22 +16,22 @@ export const downloadMongoShell = async (extensionPath: string): Promise<string>
   config.strictSSL = vscode.workspace.getConfiguration("http").get("proxyStrictSSL") || true;
 
   const serverdownloader = new ServerProvider(config);
-  serverdownloader.eventEmitter.onAny(() => generateHandleServerProviderEvent());
+  serverdownloader.eventEmitter.onAny(generateHandleServerProviderEvent());
   return serverdownloader.getOrDownloadServer();
 };
 
-const statusView = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-const outputChannel = vscode.window.createOutputChannel("download");
-
 function generateHandleServerProviderEvent() {
   let dots = 0;
-  return (e: string, ...args: any[]) => {
+  return (e: string | string[], ...args: any[]) => {
+    if (!outputChannel) {
+      outputChannel = vscode.window.createOutputChannel("Download mongo shell");
+    }
+
     switch (e) {
       case Events.INSTALL_START:
         outputChannel.show(true);
-        statusView.show();
         outputChannel.appendLine(localize("installingMongoShellTo", "Installing MongoShell to {0}", args[0]));
-        statusView.text = localize("installingMongoShellTo", "Installing MongoShell to {0}", args[0]);
+        showStatusBarItem(localize("installingMongoShellTo", "Installing MongoShell to {0}", args[0]));
         break;
       case Events.INSTALL_END:
         outputChannel.appendLine(localize("installedMongoShell", "Installed MongoShell"));
@@ -37,7 +39,7 @@ function generateHandleServerProviderEvent() {
       case Events.DOWNLOAD_START:
         outputChannel.appendLine(localize("downloading", "Downloading {0}", args[0]));
         outputChannel.append(`(${Math.ceil(args[1] / 1024).toLocaleString(vscode.env.language)} KB)`);
-        statusView.text = localize("downloadingMongoShell", "Downloading MongoShell");
+        showStatusBarItem(localize("downloadingMongoShell", "Downloading MongoShell"));
         break;
       case Events.DOWNLOAD_PROGRESS:
         let newDots = Math.ceil(args[0] / 5);
@@ -50,7 +52,15 @@ function generateHandleServerProviderEvent() {
         outputChannel.appendLine(localize("doneInstallingMongoShell", "Done installing MongoShell"));
         break;
       default:
-        console.error(localize("unknownEventFromServerProvider", "Unknown event from Server Provider {0}", e));
+        console.error(
+          localize(
+            "unknownEventFromServerProvider",
+            "Unknown event from Server Provider {0}: {1}",
+            e as string,
+            JSON.stringify(args)
+          )
+        );
+        args[1] && outputChannel.appendLine(args[1]);
         break;
     }
   };

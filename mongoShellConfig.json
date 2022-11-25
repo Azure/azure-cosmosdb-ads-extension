@@ -1,6 +1,6 @@
 {
 	"downloadUrl": "https://github.com/Azure/azure-cosmosdb-ads-extension/releases/download/{#version#}/mongoshell-{#fileName#}",
-	"version": "0.2.0",
+	"version": "v0.2.0",
 	"downloadFileNames": {
 		"Windows_86": "",
 		"Windows_64": "1.6.0-win32-x64.zip",
