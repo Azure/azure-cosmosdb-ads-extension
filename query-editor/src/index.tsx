@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App, { AppProps } from './App';
-import { MongoQuery, QuerEditorCommand, QueryEditorMessage } from "../../src/QueryClient/messageContract"
+import { QueryEditor, QueryEditorProps, MongoQuery, QuerEditorCommand, QueryEditorMessage } from 'azure-cosmos-db-query-editor';
 
 const vscode = (window as any).acquireVsCodeApi();
 
@@ -29,7 +28,7 @@ const Bootstrapper = (props: { onReady: () => void }) => {
   return <>Not initialized yet</>;
 }
 
-const appProps: AppProps = {
+const queryEditorProps: QueryEditorProps = {
   connectionId: "",
   databaseName: "",
   collectionName: "",
@@ -42,12 +41,12 @@ window.addEventListener('message', event => {
 
   switch (message.type) {
     case "initialize":
-      appProps.connectionId = JSON.stringify(message.data);
-      appProps.databaseName = message.data.databaseName;
-      appProps.collectionName = message.data.collectionName;
+      queryEditorProps.connectionId = JSON.stringify(message.data);
+      queryEditorProps.databaseName = message.data.databaseName;
+      queryEditorProps.collectionName = message.data.collectionName;
       break;
     case "queryResult":
-      appProps.queryResult = message.data;
+      queryEditorProps.queryResult = message.data;
       break;
     default:
       // console.log("Unknown type", message);
@@ -56,7 +55,7 @@ window.addEventListener('message', event => {
 
   root.render(
     <React.StrictMode>
-      <App {...appProps} />
+      <QueryEditor {...queryEditorProps} />
     </React.StrictMode>
   );
 });

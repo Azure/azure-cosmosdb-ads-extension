@@ -2106,6 +2106,11 @@ rc@^1.2.7:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
+react-jsondata-editor@2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/react-jsondata-editor/-/react-jsondata-editor-2.0.2.tgz#d08549fc7d7d7ee708a772c0fcad8ad039bb7f52"
+  integrity sha512-NQzcXDITxw79wsJA5+KXZfRJ5loNu69eUbTHQUspYqMWoiEAvPCZFluxVo0JduWHt3nFb7/4ja69rwC7jcLvQw==
+
 read@^1.0.7:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/read/-/read-1.0.7.tgz#b3da19bd052431a97671d44a42634adf710b40c4"
