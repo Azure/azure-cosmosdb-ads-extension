@@ -293,11 +293,11 @@
     "@microsoft/ads-extension-telemetry": "1.2.0",
     "@types/node-fetch": "2.6.2",
     "mkdirp": "1.0.4",
-    "mongodb-connection-string-url": "2.5.2",
     "mongodb": "4.5.0",
+    "mongodb-connection-string-url": "2.5.2",
     "react-jsondata-editor": "2.0.2",
-    "vscode-nls": "5.0.0",
     "tar": "6.1.11",
+    "vscode-nls": "5.0.0",
     "yauzl": "2.10.0"
   },
   "devDependencies": {
