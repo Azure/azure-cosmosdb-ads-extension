@@ -40,6 +40,21 @@ export interface IPackageInfo {
   aiKey: string;
 }
 
+export interface IMongoShellConfig {
+  downloadUrl: string;
+  version: string;
+  downloadFileNames: { [platform: string]: string };
+  installDirectory: string;
+  executableFiles: string[];
+  retry: {
+    retries: number;
+    factor: number;
+    minTimeout: number;
+    maxTimeout: number;
+    randomize: boolean;
+  };
+}
+
 export function getPackageInfo(): IPackageInfo {
   return {
     name: packageJson.name,

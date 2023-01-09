@@ -9,3 +9,5 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 ads-binary/**
+online-resources/**
+local-resources/**
