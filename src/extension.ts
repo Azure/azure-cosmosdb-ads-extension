@@ -53,30 +53,6 @@ export interface IDatabaseDashboardInfo extends IConnectionOptions {
   connectionId: string;
 }
 
-/**
- * Delete all files in this folderPath except exceptName
- * @param folderPath
- * @param exceptName
- */
-const deleteAllFilesExcept = (folderPath: string, exceptName: string) => {
-  fs.readdir(folderPath, { withFileTypes: true }, (err, files) => {
-    if (err) {
-      return;
-    } else {
-      files
-        .filter((dirent) => dirent.isDirectory() && dirent.name !== exceptName)
-        .forEach((dirent) => {
-          const dirToDeletePath = path.join(folderPath, dirent.name);
-          fs.rmdir(
-            dirToDeletePath,
-            { recursive: true },
-            (err) => err && console.error(`Unable to remove folder ${dirToDeletePath} ${err}`)
-          );
-        });
-    }
-  });
-};
-
 let appContext: AppContext;
 
 export function activate(context: vscode.ExtensionContext) {
