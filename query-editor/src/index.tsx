@@ -32,6 +32,8 @@ const queryEditorProps: QueryEditorProps = {
   connectionId: "",
   databaseName: "",
   collectionName: "",
+  queryInputLabel: "Enter filter",
+  queryButtonLabel: "Find",
   onSubmitQuery
 };
 
