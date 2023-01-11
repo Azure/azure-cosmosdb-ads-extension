@@ -1,27 +1,28 @@
-export interface MongoQuery {
+export interface EditorUserQuery {
   query: string;
   offset?: number;
   limit?: number;
 }
 
-/**
- * query-editor --> Webview
- */
-export type QuerEditorCommand =
-  | {
-      action: "ready";
-    }
-  | {
-      action: "submitQuery";
-      query: MongoQuery;
-    };
-
-export interface QueryResult {
+export interface EditorQueryResult {
+  // estlint-disable @typescript-eslint/no-explicit-any
   documents: any[];
   total: number;
   offset: number;
   limit: number;
 }
+
+/**
+ * query-editor --> Webview
+ */
+export type QueryEditorCommand =
+  | {
+      action: "ready";
+    }
+  | {
+      action: "submitQuery";
+      query: EditorUserQuery;
+    };
 
 /**
  * Webview --> query-editor
@@ -37,5 +38,5 @@ export type QueryEditorMessage =
     }
   | {
       type: "queryResult";
-      data: QueryResult;
+      data: EditorQueryResult;
     };

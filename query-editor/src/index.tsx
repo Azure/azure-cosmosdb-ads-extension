@@ -1,15 +1,16 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import { QueryEditor, QueryEditorProps, MongoQuery, QuerEditorCommand, QueryEditorMessage } from 'azure-cosmos-db-query-editor';
+import { QueryEditor, QueryEditorProps, UserQuery } from 'azure-cosmos-db-query-editor';
+import { QueryEditorCommand, QueryEditorMessage } from '../../src/QueryClient/messageContract';
 
 const vscode = (window as any).acquireVsCodeApi();
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
-const onSubmitQuery = (connectionId: string, query: MongoQuery): void => {
+const onSubmitQuery = (connectionId: string, query: UserQuery): void => {
   console.log("onSubmitQuery", query);
-  const message: QuerEditorCommand = {
+  const message: QueryEditorCommand = {
     action: 'submitQuery',
     query
   };

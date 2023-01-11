@@ -35,7 +35,7 @@ import {
   NewDatabaseFormData,
 } from "./dialogUtil";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
-import { MongoQuery, QueryResult } from "./QueryClient/messageContract";
+import { EditorUserQuery, EditorQueryResult } from "./QueryClient/messageContract";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 const localize = nls.loadMessageBundle();
@@ -352,8 +352,8 @@ export class AppContext {
     connectionOptions: IConnectionOptions,
     databaseName: string,
     collectionName: string,
-    query: MongoQuery
-  ): Promise<QueryResult> {
+    query: EditorUserQuery
+  ): Promise<EditorQueryResult> {
     if (!this._mongoClients.has(connectionOptions.server)) {
       throw new Error(`Unknown server: ${connectionOptions.server}`); // Should we connect?
     }

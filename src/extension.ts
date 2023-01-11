@@ -31,7 +31,7 @@ import { Collection, Document } from "mongodb";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { getPackageInfo } from "./Dashboards/util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
-import { MongoQuery } from "./QueryClient/messageContract";
+import { EditorUserQuery } from "./QueryClient/messageContract";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -365,7 +365,7 @@ export function activate(context: vscode.ExtensionContext) {
               },
             });
           },
-          onQuerySubmit: async (query: MongoQuery) => {
+          onQuerySubmit: async (query: EditorUserQuery) => {
             console.log("submitquery", query);
             const queryResult = await appContext.submitQuery(connectionOptions, databaseName, collectionName, query);
             console.log("query # results:", queryResult.documents.length, queryResult.offset, queryResult.limit);

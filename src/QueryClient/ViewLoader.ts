@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import * as nls from "vscode-nls";
-import { MongoQuery, QuerEditorCommand, QueryEditorMessage } from "./messageContract";
+import { QueryEditorCommand, QueryEditorMessage, EditorUserQuery } from "./messageContract";
 
 const localize = nls.loadMessageBundle();
 
@@ -10,7 +10,7 @@ export interface ViewLoaderOptions {
   extensionPath: string;
   title: string;
   onReady: () => void;
-  onQuerySubmit: (query: MongoQuery) => void;
+  onQuerySubmit: (query: EditorUserQuery) => void;
 }
 
 export default class ViewLoader {
@@ -29,7 +29,7 @@ export default class ViewLoader {
     this._panel.webview.html = this.getWebviewContent();
 
     this._panel.webview.onDidReceiveMessage(
-      (msg: QuerEditorCommand) => {
+      (msg: QueryEditorCommand) => {
         console.log("onDidReceiveMessage", msg);
         switch (msg.action) {
           case "ready":
