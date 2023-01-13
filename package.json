@@ -284,7 +284,7 @@
     "format": "prettier --write \"{src,test}/**/*.{ts,tsx,html}\" \"*.{js,html}\"",
     "format:check": "prettier --check \"{src,test}/**/*.{ts,tsx,html}\" \"*.{js,html}\"",
     "proposedapi": "node installTypings.js",
-    "publish": "yarn run vscode:prepublish && vsce package"
+    "publish": "yarn run vsce package"
   },
   "dependencies": {
     "@azure/arm-cosmosdb": "13.0.0",
