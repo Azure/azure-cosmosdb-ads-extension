@@ -22,7 +22,7 @@ import { convertToConnectionOptions, ICosmosDbCollectionInfo } from "../models";
 import { ProviderId } from "../Providers/connectionProvider";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
-import { buildHeroCard } from "./util";
+import { buildHeroCard } from "./dashboardUtil";
 
 const localize = nls.loadMessageBundle();
 
