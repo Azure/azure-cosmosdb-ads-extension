@@ -35,6 +35,10 @@ jobs:
     displayName: 'Install Node.js'
   - script: yarn install
     displayName: 'Yarn install'
+  # DotNet Core needed for ESRP
+  - task: UseDotNet@2
+    inputs:
+      version: '6.x'
 
   # Use for linux: xvfb-run -a yarn run test
   # For some reason, azuredatastudio for linux does not execute the tests.
