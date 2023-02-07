@@ -369,7 +369,7 @@ export function activate(context: vscode.ExtensionContext) {
             console.log("submitquery", query);
             try {
               const queryResult = await appContext.submitQuery(connectionOptions, databaseName, collectionName, query);
-              console.log("query # results:", queryResult.documents.length, queryResult.offset, queryResult.limit);
+              console.log("query # results:", queryResult.documents.length, queryResult.offsetPagingInfo);
               view.sendCommand({
                 type: "queryResult",
                 data: queryResult,

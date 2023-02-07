@@ -364,7 +364,7 @@ export class AppContext {
     const filter = JSON.parse(query.query); // e.g. { runtime: { $lt: 15 } }
 
     // If a limit is specified, use it. Else default to 20
-    let limit = query.limit ?? 20;
+    let limit = query.offsetPagingInfo?.limit ?? 20;
     if (limit < 1) {
       limit = 20;
     }
@@ -373,7 +373,7 @@ export class AppContext {
     }
     // If an offset is specified, use it. Else default to 0
     // i.e no offset -> first page
-    let skip = query.offset ?? 0;
+    let skip = query.offsetPagingInfo?.offset ?? 0;
     if (skip < 1) {
       skip = 0;
     }
@@ -389,9 +389,11 @@ export class AppContext {
 
     return {
       documents,
-      total,
-      limit,
-      offset: skip,
+			offsetPagingInfo: {
+				total,
+				limit,
+				offset: skip,
+			}
     };
   }
 }

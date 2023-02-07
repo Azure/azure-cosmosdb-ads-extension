@@ -1,15 +1,27 @@
 export interface EditorUserQuery {
   query: string;
-  offset?: number;
-  limit?: number;
+  offsetPagingInfo?: {
+    limit?: number;
+    offset?: number;
+  };
+  infinitePagingInfo?: {
+    continuationToken?: string;
+    maxCount?: number;
+  };
 }
 
 export interface EditorQueryResult {
   // estlint-disable @typescript-eslint/no-explicit-any
   documents: any[];
-  total: number;
-  offset: number;
-  limit: number;
+  offsetPagingInfo?: {
+    total: number;
+    offset: number;
+    limit: number;
+  };
+  infinitePagingInfo?: {
+    continuationToken: string;
+    maxCount?: number;
+  };
 }
 
 /**
