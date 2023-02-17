@@ -17,7 +17,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   private connectionUriToServerMap = new Map<string, string>();
 
   // Maintain connection string to return through connection provider
-  private connectionString: string|undefined;
+  private connectionString: string | undefined;
 
   private onConnectionCompleteEmitter: vscode.EventEmitter<azdata.ConnectionInfoSummary> = new vscode.EventEmitter();
   onConnectionComplete: vscode.Event<azdata.ConnectionInfoSummary> = this.onConnectionCompleteEmitter.event;
