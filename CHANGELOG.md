@@ -38,3 +38,8 @@
 ### New changes
 * Update AI key for telemetry
 * Remove binaries from extension. The extension now downloads them from github release when needed.
+
+## [0.2.1] - 2/20/2023
+### Bug fixes
+* Connection provider : getConnectionString implementation (Thanks Bharath Palaksha)
+* Upgrade ads telemetry and downlaoder dependencies
