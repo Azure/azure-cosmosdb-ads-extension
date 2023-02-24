@@ -21,7 +21,7 @@ import {
 import { COSMOSDB_DOC_URL, Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, ICosmosDbDatabaseInfo, IDatabaseInfo } from "../models";
-import { buildHeroCard } from "./dashboardUtil";
+import { buildHeroCard } from "../util";
 
 const localize = nls.loadMessageBundle();
 
