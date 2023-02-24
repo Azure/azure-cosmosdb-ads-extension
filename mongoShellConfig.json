@@ -1,0 +1,29 @@
+{
+	"downloadUrl": "https://github.com/Azure/azure-cosmosdb-ads-extension/releases/download/{#version#}/mongoshell-{#fileName#}",
+	"version": "v0.2.0",
+	"downloadFileNames": {
+		"Windows_86": "",
+		"Windows_64": "1.6.0-win32-x64.zip",
+		"OSX": "1.6.0-darwin-x64.zip",
+		"CentOS_7": "1.6.0-linux-x64.tgz",
+		"Debian_8": "1.6.0-linux-x64.tgz",
+		"Fedora_23": "1.6.0-linux-x64.tgz",
+		"OpenSUSE_13_2": "1.6.0-linux-x64.tgz",
+		"RHEL_7": "1.6.0-linux-x64.tgz",
+		"SLES_12_2": "1.6.0-linux-x64.tgz",
+		"Ubuntu_14": "1.6.0-linux-x64.tgz",
+		"Ubuntu_16": "1.6.0-linux-x64.tgz"
+	},
+	"installDirectory": "./local-resources/{#version#}/mongoshell/{#platform#}",
+	"executableFiles": [
+		"mongosh.exe",
+		"mongosh"
+	],
+	"retry": {
+		"retries": 15,
+		"factor": 2,
+		"minTimeout": 1000,
+		"maxTimeout": 300000,
+		"randomize": false
+	}
+}

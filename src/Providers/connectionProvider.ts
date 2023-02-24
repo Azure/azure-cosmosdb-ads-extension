@@ -16,6 +16,9 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   // Maintain current connections server <--> connectionUri
   private connectionUriToServerMap = new Map<string, string>();
 
+  // Maintain connection string to return through connection provider
+  private connectionString: string | undefined;
+
   private onConnectionCompleteEmitter: vscode.EventEmitter<azdata.ConnectionInfoSummary> = new vscode.EventEmitter();
   onConnectionComplete: vscode.Event<azdata.ConnectionInfoSummary> = this.onConnectionCompleteEmitter.event;
 
@@ -39,21 +42,20 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     const connectionOptions = convertToConnectionOptions(connectionInfo);
     this.connectionUriToServerMap.set(connectionUri, server);
 
-    let connectionString;
     try {
-      connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
+      this.connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
     } catch (e) {
       showErrorMessage((e as { message: string }).message);
       return false;
     }
 
-    if (!connectionString) {
+    if (!this.connectionString) {
       showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
       return false;
     }
 
     try {
-      if (!(await this.appContext.connect(server, connectionString))) {
+      if (!(await this.appContext.connect(server, this.connectionString))) {
         vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
         return false;
       }
@@ -117,7 +119,11 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   }
   getConnectionString(connectionUri: string, includePassword: boolean): Promise<string> {
     console.log("ConnectionProvider.getConnectionString");
-    return Promise.resolve("conn_string");
+    if (this.connectionString) {
+      return Promise.resolve(this.connectionString);
+    } else {
+      return Promise.resolve("");
+    }
   }
 
   // Called when something is pasted to Server field (Mongo account)

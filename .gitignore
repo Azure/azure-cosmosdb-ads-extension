@@ -362,3 +362,6 @@ mongoshellexecutable/
 
 # ADS executable for testing
 ads-binary/
+
+# Downloaded resources
+local-resources/

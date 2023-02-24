@@ -1,4 +1,5 @@
 export const COSMOSDB_DOC_URL = "https://docs.microsoft.com/azure/cosmos-db/introduction";
+export const LOCAL_RESOURCES_DIR = "local-resources";
 
 export const Telemetry = {
   actions: {

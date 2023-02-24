@@ -1,0 +1,26 @@
+{
+	"downloadUrl": "https://github.com/Azure/azure-cosmosdb-ads-extension/releases/download/{#version#}/sampledata-{#fileName#}",
+	"version": "v0.2.0",
+  "downloadFileNames": {
+		"Windows_86": "customer.zip",
+		"Windows_64": "customer.zip",
+		"OSX": "customer.zip",
+		"CentOS_7": "customer.zip",
+		"Debian_8": "customer.zip",
+		"Fedora_23": "customer.zip",
+		"OpenSUSE_13_2": "customer.zip",
+		"RHEL_7": "customer.zip",
+		"SLES_12_2": "customer.zip",
+		"Ubuntu_14": "customer.zip",
+		"Ubuntu_16": "customer.zip"
+	},
+	"installDirectory": "./local-resources/{#version#}/sampledata",
+	"executableFiles": [ "customer.json" ],
+	"retry": {
+		"retries": 15,
+		"factor": 2,
+		"minTimeout": 1000,
+		"maxTimeout": 300000,
+		"randomize": false
+	}
+}

@@ -33,3 +33,13 @@
 ## [0.1.4] - 11/01/2022
 ### Bug fixes
 * Fix "Basic" authentication. Also made it work for CosmosDB accounts.
+
+## [0.2.0] - 1/9/2023
+### New changes
+* Update AI key for telemetry
+* Remove binaries from extension. The extension now downloads them from github release when needed.
+
+## [0.2.1] - 2/20/2023
+### Bug fixes
+* Connection provider : getConnectionString implementation (Thanks Bharath Palaksha)
+* Upgrade ads telemetry and downlaoder dependencies

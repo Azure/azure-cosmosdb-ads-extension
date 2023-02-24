@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as fs from "fs";
 import * as cp from "child_process";
+import * as path from "path";
 
 // The module 'azdata' contains the Azure Data Studio extensibility API
 // This is a complementary set of APIs that add SQL / Data-specific functionality to the app
@@ -19,15 +20,16 @@ import {
   askUserForConnectionProfile,
   createStatusBarItem,
   getNbServiceInfo,
+  hideStatusBarItem,
   NotebookServiceInfo,
+  showStatusBarItem,
 } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
 import ViewLoader from "./QueryClient/ViewLoader";
-import { installMongoShell } from "./MongoShell/MongoShellUtil";
+import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
 import { convertToConnectionOptions, IConnectionOptions } from "./models";
-import { Collection, Document } from "mongodb";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { getErrorMessage, getPackageInfo } from "./util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
@@ -400,7 +402,19 @@ export function activate(context: vscode.ExtensionContext) {
         terminalMap.set(terminalName, ++counter);
 
         // Download mongosh
-        const executablePath = await installMongoShell(context.extensionPath);
+        let executablePath;
+        try {
+          showStatusBarItem(localize("downloadingMongoShell", "Downloading mongo shell..."));
+          executablePath = await downloadMongoShell(context.extensionPath);
+          hideStatusBarItem();
+        } catch (e) {
+          if (!executablePath) {
+            vscode.window.showErrorMessage(
+              `${localize("failInstallMongoShell", "Unable to install mongo shell")}: ${e}`
+            );
+            return;
+          }
+        }
 
         if (!executablePath) {
           vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));
@@ -411,6 +425,7 @@ export function activate(context: vscode.ExtensionContext) {
         const terminalOptions: vscode.TerminalOptions = {
           name: `Mongo Shell: ${terminalName}-${counter}`,
           shellPath: executablePath,
+          isTransient: true,
         };
         if (mongoShellOptions) {
           terminalOptions.shellArgs = undefined;
