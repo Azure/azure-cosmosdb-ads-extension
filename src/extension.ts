@@ -376,7 +376,7 @@ export function activate(context: vscode.ExtensionContext) {
                 type: "queryResult",
                 data: queryResult,
               });
-            } catch(e) {
+            } catch (e) {
               vscode.window.showErrorMessage(getErrorMessage(e));
             }
           },
@@ -453,8 +453,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const terminal = vscode.window.createTerminal(terminalOptions);
         context.subscriptions.push(terminal);
-
-        vscode.window.onDidCloseTerminal((t) => {
+        vscode.window.onDidCloseTerminal((t: vscode.Terminal) => {
           if (t === terminal && t.exitStatus !== undefined) {
             terminalMap.delete(serverName);
           }

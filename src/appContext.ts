@@ -389,11 +389,11 @@ export class AppContext {
 
     return {
       documents,
-			offsetPagingInfo: {
-				total,
-				limit,
-				offset: skip,
-			}
+      offsetPagingInfo: {
+        total,
+        limit,
+        offset: skip,
+      },
     };
   }
 }
