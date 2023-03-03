@@ -109,7 +109,7 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
         connectionInfo.options["azureResourceId"],
         getAccountName(connectionInfo)
       );
-      heroCards.push(
+      heroCardsContainer.addItem(
         buildHeroCard(
           view,
           context.asAbsolutePath("resources/fluent/azure.svg"),
@@ -123,12 +123,12 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
               Telemetry.targets.homeDashboard.gettingStartedOpenInPortal
             );
           }
-        )
+        ),
+        { flex: "0 0 auto" }
       );
     };
 
     const heroCards: azdata.ButtonComponent[] = this.createGettingStartedDefaultButtons(view, context, appContext);
-    addOpenInPortalButton(view.connection);
 
     const heroCardsContainer = view.modelBuilder
       .flexContainer()
@@ -136,6 +136,8 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
       .withLayout({ flexFlow: "row", flexWrap: "wrap" })
       .withProps({ CSSStyles: { width: "100%" } })
       .component();
+
+    addOpenInPortalButton(view.connection);
 
     return view.modelBuilder
       .flexContainer()

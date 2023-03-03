@@ -25,7 +25,7 @@ import {
   showStatusBarItem,
 } from "./appContext";
 import * as databaseDashboard from "./Dashboards/databaseDashboard";
-import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
+import { registerMongoHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
 import ViewLoader from "./QueryClient/ViewLoader";
 import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
@@ -548,7 +548,7 @@ export function activate(context: vscode.ExtensionContext) {
   azdata.dataprotocol.registerIconProvider(iconProvider);
   azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
 
-  registerHomeDashboardTabs(context, appContext);
+  registerMongoHomeDashboardTabs(context, appContext);
 
   // create telemetry reporter on extension activation
   const packageInfo = getPackageInfo();
