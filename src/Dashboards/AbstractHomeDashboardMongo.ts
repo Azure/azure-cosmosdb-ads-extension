@@ -1,33 +1,27 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { AppContext } from "../appContext";
 import { COSMOSDB_DOC_URL, Telemetry } from "../constant";
 import { IConnectionNodeInfo } from "../extension";
 import { convertToConnectionOptions } from "../models";
 import { buildHeroCard } from "../util";
+import { AppContext } from "../appContext";
 
 const localize = nls.loadMessageBundle();
 
 export abstract class AbstractHomeDashboardMongo {
   protected refreshProperties?: () => void = undefined;
   protected refreshDatabases?: () => void = undefined;
-  public abstract buildModel(
-    view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
-  ): azdata.Component;
+
+  protected constructor(protected appContext: AppContext) {}
+
+  public abstract buildModel(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component;
   public abstract buildDatabasesArea(
     view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
+    context: vscode.ExtensionContext
   ): Promise<azdata.Component>;
 
-  protected buildToolbar(
-    view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
-  ): azdata.ToolbarContainer {
+  protected buildToolbar(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer {
     const buttons: (azdata.ButtonProperties & { onDidClick: () => void })[] = [
       {
         label: localize("newDatabase", "New Database"),
@@ -43,7 +37,7 @@ export abstract class AbstractHomeDashboardMongo {
           vscode.commands
             .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
             .then(() => this.refreshDatabases && this.refreshDatabases());
-          appContext.reporter?.sendActionEvent(
+          this.appContext.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarNewDatabase
@@ -56,12 +50,12 @@ export abstract class AbstractHomeDashboardMongo {
           light: context.asAbsolutePath("resources/light/mongo-shell.svg"),
           dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
         },
-        onDidClick() {
+        onDidClick: () => {
           vscode.commands.executeCommand(
             "cosmosdb-ads-extension.openMongoShell",
             convertToConnectionOptions(view.connection)
           );
-          appContext.reporter?.sendActionEvent(
+          this.appContext.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarOpenMongoShell
@@ -77,7 +71,7 @@ export abstract class AbstractHomeDashboardMongo {
         onDidClick: () => {
           this.refreshProperties && this.refreshProperties();
           this.refreshDatabases && this.refreshDatabases();
-          appContext.reporter?.sendActionEvent(
+          this.appContext.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarRefresh
@@ -90,9 +84,9 @@ export abstract class AbstractHomeDashboardMongo {
           light: context.asAbsolutePath("resources/light/learn-more.svg"),
           dark: context.asAbsolutePath("resources/dark/learn-more-inverse.svg"),
         },
-        onDidClick() {
+        onDidClick: () => {
           vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL));
-          appContext.reporter?.sendActionEvent(
+          this.appContext.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarLearnMore
@@ -114,8 +108,7 @@ export abstract class AbstractHomeDashboardMongo {
 
   protected createGettingStartedDefaultButtons(
     view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
+    context: vscode.ExtensionContext
   ): azdata.ButtonComponent[] {
     return [
       buildHeroCard(
@@ -131,7 +124,7 @@ export abstract class AbstractHomeDashboardMongo {
           vscode.commands
             .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
             .then(() => this.refreshDatabases && this.refreshDatabases());
-          appContext.reporter?.sendActionEvent(
+          this.appContext.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.gettingStartedNewDatabase
@@ -147,7 +140,7 @@ export abstract class AbstractHomeDashboardMongo {
           vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
             connectionProfile: view.connection,
           });
-          appContext.reporter?.sendActionEvent(
+          this.appContext.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.gettingStartedOpenMongoShell
@@ -161,7 +154,7 @@ export abstract class AbstractHomeDashboardMongo {
         localize("documentation", "Find quickstarts, how-to guides, and references."),
         () => {
           vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL));
-          appContext.reporter?.sendActionEvent(
+          this.appContext.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.gettingStartedDocumentation

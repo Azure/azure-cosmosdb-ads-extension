@@ -131,7 +131,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
     );
 
     // Get list of databases from root
-    return this.appContext.listDatabases(server).then((databases) => {
+    return this.appContext.nativeMongoService.listDatabases(server).then((databases) => {
       this.onExpandCompletedEmitter.fire({
         sessionId: nodeInfo.sessionId,
         nodePath: nodeInfo.nodePath || "unknown",
@@ -162,7 +162,7 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
       Telemetry.targets.objectExplorerNodeProvider.databaseNode
     );
 
-    return this.appContext.listCollections(server, database).then((collections) => {
+    return this.appContext.nativeMongoService.listCollections(server, database).then((collections) => {
       console.log("expandDatabase done");
       this.onExpandCompletedEmitter.fire({
         sessionId: nodeInfo.sessionId,

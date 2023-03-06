@@ -2,9 +2,10 @@ import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { v4 as uuid } from "uuid";
-import { AppContext, retrieveConnectionStringFromConnectionOptions } from "../appContext";
+import { AppContext } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
 import { convertToConnectionOptions } from "../models";
+import { retrieveConnectionStringFromConnectionOptions } from "../Services/ArmService";
 
 const localize = nls.loadMessageBundle();
 
@@ -55,7 +56,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     }
 
     try {
-      if (!(await this.appContext.connect(server, this.connectionString))) {
+      if (!(await this.appContext.nativeMongoService.connect(server, this.connectionString))) {
         vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
         return false;
       }
@@ -94,7 +95,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
       return Promise.reject(`ConnectionUri unknown: ${connectionUri}`);
     }
 
-    this.appContext.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
+    this.appContext.nativeMongoService.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
     this.connectionUriToServerMap.delete(connectionUri);
 
     return Promise.resolve(true);

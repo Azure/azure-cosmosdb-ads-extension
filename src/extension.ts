@@ -15,16 +15,7 @@ import * as azdata from "azdata";
 import { ConnectionProvider } from "./Providers/connectionProvider";
 import { IconProvider } from "./Providers/iconProvider";
 import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
-import {
-  AppContext,
-  askUserForConnectionProfile,
-  createStatusBarItem,
-  getNbServiceInfo,
-  hideStatusBarItem,
-  NotebookServiceInfo,
-  showStatusBarItem,
-} from "./appContext";
-import * as databaseDashboard from "./Dashboards/databaseDashboard";
+import { AppContext, createStatusBarItem, hideStatusBarItem, showStatusBarItem } from "./appContext";
 import { registerMongoHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
 import ViewLoader from "./QueryClient/ViewLoader";
@@ -34,6 +25,9 @@ import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { getErrorMessage, getPackageInfo } from "./util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
 import { EditorUserQuery } from "./QueryClient/messageContract";
+import { askUserForConnectionProfile, isAzureAuthType } from "./Services/ServiceUtil";
+import { CosmosDbMongoDatabaseDashboard } from "./Dashboards/CosmosDbMongoDatabaseDashboard";
+import { NativeMongoDatabaseDashboard } from "./Dashboards/NativeMongoDatabaseDashboard";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -92,8 +86,12 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
+          const mongoService = isAzureAuthType(connectionNodeInfo.authenticationType)
+            ? appContext.cosmosDbMongoService
+            : appContext.nativeMongoService;
+
           // Creating a database requires creating a collection inside
-          const { databaseName } = await appContext.createMongoDatabase(connectionNodeInfo);
+          const { databaseName } = await mongoService.createMongoDatabase(connectionNodeInfo);
           if (databaseName) {
             vscode.window.showInformationMessage(
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
@@ -157,7 +155,11 @@ export function activate(context: vscode.ExtensionContext) {
         const { databaseName } = getMongoInfo(connectionNodeInfo.nodePath!);
 
         try {
-          const createResult = await appContext.createMongoDatabaseAndCollection(
+          const mongoService = isAzureAuthType(connectionNodeInfo.authenticationType)
+            ? appContext.cosmosDbMongoService
+            : appContext.nativeMongoService;
+
+          const createResult = await mongoService.createMongoDatabaseAndCollection(
             connectionNodeInfo,
             databaseName,
             collectionName,
@@ -213,7 +215,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
-          if (await appContext.removeDatabase(serverName, mongoInfo.databaseName!)) {
+          if (await appContext.nativeMongoService.removeDatabase(serverName, mongoInfo.databaseName!)) {
             // update parent node
             await objectExplorer.updateNode(
               objectExplorerContext.connectionProfile.id,
@@ -272,7 +274,13 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
-          if (await appContext.removeCollection(serverName, mongoInfo.databaseName!, mongoInfo.collectionName!)) {
+          if (
+            await appContext.nativeMongoService.removeCollection(
+              serverName,
+              mongoInfo.databaseName!,
+              mongoInfo.collectionName!
+            )
+          ) {
             // Find parent node to update
             const { serverName, databaseName } = getMongoInfo(objectExplorerContext.nodeInfo.nodePath);
             const newNodePath = createNodePath(serverName, databaseName);
@@ -331,6 +339,9 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
+        const databaseDashboard = isAzureAuthType(databaseDashboardInfo.authenticationType)
+          ? new CosmosDbMongoDatabaseDashboard()
+          : new NativeMongoDatabaseDashboard();
         databaseDashboard.openDatabaseDashboard(databaseDashboardInfo, appContext, context);
       }
     )
@@ -370,7 +381,12 @@ export function activate(context: vscode.ExtensionContext) {
           onQuerySubmit: async (query: EditorUserQuery) => {
             console.log("submitquery", query);
             try {
-              const queryResult = await appContext.submitQuery(connectionOptions, databaseName, collectionName, query);
+              const queryResult = await appContext.nativeMongoService.submitQuery(
+                connectionOptions,
+                databaseName,
+                collectionName,
+                query
+              );
               console.log("query # results:", queryResult.documents.length, queryResult.offsetPagingInfo);
               view.sendCommand({
                 type: "queryResult",
@@ -420,7 +436,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));
           return;
         }
-        const mongoShellOptions = await appContext.getMongoShellOptions(connectionOptions);
+        const mongoShellOptions = await appContext.nativeMongoService.getMongoShellOptions(connectionOptions);
 
         const terminalOptions: vscode.TerminalOptions = {
           name: `Mongo Shell: ${terminalName}-${counter}`,
@@ -537,8 +553,11 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));
 
+  // create telemetry reporter on extension activation
+  const packageInfo = getPackageInfo();
+  const reporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
   // Instantiate client
-  appContext = new AppContext();
+  appContext = new AppContext(reporter);
   createStatusBarItem();
 
   const connectionProvider = new ConnectionProvider(appContext);
@@ -550,11 +569,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   registerMongoHomeDashboardTabs(context, appContext);
 
-  // create telemetry reporter on extension activation
-  const packageInfo = getPackageInfo();
-  appContext.reporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
   // ensure it gets property disposed
-  context.subscriptions.push(appContext.reporter);
+  context.subscriptions.push(reporter);
 }
 
 // export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?

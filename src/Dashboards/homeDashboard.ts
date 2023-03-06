@@ -5,31 +5,32 @@
 
 import * as azdata from "azdata";
 import * as vscode from "vscode";
-import { AppContext, isAzureConnection } from "../appContext";
-import { CosmosDbMongoDashboard } from "./cosmosDbMongoDashboard";
-import { NativeMongoDashboard } from "./nativeMongoDashboard";
+import { AppContext } from "../appContext";
+import { CosmosDbMongoHomeDashboardMongo } from "./cosmosDbMongoDashboard";
+import { NativeMongoHomeDashboardMongo } from "./nativeMongoDashboard";
+import { isAzureConnection } from "../Services/ServiceUtil";
 
 const dashboards = [];
 
 export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
-  const cosmosDbMongoDashboard = new CosmosDbMongoDashboard();
-  const nativeMongoDashboard = new NativeMongoDashboard();
+  const cosmosDbMongoDashboard = new CosmosDbMongoHomeDashboardMongo(appContext);
+  const nativeMongoDashboard = new NativeMongoHomeDashboardMongo(appContext);
   dashboards.push(cosmosDbMongoDashboard);
   dashboards.push(nativeMongoDashboard);
 
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     await view.initializeModel(
       isAzureConnection(view.connection)
-        ? cosmosDbMongoDashboard.buildModel(view, context, appContext)
-        : nativeMongoDashboard.buildModel(view, context, appContext)
+        ? cosmosDbMongoDashboard.buildModel(view, context)
+        : nativeMongoDashboard.buildModel(view, context)
     );
   });
 
   azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
     await view.initializeModel(
       isAzureConnection(view.connection)
-        ? await cosmosDbMongoDashboard.buildDatabasesArea(view, context, appContext)
-        : await nativeMongoDashboard.buildDatabasesArea(view, context, appContext)
+        ? await cosmosDbMongoDashboard.buildDatabasesArea(view, context)
+        : await nativeMongoDashboard.buildDatabasesArea(view, context)
     );
   });
 };

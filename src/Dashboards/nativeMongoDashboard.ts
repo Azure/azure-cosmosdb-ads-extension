@@ -7,32 +7,28 @@ import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, IDatabaseInfo } from "../models";
 import { AbstractHomeDashboardMongo } from "./AbstractHomeDashboardMongo";
+import { AppContext } from "../appContext";
 
 const localize = nls.loadMessageBundle();
 
-export class NativeMongoDashboard extends AbstractHomeDashboardMongo {
-  public buildModel(
-    view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
-  ): azdata.FlexContainer {
-    const viewItems: azdata.Component[] = [this.buildToolbar(view, context, appContext)];
-    viewItems.push(this.buildGettingStarted(view, context, appContext));
+export class NativeMongoHomeDashboardMongo extends AbstractHomeDashboardMongo {
+  constructor(appContext: AppContext) {
+    super(appContext);
+  }
+
+  public buildModel(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.FlexContainer {
+    const viewItems: azdata.Component[] = [this.buildToolbar(view, context)];
+    viewItems.push(this.buildGettingStarted(view, context));
 
     return view.modelBuilder.flexContainer().withItems(viewItems).withLayout({ flexFlow: "column" }).component();
   }
 
-  private buildGettingStarted(
-    view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
-  ): azdata.Component {
-    const heroCards: azdata.ButtonComponent[] = this.createGettingStartedDefaultButtons(view, context, appContext);
+  private buildGettingStarted(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {
+    const heroCards: azdata.ButtonComponent[] = this.createGettingStartedDefaultButtons(view, context);
 
     const heroCardsContainer = view.modelBuilder
       .flexContainer()
@@ -71,23 +67,19 @@ export class NativeMongoDashboard extends AbstractHomeDashboardMongo {
       .component();
   }
 
-  public async buildDatabasesArea(
-    view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
-  ): Promise<azdata.Component> {
+  public async buildDatabasesArea(view: azdata.ModelView, context: vscode.ExtensionContext): Promise<azdata.Component> {
     const server = view.connection.options["server"];
     let databases: IDatabaseInfo[];
 
     this.refreshDatabases = () => {
-      appContext.listDatabases(server).then(async (dbs) => {
+      this.appContext.nativeMongoService.listDatabases(server).then(async (dbs) => {
         databases = dbs;
 
         const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number | undefined }[] = [];
         for (const db of dbs) {
           const name = db.name;
           if (name !== undefined) {
-            const nbCollections = (await appContext.listCollections(server, name)).length;
+            const nbCollections = (await this.appContext.nativeMongoService.listCollections(server, name)).length;
             databasesInfo.push({ name, nbCollections, sizeOnDisk: db.sizeOnDisk });
           }
         }
@@ -148,7 +140,7 @@ export class NativeMongoDashboard extends AbstractHomeDashboardMongo {
           undefined,
           databaseDashboardInfo
         );
-        appContext.reporter?.sendActionEvent(
+        this.appContext.reporter.sendActionEvent(
           Telemetry.sources.homeDashboard,
           Telemetry.actions.click,
           Telemetry.targets.homeDashboard.databasesListNonAzureOpenDashboard

@@ -7,7 +7,6 @@ import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import {
-  AppContext,
   changeMongoDbDatabaseThroughput,
   getAccountName,
   getAccountNameFromOptions,
@@ -15,24 +14,25 @@ import {
   retrieveMongoDbDatabasesInfoFromArm,
   retrievePortalEndpoint,
   retrieveResourceId,
-} from "../appContext";
+} from "../Services/ArmService";
 import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, ICosmosDbDatabaseInfo } from "../models";
 import { buildHeroCard } from "../util";
 import { AbstractHomeDashboardMongo } from "./AbstractHomeDashboardMongo";
+import { AppContext } from "../appContext";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
-  public buildModel(
-    view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
-  ): azdata.Component {
-    const viewItems: azdata.Component[] = [this.buildToolbar(view, context, appContext)];
+export class CosmosDbMongoHomeDashboardMongo extends AbstractHomeDashboardMongo {
+  constructor(appContext: AppContext) {
+    super(appContext);
+  }
+
+  public buildModel(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {
+    const viewItems: azdata.Component[] = [this.buildToolbar(view, context)];
     viewItems.push(this.buildOverview(view));
-    viewItems.push(this.buildGettingStarted(view, context, appContext));
+    viewItems.push(this.buildGettingStarted(view, context));
 
     return view.modelBuilder.flexContainer().withItems(viewItems).withLayout({ flexFlow: "column" }).component();
   }
@@ -96,11 +96,7 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
     return component;
   }
 
-  private buildGettingStarted(
-    view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
-  ): azdata.Component {
+  private buildGettingStarted(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {
     const addOpenInPortalButton = async (connectionInfo: azdata.ConnectionInfo) => {
       const portalEndpoint = await retrievePortalEndpoint(connectionInfo.options["azureAccount"]);
       const resourceId = await retrieveResourceId(
@@ -117,7 +113,7 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
           localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
           () => {
             this.openInPortal(portalEndpoint, resourceId);
-            appContext.reporter?.sendActionEvent(
+            this.appContext.reporter.sendActionEvent(
               Telemetry.sources.homeDashboard,
               Telemetry.actions.click,
               Telemetry.targets.homeDashboard.gettingStartedOpenInPortal
@@ -128,7 +124,7 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
       );
     };
 
-    const heroCards: azdata.ButtonComponent[] = this.createGettingStartedDefaultButtons(view, context, appContext);
+    const heroCards: azdata.ButtonComponent[] = this.createGettingStartedDefaultButtons(view, context);
 
     const heroCardsContainer = view.modelBuilder
       .flexContainer()
@@ -169,11 +165,7 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
       .component();
   }
 
-  public async buildDatabasesArea(
-    view: azdata.ModelView,
-    context: vscode.ExtensionContext,
-    appContext: AppContext
-  ): Promise<azdata.Component> {
+  public async buildDatabasesArea(view: azdata.ModelView, context: vscode.ExtensionContext): Promise<azdata.Component> {
     const connection = view.connection;
     let databases: ICosmosDbDatabaseInfo[];
 
@@ -253,7 +245,7 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
             undefined,
             databaseDashboardInfo
           );
-          appContext.reporter?.sendActionEvent(
+          this.appContext.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.databasesListAzureOpenDashboard
@@ -270,7 +262,7 @@ export class CosmosDbMongoDashboard extends AbstractHomeDashboardMongo {
             if (result) {
               this.refreshDatabases && this.refreshDatabases();
             }
-            appContext.reporter?.sendActionEvent(
+            this.appContext.reporter.sendActionEvent(
               Telemetry.sources.homeDashboard,
               Telemetry.actions.click,
               Telemetry.targets.homeDashboard.databasesListAzureChangeThroughput
