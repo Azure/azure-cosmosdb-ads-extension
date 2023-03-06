@@ -9,7 +9,7 @@ import { AppContext } from "../appContext";
 
 const localize = nls.loadMessageBundle();
 
-export abstract class AbstractHomeDashboardMongo {
+export abstract class AbstractHomeDashboard {
   protected refreshProperties?: () => void = undefined;
   protected refreshDatabases?: () => void = undefined;
 

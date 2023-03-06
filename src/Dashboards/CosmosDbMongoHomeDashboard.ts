@@ -19,12 +19,12 @@ import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, ICosmosDbDatabaseInfo } from "../models";
 import { buildHeroCard } from "../util";
-import { AbstractHomeDashboardMongo } from "./AbstractHomeDashboardMongo";
+import { AbstractHomeDashboard } from "./AbstractHomeDashboard";
 import { AppContext } from "../appContext";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbMongoHomeDashboardMongo extends AbstractHomeDashboardMongo {
+export class CosmosDbMongoHomeDashboard extends AbstractHomeDashboard {
   constructor(appContext: AppContext) {
     super(appContext);
   }

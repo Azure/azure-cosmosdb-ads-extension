@@ -6,15 +6,15 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import { AppContext } from "../appContext";
-import { CosmosDbMongoHomeDashboardMongo } from "./cosmosDbMongoDashboard";
-import { NativeMongoHomeDashboardMongo } from "./nativeMongoDashboard";
+import { CosmosDbMongoHomeDashboard } from "./CosmosDbMongoHomeDashboard";
+import { NativeMongoHomeDashboard } from "./NativeMongoHomeDashboard";
 import { isAzureConnection } from "../Services/ServiceUtil";
 
 const dashboards = [];
 
 export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
-  const cosmosDbMongoDashboard = new CosmosDbMongoHomeDashboardMongo(appContext);
-  const nativeMongoDashboard = new NativeMongoHomeDashboardMongo(appContext);
+  const cosmosDbMongoDashboard = new CosmosDbMongoHomeDashboard(appContext);
+  const nativeMongoDashboard = new NativeMongoHomeDashboard(appContext);
   dashboards.push(cosmosDbMongoDashboard);
   dashboards.push(nativeMongoDashboard);
 

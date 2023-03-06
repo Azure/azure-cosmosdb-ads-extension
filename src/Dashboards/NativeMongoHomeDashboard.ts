@@ -15,7 +15,7 @@ import { AppContext } from "../appContext";
 
 const localize = nls.loadMessageBundle();
 
-export class NativeMongoHomeDashboardMongo extends AbstractHomeDashboardMongo {
+export class NativeMongoHomeDashboard extends AbstractHomeDashboardMongo {
   constructor(appContext: AppContext) {
     super(appContext);
   }

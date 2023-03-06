@@ -5,13 +5,14 @@
 
 import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
-import { CollStats } from "mongodb";
+import { CollStats, Collection, Document } from "mongodb";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
+import { ICosmosDbCollectionInfo } from "../models";
 
 const localize = nls.loadMessageBundle();
 
@@ -23,10 +24,13 @@ export class NativeMongoDatabaseDashboard extends AbstractDatabaseDashboard {
     appContext: AppContext,
     databaseDashboardInfo: IDatabaseDashboardInfo
   ): Promise<azdata.Component> {
+    let collections: Collection<Document>[];
+
     this.refreshCollections = () => {
       appContext.nativeMongoService
         .listCollections(databaseDashboardInfo.server, databaseName)
         .then(async (collectionsInfo) => {
+          collections = collectionsInfo;
           const statsMap = new Map<string, CollStats>();
           // Retrieve all stats for each collection
           await Promise.all(
@@ -82,9 +86,10 @@ export class NativeMongoDatabaseDashboard extends AbstractDatabaseDashboard {
     tableComponent.onCellAction &&
       tableComponent.onCellAction((arg: ICellActionEventArgs) => {
         vscode.commands.executeCommand(
-          "cosmosdb-ads-extension.openMongoShell",
+          "cosmosdb-ads-extension.openQuery",
           { ...databaseDashboardInfo },
-          databaseDashboardInfo.databaseName
+          databaseDashboardInfo.databaseName,
+          collections[arg.row].collectionName
         );
         appContext.reporter?.sendActionEvent(
           Telemetry.sources.databaseDashboard,
