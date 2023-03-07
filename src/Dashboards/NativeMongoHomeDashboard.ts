@@ -10,12 +10,12 @@ import * as nls from "vscode-nls";
 import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, IDatabaseInfo } from "../models";
-import { AbstractHomeDashboardMongo } from "./AbstractHomeDashboardMongo";
+import { AbstractHomeDashboard } from "./AbstractHomeDashboard";
 import { AppContext } from "../appContext";
 
 const localize = nls.loadMessageBundle();
 
-export class NativeMongoHomeDashboard extends AbstractHomeDashboardMongo {
+export class NativeMongoHomeDashboard extends AbstractHomeDashboard {
   constructor(appContext: AppContext) {
     super(appContext);
   }
