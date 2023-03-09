@@ -6,22 +6,26 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import { AppContext } from "../appContext";
-import { CosmosDbMongoHomeDashboard } from "./CosmosDbMongoHomeDashboard";
+import { CosmosDbHomeDashboard } from "./CosmosDbHomeDashboard";
 import { NativeMongoHomeDashboard } from "./NativeMongoHomeDashboard";
 import { isAzureConnection } from "../Services/ServiceUtil";
+import { ArmServiceMongo } from "../Services/ArmServiceMongo";
+import { ArmServiceNoSql } from "../Services/ArmServiceNoSql";
 
 const dashboards = [];
 
 export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
-  const cosmosDbMongoDashboard = new CosmosDbMongoHomeDashboard(appContext);
-  const nativeMongoDashboard = new NativeMongoHomeDashboard(appContext);
-  dashboards.push(cosmosDbMongoDashboard);
+  const cosmosDbMongoHomeDashboard = new CosmosDbHomeDashboard(appContext.reporter, new ArmServiceMongo());
+  const cosmosDbNoSqlHomeDashboard = new CosmosDbHomeDashboard(appContext.reporter, new ArmServiceNoSql());
+  const nativeMongoDashboard = new NativeMongoHomeDashboard(appContext.reporter, appContext.mongoService);
+  dashboards.push(cosmosDbMongoHomeDashboard);
+  dashboards.push(cosmosDbNoSqlHomeDashboard);
   dashboards.push(nativeMongoDashboard);
 
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     await view.initializeModel(
       isAzureConnection(view.connection)
-        ? cosmosDbMongoDashboard.buildModel(view, context)
+        ? cosmosDbMongoHomeDashboard.buildModel(view, context)
         : nativeMongoDashboard.buildModel(view, context)
     );
   });
@@ -29,8 +33,16 @@ export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext,
   azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
     await view.initializeModel(
       isAzureConnection(view.connection)
-        ? await cosmosDbMongoDashboard.buildDatabasesArea(view, context)
+        ? await cosmosDbMongoHomeDashboard.buildDatabasesArea(view, context)
         : await nativeMongoDashboard.buildDatabasesArea(view, context)
     );
+  });
+
+  azdata.ui.registerModelViewProvider("nosql-account-home", async (view) => {
+    await view.initializeModel(cosmosDbNoSqlHomeDashboard.buildModel(view, context));
+  });
+
+  azdata.ui.registerModelViewProvider("nosql-databases.tab", async (view) => {
+    await view.initializeModel(await cosmosDbNoSqlHomeDashboard.buildDatabasesArea(view, context));
   });
 };

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as azdata from "azdata";
-import { ProviderId } from "../Providers/connectionProvider";
+import { MongoProviderId } from "../Providers/connectionProvider";
 
 const localize = nls.loadMessageBundle();
 
@@ -10,7 +10,7 @@ type ConnectionPick = azdata.connection.ConnectionProfile & vscode.QuickPickItem
 export const askUserForConnectionProfile = async (): Promise<ConnectionPick | undefined> => {
   const connections = await azdata.connection.getConnections();
   const picks: ConnectionPick[] = connections
-    .filter((c) => c.providerId === ProviderId)
+    .filter((c) => c.providerId === MongoProviderId)
     .map((c) => ({
       ...c,
       label: c.connectionName || c.serverName,

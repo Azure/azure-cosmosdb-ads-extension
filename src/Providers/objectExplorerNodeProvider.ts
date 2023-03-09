@@ -3,7 +3,11 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
-import { ProviderId } from "./connectionProvider";
+import { MongoProviderId, NoSqlProviderId } from "./connectionProvider";
+import TelemetryReporter from "@microsoft/ads-extension-telemetry";
+import { MongoService } from "../Services/MongoService";
+import { CosmosDbNoSqlService } from "../Services/CosmosDbNoSqlService";
+import { AbstractBackendService } from "../Services/AbstractBackendService";
 
 const localize = nls.loadMessageBundle();
 /**
@@ -11,7 +15,7 @@ const localize = nls.loadMessageBundle();
  * nodePath naming convention: server/database/collection/{Documents, Scale & Settings}
  */
 
-export const getMongoInfo = (
+export const getNodeInfo = (
   nodePath: string
 ): { serverName: string; databaseName?: string; collectionName?: string } => {
   const pathComponents = nodePath?.split("/");
@@ -41,8 +45,13 @@ export const createNodePath = (serverName: string, databaseName?: string, collec
   return nodePath;
 };
 
-export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
-  constructor(private context: vscode.ExtensionContext, private appContext: AppContext) {}
+abstract class ObjectExplorerProviderBase implements azdata.ObjectExplorerProvider {
+  constructor(
+    protected context: vscode.ExtensionContext,
+    protected reporter: TelemetryReporter,
+    public providerId: string,
+    protected backendService: AbstractBackendService
+  ) {}
 
   // maintain sessions
 
@@ -107,31 +116,31 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
     return this.executeExpandNode(nodeInfo);
   }
 
-  private executeExpandNode(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
-    if (!nodeInfo.nodePath) {
+  private executeExpandNode(azNodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
+    if (!azNodeInfo.nodePath) {
       throw new Error("nodeInfo.nodePath is undefined");
     }
 
-    const mongoInfo = getMongoInfo(nodeInfo.nodePath);
+    const nodeInfo = getNodeInfo(azNodeInfo.nodePath);
 
-    if (mongoInfo.collectionName !== undefined) {
-      return this.expandCollection(nodeInfo); // collection node
-    } else if (mongoInfo.databaseName !== undefined) {
-      return this.expandDatabase(nodeInfo, mongoInfo.databaseName, mongoInfo.serverName); // database node
+    if (nodeInfo.collectionName !== undefined) {
+      return this.expandCollection(azNodeInfo); // collection node
+    } else if (nodeInfo.databaseName !== undefined) {
+      return this.expandDatabase(azNodeInfo, nodeInfo.databaseName, nodeInfo.serverName); // database node
     } else {
-      return this.expandAccount(nodeInfo, mongoInfo.serverName); // root node
+      return this.expandAccount(azNodeInfo, nodeInfo.serverName); // root node
     }
   }
 
-  private expandAccount(nodeInfo: azdata.ExpandNodeInfo, server: string): Thenable<boolean> {
-    this.appContext.reporter?.sendActionEvent(
+  public expandAccount(nodeInfo: azdata.ExpandNodeInfo, server: string): Promise<boolean> {
+    this.reporter.sendActionEvent(
       Telemetry.sources.objectExplorerNodeProvider,
       Telemetry.actions.expand,
       Telemetry.targets.objectExplorerNodeProvider.accountNode
     );
 
     // Get list of databases from root
-    return this.appContext.nativeMongoService.listDatabases(server).then((databases) => {
+    return this.backendService.listDatabases(server).then((databases) => {
       this.onExpandCompletedEmitter.fire({
         sessionId: nodeInfo.sessionId,
         nodePath: nodeInfo.nodePath || "unknown",
@@ -150,40 +159,10 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
     });
   }
 
-  public expandDatabase(nodeInfo: azdata.ExpandNodeInfo, database: string, server: string): Thenable<boolean> {
-    // Get list of collections from database
-    if (!database) {
-      return Promise.resolve(false);
-    }
-
-    this.appContext.reporter?.sendActionEvent(
-      Telemetry.sources.objectExplorerNodeProvider,
-      Telemetry.actions.expand,
-      Telemetry.targets.objectExplorerNodeProvider.databaseNode
-    );
-
-    return this.appContext.nativeMongoService.listCollections(server, database).then((collections) => {
-      console.log("expandDatabase done");
-      this.onExpandCompletedEmitter.fire({
-        sessionId: nodeInfo.sessionId,
-        nodePath: nodeInfo.nodePath || "unknown",
-        nodes: collections.map((coll) => ({
-          nodePath: `${nodeInfo?.nodePath}/${coll.collectionName}`,
-          nodeType: "Queue",
-          icon: {
-            light: this.context.asAbsolutePath("resources/light/collection.svg"),
-            dark: this.context.asAbsolutePath("resources/dark/collection-inverse.svg"),
-          },
-          label: coll.collectionName || localize("unknown", "Unknown"),
-          isLeaf: true, // false, TODO: enable collection subnodes when support is implemented
-        })),
-      });
-      return true;
-    });
-  }
+  public abstract expandDatabase(nodeInfo: azdata.ExpandNodeInfo, database: string, server: string): Thenable<boolean>;
 
   private expandCollection(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
-    this.appContext.reporter?.sendActionEvent(
+    this.reporter.sendActionEvent(
       Telemetry.sources.objectExplorerNodeProvider,
       Telemetry.actions.expand,
       Telemetry.targets.objectExplorerNodeProvider.collectionNode
@@ -233,7 +212,6 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
     });
   }
   handle?: number;
-  providerId: string = ProviderId;
 
   public async updateNode(connectionId: string, nodePath?: string): Promise<void> {
     const node1 = await azdata.objectexplorer.getNode(connectionId, nodePath);
@@ -242,5 +220,85 @@ export class ObjectExplorerProvider implements azdata.ObjectExplorerProvider {
     } else {
       console.error(`updateNode: node not found. ConnectionId:${connectionId} nodePath:${nodePath}`);
     }
+  }
+}
+
+export class MongoObjectExplorerProvider extends ObjectExplorerProviderBase {
+  constructor(context: vscode.ExtensionContext, reporter: TelemetryReporter, private nativeMongoService: MongoService) {
+    super(context, reporter, MongoProviderId, nativeMongoService);
+  }
+
+  public expandDatabase(nodeInfo: azdata.ExpandNodeInfo, database: string, server: string): Thenable<boolean> {
+    // Get list of collections from database
+    if (!database) {
+      return Promise.resolve(false);
+    }
+
+    this.reporter.sendActionEvent(
+      Telemetry.sources.objectExplorerNodeProvider,
+      Telemetry.actions.expand,
+      Telemetry.targets.objectExplorerNodeProvider.databaseNode
+    );
+
+    return this.nativeMongoService.listCollections(server, database).then((collections) => {
+      console.log("expandDatabase done");
+      this.onExpandCompletedEmitter.fire({
+        sessionId: nodeInfo.sessionId,
+        nodePath: nodeInfo.nodePath || "unknown",
+        nodes: collections.map((collection) => ({
+          nodePath: `${nodeInfo?.nodePath}/${collection.collectionName}`,
+          nodeType: "Queue",
+          icon: {
+            light: this.context.asAbsolutePath("resources/light/collection.svg"),
+            dark: this.context.asAbsolutePath("resources/dark/collection-inverse.svg"),
+          },
+          label: collection.collectionName || localize("unknown", "Unknown"),
+          isLeaf: true, // false, TODO: enable collection subnodes when support is implemented
+        })),
+      });
+      return true;
+    });
+  }
+}
+
+export class NoSqlObjectExplorerProvider extends ObjectExplorerProviderBase {
+  constructor(
+    context: vscode.ExtensionContext,
+    reporter: TelemetryReporter,
+    private cosmosDbNoSqlService: CosmosDbNoSqlService
+  ) {
+    super(context, reporter, NoSqlProviderId, cosmosDbNoSqlService);
+  }
+
+  public expandDatabase(nodeInfo: azdata.ExpandNodeInfo, database: string, server: string): Thenable<boolean> {
+    // Get list of collections from database
+    if (!database) {
+      return Promise.resolve(false);
+    }
+
+    this.reporter.sendActionEvent(
+      Telemetry.sources.objectExplorerNodeProvider,
+      Telemetry.actions.expand,
+      Telemetry.targets.objectExplorerNodeProvider.databaseNode
+    );
+
+    return this.cosmosDbNoSqlService.listContainers(server, database).then((containers) => {
+      console.log("expandDatabase done");
+      this.onExpandCompletedEmitter.fire({
+        sessionId: nodeInfo.sessionId,
+        nodePath: nodeInfo.nodePath || "unknown",
+        nodes: containers.map((container) => ({
+          nodePath: `${nodeInfo?.nodePath}/${container.id}`,
+          nodeType: "Queue",
+          icon: {
+            light: this.context.asAbsolutePath("resources/light/collection.svg"),
+            dark: this.context.asAbsolutePath("resources/dark/collection-inverse.svg"),
+          },
+          label: container.id || localize("unknown", "Unknown"),
+          isLeaf: true, // false, TODO: enable collection subnodes when support is implemented
+        })),
+      });
+      return true;
+    });
   }
 }

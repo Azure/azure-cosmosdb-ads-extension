@@ -5,7 +5,7 @@ import { COSMOSDB_DOC_URL, Telemetry } from "../constant";
 import { IConnectionNodeInfo } from "../extension";
 import { convertToConnectionOptions } from "../models";
 import { buildHeroCard } from "../util";
-import { AppContext } from "../appContext";
+import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 
 const localize = nls.loadMessageBundle();
 
@@ -13,7 +13,7 @@ export abstract class AbstractHomeDashboard {
   protected refreshProperties?: () => void = undefined;
   protected refreshDatabases?: () => void = undefined;
 
-  protected constructor(protected appContext: AppContext) {}
+  protected constructor(protected reporter: TelemetryReporter) {}
 
   public abstract buildModel(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component;
   public abstract buildDatabasesArea(
@@ -37,7 +37,7 @@ export abstract class AbstractHomeDashboard {
           vscode.commands
             .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
             .then(() => this.refreshDatabases && this.refreshDatabases());
-          this.appContext.reporter.sendActionEvent(
+          this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarNewDatabase
@@ -55,7 +55,7 @@ export abstract class AbstractHomeDashboard {
             "cosmosdb-ads-extension.openMongoShell",
             convertToConnectionOptions(view.connection)
           );
-          this.appContext.reporter.sendActionEvent(
+          this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarOpenMongoShell
@@ -71,7 +71,7 @@ export abstract class AbstractHomeDashboard {
         onDidClick: () => {
           this.refreshProperties && this.refreshProperties();
           this.refreshDatabases && this.refreshDatabases();
-          this.appContext.reporter.sendActionEvent(
+          this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarRefresh
@@ -86,7 +86,7 @@ export abstract class AbstractHomeDashboard {
         },
         onDidClick: () => {
           vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL));
-          this.appContext.reporter.sendActionEvent(
+          this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarLearnMore
@@ -124,7 +124,7 @@ export abstract class AbstractHomeDashboard {
           vscode.commands
             .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
             .then(() => this.refreshDatabases && this.refreshDatabases());
-          this.appContext.reporter.sendActionEvent(
+          this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.gettingStartedNewDatabase
@@ -140,7 +140,7 @@ export abstract class AbstractHomeDashboard {
           vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
             connectionProfile: view.connection,
           });
-          this.appContext.reporter.sendActionEvent(
+          this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.gettingStartedOpenMongoShell
@@ -154,7 +154,7 @@ export abstract class AbstractHomeDashboard {
         localize("documentation", "Find quickstarts, how-to guides, and references."),
         () => {
           vscode.env.openExternal(vscode.Uri.parse(COSMOSDB_DOC_URL));
-          this.appContext.reporter.sendActionEvent(
+          this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.gettingStartedDocumentation

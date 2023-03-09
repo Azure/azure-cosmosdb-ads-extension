@@ -11,13 +11,14 @@ import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, IDatabaseInfo } from "../models";
 import { AbstractHomeDashboard } from "./AbstractHomeDashboard";
-import { AppContext } from "../appContext";
+import TelemetryReporter from "@microsoft/ads-extension-telemetry";
+import { MongoService } from "../Services/MongoService";
 
 const localize = nls.loadMessageBundle();
 
 export class NativeMongoHomeDashboard extends AbstractHomeDashboard {
-  constructor(appContext: AppContext) {
-    super(appContext);
+  constructor(reporter: TelemetryReporter, private mongoService: MongoService) {
+    super(reporter);
   }
 
   public buildModel(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.FlexContainer {
@@ -72,14 +73,14 @@ export class NativeMongoHomeDashboard extends AbstractHomeDashboard {
     let databases: IDatabaseInfo[];
 
     this.refreshDatabases = () => {
-      this.appContext.nativeMongoService.listDatabases(server).then(async (dbs) => {
+      this.mongoService.listDatabases(server).then(async (dbs) => {
         databases = dbs;
 
         const databasesInfo: { name: string; nbCollections: number; sizeOnDisk: number | undefined }[] = [];
         for (const db of dbs) {
           const name = db.name;
           if (name !== undefined) {
-            const nbCollections = (await this.appContext.nativeMongoService.listCollections(server, name)).length;
+            const nbCollections = (await this.mongoService.listCollections(server, name)).length;
             databasesInfo.push({ name, nbCollections, sizeOnDisk: db.sizeOnDisk });
           }
         }
@@ -136,11 +137,11 @@ export class NativeMongoHomeDashboard extends AbstractHomeDashboard {
           ...convertToConnectionOptions(view.connection),
         };
         vscode.commands.executeCommand(
-          "cosmosdb-ads-extension.openDatabaseDashboard",
+          "cosmosdb-ads-extension.openMongoDatabaseDashboard",
           undefined,
           databaseDashboardInfo
         );
-        this.appContext.reporter.sendActionEvent(
+        this.reporter.sendActionEvent(
           Telemetry.sources.homeDashboard,
           Telemetry.actions.click,
           Telemetry.targets.homeDashboard.databasesListNonAzureOpenDashboard

@@ -5,14 +5,15 @@ import { v4 as uuid } from "uuid";
 import { AppContext } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
 import { convertToConnectionOptions } from "../models";
-import { retrieveConnectionStringFromConnectionOptions } from "../Services/ArmService";
+import { AbstractBackendService } from "../Services/AbstractBackendService";
 
 const localize = nls.loadMessageBundle();
 
-export const ProviderId: string = "COSMOSDB_MONGO";
+export const MongoProviderId: string = "COSMOSDB_MONGO";
+export const NoSqlProviderId: string = "COSMOSDB_NOSQL";
 
 export class ConnectionProvider implements azdata.ConnectionProvider {
-  constructor(private appContext: AppContext) {}
+  constructor(private backendService: AbstractBackendService, public providerId: string) {}
 
   // Maintain current connections server <--> connectionUri
   private connectionUriToServerMap = new Map<string, string>();
@@ -44,7 +45,10 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     this.connectionUriToServerMap.set(connectionUri, server);
 
     try {
-      this.connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
+      this.connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(
+        connectionOptions,
+        false
+      );
     } catch (e) {
       showErrorMessage((e as { message: string }).message);
       return false;
@@ -56,7 +60,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     }
 
     try {
-      if (!(await this.appContext.nativeMongoService.connect(server, this.connectionString))) {
+      if (!(await this.backendService.connect(server, this.connectionString))) {
         vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
         return false;
       }
@@ -95,7 +99,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
       return Promise.reject(`ConnectionUri unknown: ${connectionUri}`);
     }
 
-    this.appContext.nativeMongoService.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
+    this.backendService.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
     this.connectionUriToServerMap.delete(connectionUri);
 
     return Promise.resolve(true);
@@ -150,5 +154,4 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     console.log("Connection changed");
   }
   handle?: number;
-  providerId: string = ProviderId;
 }

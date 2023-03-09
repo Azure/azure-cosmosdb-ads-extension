@@ -1,9 +1,9 @@
 import * as azdata from "azdata";
-import { ProviderId } from "./connectionProvider";
+import { MongoProviderId, NoSqlProviderId } from "./connectionProvider";
 
 const IconId = "cosmosdb";
-export class IconProvider implements azdata.IconProvider {
-  public readonly providerId: string = ProviderId;
+export class MongoIconProvider implements azdata.IconProvider {
+  public readonly providerId: string = MongoProviderId;
   public handle?: number;
   getConnectionIconId(
     connection: azdata.IConnectionProfile,
@@ -11,4 +11,8 @@ export class IconProvider implements azdata.IconProvider {
   ): Thenable<string | undefined> {
     return Promise.resolve(IconId);
   }
+}
+
+export class NoSqlIconProvider extends MongoIconProvider {
+  public readonly providerId: string = NoSqlProviderId;
 }

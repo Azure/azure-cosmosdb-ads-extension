@@ -7,12 +7,14 @@ import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "../util";
-import { openAccountDashboard } from "../Services/ArmService";
+import { convertToConnectionOptions } from "../models";
 
 const localize = nls.loadMessageBundle();
 
 export abstract class AbstractDatabaseDashboard {
   protected refreshCollections?: () => void = undefined;
+
+  constructor(private providerId: string) {}
 
   private buildToolbar(
     view: azdata.ModelView,
@@ -191,7 +193,7 @@ export abstract class AbstractDatabaseDashboard {
     const database = view.modelBuilder.text().withProps({ value: databaseName, CSSStyles }).component();
 
     accountLink.onDidClick(async (_) => {
-      openAccountDashboard(accountName);
+      this.openAccountDashboard(accountName);
     });
 
     return view.modelBuilder
@@ -261,4 +263,30 @@ export abstract class AbstractDatabaseDashboard {
     });
     await dashboard.open();
   }
+
+  private openAccountDashboard = async (accountName: string) => {
+    const connections = (await azdata.connection.getConnections()).filter((c) => c.serverName === accountName);
+    if (connections.length < 1) {
+      vscode.window.showErrorMessage(localize("noAccountFound", "No account found for {0}", accountName));
+      return;
+    }
+
+    const connectionOptions = convertToConnectionOptions(connections[0]);
+
+    if (connectionOptions.authenticationType === "SqlLogin" || connectionOptions.authenticationType === "Integrated") {
+      const credentials = await azdata.connection.getCredentials(connections[0].connectionId);
+      connectionOptions.password = credentials["password"];
+    }
+
+    const connectionProfile: azdata.IConnectionProfile = {
+      ...connections[0],
+      providerName: this.providerId,
+      id: connections[0].connectionId,
+      azureAccount: connectionOptions.azureAccount,
+      azureTenantId: connectionOptions.azureTenantId,
+      azureResourceId: connectionOptions.azureResourceId,
+      password: connectionOptions.password,
+    };
+    await azdata.connection.connect(connectionProfile, false, true);
+  };
 }

@@ -12,11 +12,14 @@ import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
-import { ICosmosDbCollectionInfo } from "../models";
 
 const localize = nls.loadMessageBundle();
 
 export class NativeMongoDatabaseDashboard extends AbstractDatabaseDashboard {
+  constructor(providerId: string) {
+    super(providerId);
+  }
+
   protected async buildCollectionsArea(
     databaseName: string,
     view: azdata.ModelView,
@@ -27,7 +30,7 @@ export class NativeMongoDatabaseDashboard extends AbstractDatabaseDashboard {
     let collections: Collection<Document>[];
 
     this.refreshCollections = () => {
-      appContext.nativeMongoService
+      appContext.mongoService
         .listCollections(databaseDashboardInfo.server, databaseName)
         .then(async (collectionsInfo) => {
           collections = collectionsInfo;

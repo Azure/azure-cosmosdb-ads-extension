@@ -12,9 +12,14 @@ import * as path from "path";
 // Import the module and reference it with the alias azdata in your code below
 
 import * as azdata from "azdata";
-import { ConnectionProvider } from "./Providers/connectionProvider";
-import { IconProvider } from "./Providers/iconProvider";
-import { createNodePath, getMongoInfo, ObjectExplorerProvider } from "./Providers/objectExplorerNodeProvider";
+import { ConnectionProvider, MongoProviderId, NoSqlProviderId } from "./Providers/connectionProvider";
+import { MongoIconProvider, NoSqlIconProvider } from "./Providers/iconProvider";
+import {
+  MongoObjectExplorerProvider,
+  NoSqlObjectExplorerProvider,
+  createNodePath,
+  getNodeInfo,
+} from "./Providers/objectExplorerNodeProvider";
 import { AppContext, createStatusBarItem, hideStatusBarItem, showStatusBarItem } from "./appContext";
 import { registerMongoHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
@@ -26,8 +31,10 @@ import { getErrorMessage, getPackageInfo } from "./util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
 import { EditorUserQuery } from "./QueryClient/messageContract";
 import { askUserForConnectionProfile, isAzureAuthType } from "./Services/ServiceUtil";
-import { CosmosDbMongoDatabaseDashboard } from "./Dashboards/CosmosDbMongoDatabaseDashboard";
+import { CosmosDbMongoDatabaseDashboard } from "./Dashboards/CosmosDbDatabaseDashboard";
 import { NativeMongoDatabaseDashboard } from "./Dashboards/NativeMongoDatabaseDashboard";
+import { ArmServiceMongo } from "./Services/ArmServiceMongo";
+import { ArmServiceNoSql } from "./Services/ArmServiceNoSql";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -86,17 +93,13 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
-          const mongoService = isAzureAuthType(connectionNodeInfo.authenticationType)
-            ? appContext.cosmosDbMongoService
-            : appContext.nativeMongoService;
-
           // Creating a database requires creating a collection inside
-          const { databaseName } = await mongoService.createMongoDatabase(connectionNodeInfo);
+          const { databaseName } = await appContext.mongoService.createMongoDatabase(connectionNodeInfo);
           if (databaseName) {
             vscode.window.showInformationMessage(
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
             );
-            objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.server);
+            mongoObjectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.server);
             Promise.resolve();
             return;
           }
@@ -152,14 +155,10 @@ export function activate(context: vscode.ExtensionContext) {
           };
         }
 
-        const { databaseName } = getMongoInfo(connectionNodeInfo.nodePath!);
+        const { databaseName } = getNodeInfo(connectionNodeInfo.nodePath!);
 
         try {
-          const mongoService = isAzureAuthType(connectionNodeInfo.authenticationType)
-            ? appContext.cosmosDbMongoService
-            : appContext.nativeMongoService;
-
-          const createResult = await mongoService.createMongoDatabaseAndCollection(
+          const createResult = await appContext.mongoService.createMongoDatabaseAndCollection(
             connectionNodeInfo,
             databaseName,
             collectionName,
@@ -169,7 +168,7 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(
               localize("successCreateCollection", "Successfully created: {0}", createResult.collectionName)
             );
-            objectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
+            mongoObjectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
             return Promise.resolve({ ...createResult, collectionName: createResult.collectionName! });
           }
         } catch (e) {
@@ -197,7 +196,7 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
         const { nodePath } = objectExplorerContext.nodeInfo;
-        const mongoInfo = getMongoInfo(nodePath);
+        const mongoInfo = getNodeInfo(nodePath);
 
         const response = await vscode.window.showInputBox({
           placeHolder: localize("removeDatabaseConfirm", "Please enter the name of the database to delete"),
@@ -215,9 +214,9 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
-          if (await appContext.nativeMongoService.removeDatabase(serverName, mongoInfo.databaseName!)) {
+          if (await appContext.mongoService.removeDatabase(serverName, mongoInfo.databaseName!)) {
             // update parent node
-            await objectExplorer.updateNode(
+            await mongoObjectExplorer.updateNode(
               objectExplorerContext.connectionProfile.id,
               objectExplorerContext.connectionProfile.serverName
             );
@@ -256,7 +255,7 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
         const { nodePath } = objectExplorerContext.nodeInfo;
-        const mongoInfo = getMongoInfo(nodePath);
+        const mongoInfo = getNodeInfo(nodePath);
 
         const response = await vscode.window.showInputBox({
           placeHolder: localize("removeCollectionConfirm", "Please enter the name of the collection to delete"),
@@ -275,16 +274,16 @@ export function activate(context: vscode.ExtensionContext) {
 
         try {
           if (
-            await appContext.nativeMongoService.removeCollection(
+            await appContext.mongoService.removeCollection(
               serverName,
               mongoInfo.databaseName!,
               mongoInfo.collectionName!
             )
           ) {
             // Find parent node to update
-            const { serverName, databaseName } = getMongoInfo(objectExplorerContext.nodeInfo.nodePath);
+            const { serverName, databaseName } = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
             const newNodePath = createNodePath(serverName, databaseName);
-            await objectExplorer.updateNode(objectExplorerContext.connectionProfile.id, newNodePath);
+            await mongoObjectExplorer.updateNode(objectExplorerContext.connectionProfile.id, newNodePath);
             vscode.window.showInformationMessage(
               localize("successDeleteCollection", "Successfully deleted collection {0}", mongoInfo.collectionName)
             );
@@ -304,7 +303,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "cosmosdb-ads-extension.openDatabaseDashboard",
+      "cosmosdb-ads-extension.openMongoDatabaseDashboard",
       (objectExplorerContext: azdata.ObjectExplorerContext, databaseDashboardInfo?: IDatabaseDashboardInfo) => {
         if (objectExplorerContext?.connectionProfile) {
           // Called from menu tree item context menu
@@ -315,10 +314,10 @@ export function activate(context: vscode.ExtensionContext) {
             return;
           }
 
-          const mongoInfo = getMongoInfo(objectExplorerContext.nodeInfo.nodePath);
+          const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
           const connectionProfile = objectExplorerContext.connectionProfile;
           databaseDashboardInfo = {
-            databaseName: mongoInfo.databaseName,
+            databaseName: nodeInfo.databaseName,
             connectionId: connectionProfile.id,
             ...convertToConnectionOptions(connectionProfile),
           };
@@ -340,9 +339,55 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const databaseDashboard = isAzureAuthType(databaseDashboardInfo.authenticationType)
-          ? new CosmosDbMongoDatabaseDashboard()
-          : new NativeMongoDatabaseDashboard();
+          ? new CosmosDbMongoDatabaseDashboard(MongoProviderId, new ArmServiceMongo())
+          : new NativeMongoDatabaseDashboard(MongoProviderId);
         databaseDashboard.openDatabaseDashboard(databaseDashboardInfo, appContext, context);
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.openNoSqlDatabaseDashboard",
+      (objectExplorerContext: azdata.ObjectExplorerContext, databaseDashboardInfo?: IDatabaseDashboardInfo) => {
+        if (objectExplorerContext?.connectionProfile) {
+          // Called from menu tree item context menu
+
+          if (!objectExplorerContext.nodeInfo) {
+            // TODO handle error;
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return;
+          }
+
+          const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
+          const connectionProfile = objectExplorerContext.connectionProfile;
+          databaseDashboardInfo = {
+            databaseName: nodeInfo.databaseName,
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+          };
+        } else {
+          // Called from extension code
+          if (!databaseDashboardInfo) {
+            vscode.window.showErrorMessage(
+              localize("missingConnectionProfile", "Missing ConnectionProfile or azureAccountId")
+            );
+            return;
+          }
+        }
+
+        // TODO ask for database if databaseName not defined
+
+        if (!databaseDashboardInfo.databaseName) {
+          vscode.window.showErrorMessage(localize("missingDatabaseName", "Database not specified"));
+          return;
+        }
+
+        new CosmosDbMongoDatabaseDashboard(NoSqlProviderId, new ArmServiceNoSql()).openDatabaseDashboard(
+          databaseDashboardInfo,
+          appContext,
+          context
+        );
       }
     )
   );
@@ -381,7 +426,7 @@ export function activate(context: vscode.ExtensionContext) {
           onQuerySubmit: async (query: EditorUserQuery) => {
             console.log("submitquery", query);
             try {
-              const queryResult = await appContext.nativeMongoService.submitQuery(
+              const queryResult = await appContext.mongoService.submitQuery(
                 connectionOptions,
                 databaseName,
                 collectionName,
@@ -436,7 +481,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));
           return;
         }
-        const mongoShellOptions = await appContext.nativeMongoService.getMongoShellOptions(connectionOptions);
+        const mongoShellOptions = await appContext.mongoService.getMongoShellOptions(connectionOptions);
 
         const terminalOptions: vscode.TerminalOptions = {
           name: `Mongo Shell: ${terminalName}-${counter}`,
@@ -560,12 +605,22 @@ export function activate(context: vscode.ExtensionContext) {
   appContext = new AppContext(reporter);
   createStatusBarItem();
 
-  const connectionProvider = new ConnectionProvider(appContext);
-  const iconProvider = new IconProvider();
-  const objectExplorer = new ObjectExplorerProvider(context, appContext);
-  azdata.dataprotocol.registerConnectionProvider(connectionProvider);
-  azdata.dataprotocol.registerIconProvider(iconProvider);
-  azdata.dataprotocol.registerObjectExplorerProvider(objectExplorer);
+  const mongoConnectionProvider = new ConnectionProvider(appContext.mongoService, MongoProviderId);
+  const noSqlConnectionProvider = new ConnectionProvider(appContext.cosmosDbNoSqlService, NoSqlProviderId);
+  const mongoIconProvider = new MongoIconProvider();
+  const noSqlIconProvider = new NoSqlIconProvider();
+  const mongoObjectExplorer = new MongoObjectExplorerProvider(context, appContext.reporter, appContext.mongoService);
+  const noSqlObjectExplorer = new NoSqlObjectExplorerProvider(
+    context,
+    appContext.reporter,
+    appContext.cosmosDbNoSqlService
+  );
+  azdata.dataprotocol.registerConnectionProvider(mongoConnectionProvider);
+  azdata.dataprotocol.registerConnectionProvider(noSqlConnectionProvider);
+  azdata.dataprotocol.registerIconProvider(mongoIconProvider);
+  azdata.dataprotocol.registerIconProvider(noSqlIconProvider);
+  azdata.dataprotocol.registerObjectExplorerProvider(mongoObjectExplorer);
+  azdata.dataprotocol.registerObjectExplorerProvider(noSqlObjectExplorer);
 
   registerMongoHomeDashboardTabs(context, appContext);
 

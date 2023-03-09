@@ -1,25 +1,110 @@
 import * as vscode from "vscode";
+import * as azdata from "azdata";
 import * as nls from "vscode-nls";
-import { IConnectionOptions } from "../models";
+import { Collection, MongoClient, MongoClientOptions } from "mongodb";
+import { isCosmosDBAccount } from "../MongoShell/mongoUtils";
+import { convertToConnectionOptions, IConnectionOptions, IDatabaseInfo, IMongoShellOptions } from "../models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { EditorUserQuery, EditorQueryResult } from "../QueryClient/messageContract";
-import { SampleData } from "./ServiceUtil";
+import { SampleData, askUserForConnectionProfile, isAzureAuthType } from "./ServiceUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
-import {
-  createMongoDatabaseAndCollectionWithArm,
-  createMongoDatabaseWithArm,
-  getAccountNameFromOptions,
-  retrieveConnectionStringFromConnectionOptions,
-} from "./ArmService";
-import { NativeMongoService } from "./NativeMongoService";
+import { AbstractBackendService } from "./AbstractBackendService";
+import { buildMongoConnectionString } from "../Providers/connectionString";
+import { AbstractArmService } from "./AbstractArmService";
+import { ArmServiceMongo } from "./ArmServiceMongo";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbMongoService extends NativeMongoService {
+export class MongoService extends AbstractBackendService {
+  protected _mongoClients = new Map<string, MongoClient>();
+
+  constructor() {
+    super(new ArmServiceMongo());
+  }
+
+  public async connect(server: string, connectionString: string): Promise<MongoClient | undefined> {
+    const options: MongoClientOptions = <MongoClientOptions>{};
+    try {
+      const mongoClient = await MongoClient.connect(connectionString, options);
+      this._mongoClients.set(server, mongoClient);
+      return mongoClient;
+    } catch (error) {
+      console.error(error);
+      return undefined;
+    }
+  }
+
+  public hasConnection(server: string): boolean {
+    return this._mongoClients.has(server);
+  }
+
+  public async listDatabases(server: string): Promise<IDatabaseInfo[]> {
+    if (!this._mongoClients.has(server)) {
+      return [];
+    }
+    // https://mongodb.github.io/node-mongodb-native/3.1/api/index.html
+    const result: { databases: IDatabaseInfo[] } = await this._mongoClients
+      .get(server)!
+      .db("test" /*testDb*/)
+      .admin()
+      .listDatabases();
+    return result.databases;
+  }
+
+  public async listCollections(server: string, databaseName: string): Promise<Collection[]> {
+    if (!this._mongoClients.has(server)) {
+      return [];
+    }
+    return await this._mongoClients.get(server)!.db(databaseName).collections();
+  }
+
+  public async removeDatabase(server: string, databaseName: string): Promise<boolean> {
+    if (!this._mongoClients.has(server)) {
+      return false;
+    }
+    return await this._mongoClients.get(server)!.db(databaseName).dropDatabase();
+  }
+
+  public async removeCollection(server: string, databaseName: string, collectionName: string): Promise<boolean> {
+    if (!this._mongoClients.has(server)) {
+      return false;
+    }
+    return await this._mongoClients.get(server)!.db(databaseName).dropCollection(collectionName);
+  }
+
+  public getMongoShellOptions(connectionOptions?: IConnectionOptions): Promise<IMongoShellOptions | undefined> {
+    return new Promise(async (resolve, reject) => {
+      if (!connectionOptions) {
+        const connectionProfile = await askUserForConnectionProfile();
+        if (!connectionProfile) {
+          reject("Failed to retrieve connection profile");
+          return;
+        }
+        connectionOptions = convertToConnectionOptions(connectionProfile);
+      }
+
+      const connectionString = await this.retrieveConnectionStringFromConnectionOptions(connectionOptions, true);
+
+      if (!connectionString) {
+        reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));
+        return;
+      }
+
+      // TODO Use different parsing method if vanilla mongo
+      const options: IMongoShellOptions = {
+        isCosmosDB: isCosmosDBAccount(connectionString),
+        connectionString,
+        connectionInfo: undefined,
+      };
+
+      resolve(options);
+    });
+  }
+
   /**
-   * Create collection with mongodb driver
+   * Create database
    * @param connectionOptions
    * @param databaseName
    * @returns
@@ -28,13 +113,10 @@ export class CosmosDbMongoService extends NativeMongoService {
     connectionOptions: IConnectionOptions,
     databaseName?: string
   ): Promise<{ databaseName: string }> {
-    return createMongoDatabaseWithArm(
-      connectionOptions.azureAccount,
-      connectionOptions.azureTenantId,
-      connectionOptions.azureResourceId,
-      getAccountNameFromOptions(connectionOptions),
-      databaseName
-    );
+    return isAzureAuthType(connectionOptions.authenticationType)
+      ? this.createMongoDatabaseWithArm(connectionOptions, databaseName)
+      : // In MongoDB, a database cannot be empty.
+        this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, undefined);
   }
 
   /**
@@ -51,11 +133,49 @@ export class CosmosDbMongoService extends NativeMongoService {
     collectionName?: string,
     cdbCreateInfo?: CdbCollectionCreateInfo
   ): Promise<{ databaseName: string; collectionName: string | undefined }> {
-    return createMongoDatabaseAndCollectionWithArm(
+    return isAzureAuthType(connectionOptions.authenticationType)
+      ? this.createMongoDatabaseAndCollectionWithArm(connectionOptions, databaseName, collectionName)
+      : this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, collectionName);
+  }
+
+  /**
+   * Create Database with arm
+   * @param connectionOptions
+   * @param databaseName
+   * @returns
+   */
+  private createMongoDatabaseWithArm(
+    connectionOptions: IConnectionOptions,
+    databaseName?: string
+  ): Promise<{ databaseName: string }> {
+    return this.armService.createDatabase(
       connectionOptions.azureAccount,
       connectionOptions.azureTenantId,
       connectionOptions.azureResourceId,
-      getAccountNameFromOptions(connectionOptions),
+      this.armService.getAccountNameFromOptions(connectionOptions),
+      databaseName
+    );
+  }
+
+  /**
+   * Create collection with arm
+   * @param connectionOptions
+   * @param createDatabaseOnly
+   * @param databaseName
+   * @param collectionName
+   * @returns
+   */
+  private createMongoDatabaseAndCollectionWithArm(
+    connectionOptions: IConnectionOptions,
+    databaseName?: string,
+    collectionName?: string,
+    cdbCreateInfo?: CdbCollectionCreateInfo
+  ): Promise<{ databaseName: string; collectionName: string | undefined }> {
+    return this.armService.createDatabaseAndCollection(
+      connectionOptions.azureAccount,
+      connectionOptions.azureTenantId,
+      connectionOptions.azureResourceId,
+      this.armService.getAccountNameFromOptions(connectionOptions),
       databaseName,
       collectionName,
       cdbCreateInfo
@@ -69,7 +189,7 @@ export class CosmosDbMongoService extends NativeMongoService {
    * @param collectionName
    * @returns
    */
-  public createMongoDbCollectionWithMongoDbClient(
+  private createMongoDbCollectionWithMongoDbClient(
     connectionOptions: IConnectionOptions,
     databaseName?: string,
     collectionName?: string
@@ -108,7 +228,7 @@ export class CosmosDbMongoService extends NativeMongoService {
       if (this._mongoClients.has(connectionOptions.server)) {
         mongoClient = this._mongoClients.get(connectionOptions.server);
       } else {
-        const connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, true);
+        const connectionString = await this.retrieveConnectionStringFromConnectionOptions(connectionOptions, true);
 
         if (!connectionString) {
           reject(localize("failRetrieveConnectionString", "Unable to retrieve connection string"));

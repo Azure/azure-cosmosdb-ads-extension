@@ -11,15 +11,15 @@ import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { ICosmosDbCollectionInfo } from "../models";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
-import {
-  changeMongoDbCollectionThroughput,
-  getAccountNameFromOptions,
-  retrieveMongoDbCollectionsInfoFromArm,
-} from "../Services/ArmService";
+import { AbstractArmService } from "../Services/AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
 export class CosmosDbMongoDatabaseDashboard extends AbstractDatabaseDashboard {
+  constructor(providerId: string, private armService: AbstractArmService) {
+    super(providerId);
+  }
+
   protected async buildCollectionsArea(
     databaseName: string,
     view: azdata.ModelView,
@@ -30,29 +30,31 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractDatabaseDashboard {
     let collections: ICosmosDbCollectionInfo[];
 
     this.refreshCollections = () => {
-      retrieveMongoDbCollectionsInfoFromArm(
-        databaseDashboardInfo.azureAccount,
-        databaseDashboardInfo.azureTenantId,
-        databaseDashboardInfo.azureResourceId,
-        getAccountNameFromOptions(databaseDashboardInfo),
-        databaseName
-      ).then((collectionsInfo) => {
-        collections = collectionsInfo;
-        tableComponent.data = collectionsInfo.map((collection) => [
-          <azdata.HyperlinkColumnCellValue>{
-            title: collection.name,
-            icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-          },
-          collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
-          collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
-          collection.shardKey === undefined ? "" : Object.keys(collection.shardKey)[0],
-          <azdata.HyperlinkColumnCellValue>{
-            title: collection.throughputSetting,
-          },
-        ]);
+      this.armService
+        .retrieveCollectionsInfo(
+          databaseDashboardInfo.azureAccount,
+          databaseDashboardInfo.azureTenantId,
+          databaseDashboardInfo.azureResourceId,
+          this.armService.getAccountNameFromOptions(databaseDashboardInfo),
+          databaseName
+        )
+        .then((collectionsInfo) => {
+          collections = collectionsInfo;
+          tableComponent.data = collectionsInfo.map((collection) => [
+            <azdata.HyperlinkColumnCellValue>{
+              title: collection.name,
+              icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+            },
+            collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
+            collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
+            collection.shardKey === undefined ? "" : Object.keys(collection.shardKey)[0],
+            <azdata.HyperlinkColumnCellValue>{
+              title: collection.throughputSetting,
+            },
+          ]);
 
-        tableLoadingComponent.loading = false;
-      });
+          tableLoadingComponent.loading = false;
+        });
     };
     this.refreshCollections();
 
@@ -110,11 +112,11 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractDatabaseDashboard {
           );
         } else if (arg.name === "throughput" && collections[arg.row].throughputSetting !== "") {
           try {
-            const result = await changeMongoDbCollectionThroughput(
+            const result = await this.armService.changeCollectionThroughput(
               databaseDashboardInfo.azureAccount,
               databaseDashboardInfo.azureTenantId,
               databaseDashboardInfo.azureResourceId,
-              getAccountNameFromOptions(databaseDashboardInfo),
+              this.armService.getAccountNameFromOptions(databaseDashboardInfo),
               databaseName,
               collections[arg.row]
             );

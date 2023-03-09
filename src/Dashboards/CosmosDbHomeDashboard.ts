@@ -6,27 +6,19 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import {
-  changeMongoDbDatabaseThroughput,
-  getAccountName,
-  getAccountNameFromOptions,
-  retrieveDatabaseAccountInfoFromArm,
-  retrieveMongoDbDatabasesInfoFromArm,
-  retrievePortalEndpoint,
-  retrieveResourceId,
-} from "../Services/ArmService";
 import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, ICosmosDbDatabaseInfo } from "../models";
 import { buildHeroCard } from "../util";
 import { AbstractHomeDashboard } from "./AbstractHomeDashboard";
-import { AppContext } from "../appContext";
+import { AbstractArmService } from "../Services/AbstractArmService";
+import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbMongoHomeDashboard extends AbstractHomeDashboard {
-  constructor(appContext: AppContext) {
-    super(appContext);
+export class CosmosDbHomeDashboard extends AbstractHomeDashboard {
+  constructor(reporter: TelemetryReporter, private armService: AbstractArmService) {
+    super(reporter);
   }
 
   public buildModel(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {
@@ -40,34 +32,36 @@ export class CosmosDbMongoHomeDashboard extends AbstractHomeDashboard {
   private buildOverview(view: azdata.ModelView): azdata.Component {
     this.refreshProperties = () => {
       const connectionInfo = view.connection;
-      retrieveDatabaseAccountInfoFromArm(
-        connectionInfo.options["azureAccount"],
-        connectionInfo.options["azureTenantId"],
-        connectionInfo.options["azureResourceId"],
-        connectionInfo.options["server"]
-      ).then((databaseAccountInfo) => {
-        const propertyItems: azdata.PropertiesContainerItem[] = [
-          {
-            displayName: localize("status", "Status"),
-            value: databaseAccountInfo.serverStatus,
-          },
-          {
-            displayName: localize("consistencyPolicy", "Consistency policy"),
-            value: databaseAccountInfo.consistencyPolicy,
-          },
-          {
-            displayName: localize("backupPolicy", "Backup policy"),
-            value: databaseAccountInfo.backupPolicy,
-          },
-          {
-            displayName: localize("readLocation", "Read location"),
-            value: databaseAccountInfo.readLocations.join(","),
-          },
-        ];
+      this.armService
+        .retrieveDatabaseAccountInfo(
+          connectionInfo.options["azureAccount"],
+          connectionInfo.options["azureTenantId"],
+          connectionInfo.options["azureResourceId"],
+          connectionInfo.options["server"]
+        )
+        .then((databaseAccountInfo) => {
+          const propertyItems: azdata.PropertiesContainerItem[] = [
+            {
+              displayName: localize("status", "Status"),
+              value: databaseAccountInfo.serverStatus,
+            },
+            {
+              displayName: localize("consistencyPolicy", "Consistency policy"),
+              value: databaseAccountInfo.consistencyPolicy,
+            },
+            {
+              displayName: localize("backupPolicy", "Backup policy"),
+              value: databaseAccountInfo.backupPolicy,
+            },
+            {
+              displayName: localize("readLocation", "Read location"),
+              value: databaseAccountInfo.readLocations.join(","),
+            },
+          ];
 
-        properties.propertyItems = propertyItems;
-        component.loading = false;
-      });
+          properties.propertyItems = propertyItems;
+          component.loading = false;
+        });
     };
     this.refreshProperties();
 
@@ -98,12 +92,12 @@ export class CosmosDbMongoHomeDashboard extends AbstractHomeDashboard {
 
   private buildGettingStarted(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {
     const addOpenInPortalButton = async (connectionInfo: azdata.ConnectionInfo) => {
-      const portalEndpoint = await retrievePortalEndpoint(connectionInfo.options["azureAccount"]);
-      const resourceId = await retrieveResourceId(
+      const portalEndpoint = await this.armService.retrievePortalEndpoint(connectionInfo.options["azureAccount"]);
+      const resourceId = await this.armService.retrieveResourceId(
         connectionInfo.options["azureAccount"],
         connectionInfo.options["azureTenantId"],
         connectionInfo.options["azureResourceId"],
-        getAccountName(connectionInfo)
+        this.armService.getAccountName(connectionInfo)
       );
       heroCardsContainer.addItem(
         buildHeroCard(
@@ -113,7 +107,7 @@ export class CosmosDbMongoHomeDashboard extends AbstractHomeDashboard {
           localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
           () => {
             this.openInPortal(portalEndpoint, resourceId);
-            this.appContext.reporter.sendActionEvent(
+            this.reporter.sendActionEvent(
               Telemetry.sources.homeDashboard,
               Telemetry.actions.click,
               Telemetry.targets.homeDashboard.gettingStartedOpenInPortal
@@ -170,27 +164,29 @@ export class CosmosDbMongoHomeDashboard extends AbstractHomeDashboard {
     let databases: ICosmosDbDatabaseInfo[];
 
     this.refreshDatabases = () => {
-      retrieveMongoDbDatabasesInfoFromArm(
-        connection.options["azureAccount"],
-        connection.options["azureTenantId"],
-        connection.options["azureResourceId"],
-        getAccountName(connection)
-      ).then((databasesInfo) => {
-        databases = databasesInfo;
-        tableComponent.data = databasesInfo.map((db) => [
-          <azdata.HyperlinkColumnCellValue>{
-            title: db.name,
-            icon: context.asAbsolutePath("resources/fluent/database.svg"),
-          },
-          db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
-          db.nbCollections,
-          <azdata.HyperlinkColumnCellValue>{
-            title: db.throughputSetting,
-          },
-        ]);
+      this.armService
+        .retrieveDatabasesInfo(
+          connection.options["azureAccount"],
+          connection.options["azureTenantId"],
+          connection.options["azureResourceId"],
+          this.armService.getAccountName(connection)
+        )
+        .then((databasesInfo) => {
+          databases = databasesInfo;
+          tableComponent.data = databasesInfo.map((db) => [
+            <azdata.HyperlinkColumnCellValue>{
+              title: db.name,
+              icon: context.asAbsolutePath("resources/fluent/database.svg"),
+            },
+            db.usageSizeKB === undefined ? localize("unknown", "Unknown") : db.usageSizeKB,
+            db.nbCollections,
+            <azdata.HyperlinkColumnCellValue>{
+              title: db.throughputSetting,
+            },
+          ]);
 
-        tableLoadingComponent.loading = false;
-      });
+          tableLoadingComponent.loading = false;
+        });
     };
     this.refreshDatabases();
 
@@ -241,28 +237,28 @@ export class CosmosDbMongoHomeDashboard extends AbstractHomeDashboard {
 
         if (arg.name === "database") {
           vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openDatabaseDashboard",
+            "cosmosdb-ads-extension.openMongoDatabaseDashboard",
             undefined,
             databaseDashboardInfo
           );
-          this.appContext.reporter.sendActionEvent(
+          this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.databasesListAzureOpenDashboard
           );
         } else if (arg.name === "throughput" && databases[arg.row].throughputSetting !== "") {
           try {
-            const result = await changeMongoDbDatabaseThroughput(
+            const result = await this.armService.changeDatabaseThroughput(
               databaseDashboardInfo.azureAccount,
               databaseDashboardInfo.azureTenantId,
               databaseDashboardInfo.azureResourceId,
-              getAccountNameFromOptions(databaseDashboardInfo),
+              this.armService.getAccountNameFromOptions(databaseDashboardInfo),
               databases[arg.row]
             );
             if (result) {
               this.refreshDatabases && this.refreshDatabases();
             }
-            this.appContext.reporter.sendActionEvent(
+            this.reporter.sendActionEvent(
               Telemetry.sources.homeDashboard,
               Telemetry.actions.click,
               Telemetry.targets.homeDashboard.databasesListAzureChangeThroughput
