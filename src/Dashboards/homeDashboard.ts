@@ -6,17 +6,18 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import { AppContext } from "../appContext";
-import { CosmosDbHomeDashboard } from "./CosmosDbHomeDashboard";
 import { NativeMongoHomeDashboard } from "./NativeMongoHomeDashboard";
 import { isAzureConnection } from "../Services/ServiceUtil";
 import { ArmServiceMongo } from "../Services/ArmServiceMongo";
 import { ArmServiceNoSql } from "../Services/ArmServiceNoSql";
+import { CosmosDbMongoHomeDashboard } from "./CosmosDbMongoHomeDashboard";
+import { CosmosDbNoSqlHomeDashboard } from "./CosmosDbNoSqlHomeDashboard";
 
 const dashboards = [];
 
 export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
-  const cosmosDbMongoHomeDashboard = new CosmosDbHomeDashboard(appContext.reporter, new ArmServiceMongo());
-  const cosmosDbNoSqlHomeDashboard = new CosmosDbHomeDashboard(appContext.reporter, new ArmServiceNoSql());
+  const cosmosDbMongoHomeDashboard = new CosmosDbMongoHomeDashboard(appContext.reporter, new ArmServiceMongo());
+  const cosmosDbNoSqlHomeDashboard = new CosmosDbNoSqlHomeDashboard(appContext.reporter, new ArmServiceNoSql());
   const nativeMongoDashboard = new NativeMongoHomeDashboard(appContext.reporter, appContext.mongoService);
   dashboards.push(cosmosDbMongoHomeDashboard);
   dashboards.push(cosmosDbNoSqlHomeDashboard);

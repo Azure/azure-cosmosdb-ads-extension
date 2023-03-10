@@ -31,10 +31,11 @@ import { getErrorMessage, getPackageInfo } from "./util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
 import { EditorUserQuery } from "./QueryClient/messageContract";
 import { askUserForConnectionProfile, isAzureAuthType } from "./Services/ServiceUtil";
-import { CosmosDbMongoDatabaseDashboard } from "./Dashboards/CosmosDbDatabaseDashboard";
+import { CosmosDbMongoDatabaseDashboard } from "./Dashboards/CosmosDbMongoDatabaseDashboard";
 import { NativeMongoDatabaseDashboard } from "./Dashboards/NativeMongoDatabaseDashboard";
 import { ArmServiceMongo } from "./Services/ArmServiceMongo";
 import { ArmServiceNoSql } from "./Services/ArmServiceNoSql";
+import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -100,6 +101,59 @@ export function activate(context: vscode.ExtensionContext) {
               localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
             );
             mongoObjectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.server);
+            Promise.resolve();
+            return;
+          }
+        } catch (e) {
+          vscode.window.showErrorMessage(
+            `${localize("failedCreatedDatabase", "Failed to create mongo database")}: ${e})`
+          );
+        }
+        Promise.reject();
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.createNoSqlDatabase",
+      async (objectExplorerContext: azdata.ObjectExplorerContext, connectionNodeInfo: IConnectionNodeInfo) => {
+        if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
+          vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+          Promise.reject();
+          return;
+        }
+
+        if (objectExplorerContext) {
+          const connectionProfile = objectExplorerContext.connectionProfile!;
+          connectionNodeInfo = {
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: objectExplorerContext.nodeInfo?.nodePath,
+          };
+        }
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return;
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+          };
+        }
+
+        try {
+          // Creating a database requires creating a collection inside
+          const { databaseName } = await appContext.cosmosDbNoSqlService.createNoSqlDatabase(connectionNodeInfo);
+          if (databaseName) {
+            vscode.window.showInformationMessage(
+              localize("sucessfullyCreatedDatabase", "Successfully created database: {0}", databaseName)
+            );
+            noSqlObjectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.server);
             Promise.resolve();
             return;
           }
@@ -383,7 +437,7 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        new CosmosDbMongoDatabaseDashboard(NoSqlProviderId, new ArmServiceNoSql()).openDatabaseDashboard(
+        new CosmosDbNoSqlDatabaseDashboard(NoSqlProviderId, new ArmServiceNoSql()).openDatabaseDashboard(
           databaseDashboardInfo,
           appContext,
           context
@@ -401,7 +455,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "cosmosdb-ads-extension.openQuery",
+      "cosmosdb-ads-extension.openMongoQuery",
       async (connectionOptions?: IConnectionOptions, databaseName?: string, collectionName?: string) => {
         if (!connectionOptions || !databaseName || !collectionName) {
           // TODO FIX
@@ -420,6 +474,8 @@ export function activate(context: vscode.ExtensionContext) {
                 connectionId: connectionOptions.server,
                 databaseName,
                 collectionName,
+                paginationTpe: "offset",
+                defaultQueryText: "{}",
               },
             });
           },
@@ -427,6 +483,55 @@ export function activate(context: vscode.ExtensionContext) {
             console.log("submitquery", query);
             try {
               const queryResult = await appContext.mongoService.submitQuery(
+                connectionOptions,
+                databaseName,
+                collectionName,
+                query
+              );
+              console.log("query # results:", queryResult.documents.length, queryResult.offsetPagingInfo);
+              view.sendCommand({
+                type: "queryResult",
+                data: queryResult,
+              });
+            } catch (e) {
+              vscode.window.showErrorMessage(getErrorMessage(e));
+            }
+          },
+        });
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.openNoSqlQuery",
+      async (connectionOptions?: IConnectionOptions, databaseName?: string, collectionName?: string) => {
+        if (!connectionOptions || !databaseName || !collectionName) {
+          // TODO FIX
+          return;
+        }
+
+        // TODO Check if one already exists before opening a new one
+
+        const view = new ViewLoader({
+          extensionPath: context.extensionPath,
+          title: collectionName,
+          onReady: () => {
+            view.sendCommand({
+              type: "initialize",
+              data: {
+                connectionId: connectionOptions.server,
+                databaseName,
+                collectionName,
+                paginationTpe: "infinite",
+                defaultQueryText: "select * from c",
+              },
+            });
+          },
+          onQuerySubmit: async (query: EditorUserQuery) => {
+            console.log("submitquery", query);
+            try {
+              const queryResult = await appContext.cosmosDbNoSqlService.submitQuery(
                 connectionOptions,
                 databaseName,
                 collectionName,

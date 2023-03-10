@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import { QueryEditor, QueryEditorProps, UserQuery } from 'azure-cosmos-db-query-editor';
+import { QueryEditor, QueryEditorProps, UserQuery } from '@azure/cosmos-query-editor-react';
 import { QueryEditorCommand, QueryEditorMessage } from '../../src/QueryClient/messageContract';
 
 const vscode = (window as any).acquireVsCodeApi();
@@ -49,6 +49,8 @@ window.addEventListener('message', event => {
       queryEditorProps.connectionId = JSON.stringify(message.data);
       queryEditorProps.databaseName = message.data.databaseName;
       queryEditorProps.collectionName = message.data.collectionName;
+			queryEditorProps.paginationType = message.data.paginationTpe;
+			queryEditorProps.defaultQueryText = message.data.defaultQueryText;
       break;
     case "queryResult":
       queryEditorProps.queryResult = message.data;

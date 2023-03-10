@@ -10,12 +10,12 @@ import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
 import { ICosmosDbCollectionInfo } from "../models";
-import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
+import { AbstractMongoDatabaseDashboard } from "./AbstractMongoDatabaseDashboard";
 import { AbstractArmService } from "../Services/AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbMongoDatabaseDashboard extends AbstractDatabaseDashboard {
+export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard {
   constructor(providerId: string, private armService: AbstractArmService) {
     super(providerId);
   }
@@ -99,7 +99,7 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractDatabaseDashboard {
       tableComponent.onCellAction(async (arg: any /* Bug with definition: ICellActionEventArgs */) => {
         if (arg.name === "collection") {
           vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openQuery",
+            "cosmosdb-ads-extension.openMongoQuery",
             { ...databaseDashboardInfo },
             databaseDashboardInfo.databaseName,
             collections[arg.row].name

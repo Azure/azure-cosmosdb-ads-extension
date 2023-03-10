@@ -11,11 +11,11 @@ import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IDatabaseDashboardInfo } from "../extension";
-import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
+import { AbstractMongoDatabaseDashboard } from "./AbstractMongoDatabaseDashboard";
 
 const localize = nls.loadMessageBundle();
 
-export class NativeMongoDatabaseDashboard extends AbstractDatabaseDashboard {
+export class NativeMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard {
   constructor(providerId: string) {
     super(providerId);
   }
@@ -89,7 +89,7 @@ export class NativeMongoDatabaseDashboard extends AbstractDatabaseDashboard {
     tableComponent.onCellAction &&
       tableComponent.onCellAction((arg: ICellActionEventArgs) => {
         vscode.commands.executeCommand(
-          "cosmosdb-ads-extension.openQuery",
+          "cosmosdb-ads-extension.openMongoQuery",
           { ...databaseDashboardInfo },
           databaseDashboardInfo.databaseName,
           collections[arg.row].collectionName

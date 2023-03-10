@@ -6,8 +6,8 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { Telemetry } from "../constant";
-import { IDatabaseDashboardInfo } from "../extension";
+import { COSMOSDB_DOC_URL, Telemetry } from "../constant";
+import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions, ICosmosDbDatabaseInfo } from "../models";
 import { buildHeroCard } from "../util";
 import { AbstractHomeDashboard } from "./AbstractHomeDashboard";
@@ -16,8 +16,12 @@ import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbHomeDashboard extends AbstractHomeDashboard {
-  constructor(reporter: TelemetryReporter, private armService: AbstractArmService) {
+export abstract class AbstractCosmosDbHomeDashboard extends AbstractHomeDashboard {
+  constructor(
+    reporter: TelemetryReporter,
+    private armService: AbstractArmService,
+    protected openDatabaseDashboardCommand: string
+  ) {
     super(reporter);
   }
 
@@ -236,11 +240,7 @@ export class CosmosDbHomeDashboard extends AbstractHomeDashboard {
         };
 
         if (arg.name === "database") {
-          vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openMongoDatabaseDashboard",
-            undefined,
-            databaseDashboardInfo
-          );
+          vscode.commands.executeCommand(this.openDatabaseDashboardCommand, undefined, databaseDashboardInfo);
           this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,

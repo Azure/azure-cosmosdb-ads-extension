@@ -46,6 +46,8 @@ export type QueryEditorMessage =
         connectionId: string;
         databaseName: string;
         collectionName: string;
+        paginationTpe: "offset" | "infinite";
+        defaultQueryText?: string;
       };
     }
   | {

@@ -55,7 +55,7 @@
         "category": "Cosmos DB Mongo"
       },
       {
-        "command": "cosmosdb-ads-extension.openQuery",
+        "command": "cosmosdb-ads-extension.openMongoQuery",
         "title": "Open Query",
         "category": "Cosmos DB Mongo"
       },
@@ -95,7 +95,7 @@
         "category": "Cosmos DB NoSQL"
       },
       {
-        "command": "cosmosdb-ads-extension.openQuery",
+        "command": "cosmosdb-ads-extension.openNoSqlQuery",
         "title": "Open Query",
         "category": "Cosmos DB NoSQL"
       }
