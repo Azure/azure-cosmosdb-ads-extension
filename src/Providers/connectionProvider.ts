@@ -134,12 +134,15 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   // Called when something is pasted to Server field (Mongo account)
   buildConnectionInfo?(connectionString: string): Promise<azdata.ConnectionInfo> {
     console.log("ConnectionProvider.buildConnectionInfo");
-    const info = parseMongoConnectionString(connectionString);
-    if (!info) {
-      return Promise.reject("Could not parse connection string");
+    try {
+      const info = parseMongoConnectionString(connectionString);
+      if (info) {
+        return Promise.resolve(info);
+      }
+    } catch (e) {
+      console.error("Invalid MongoDB connection string", e);
     }
-
-    return Promise.resolve(info);
+    return undefined!;
   }
   registerOnConnectionComplete(handler: (connSummary: azdata.ConnectionInfoSummary) => any): void {
     console.log("ConnectionProvider.registerOnConnectionComplete");
