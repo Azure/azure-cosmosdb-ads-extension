@@ -3,7 +3,7 @@
  *  Licensed under the Source EULA. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as azdata from "azdata";
-const packageJson = require("../../package.json");
+const packageJson = require("../package.json");
 
 export const buildHeroCard = (
   view: azdata.ModelView,
