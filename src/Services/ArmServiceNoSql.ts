@@ -4,10 +4,7 @@ import * as azdata from "azdata";
 import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { TokenCredentials } from "@azure/ms-rest-js";
-import {
-  SqlContainerCreateUpdateParameters,
-  SqlDatabaseCreateUpdateParameters,
-} from "@azure/arm-cosmosdb/esm/models";
+import { SqlContainerCreateUpdateParameters, SqlDatabaseCreateUpdateParameters } from "@azure/arm-cosmosdb/esm/models";
 import { getUsageSizeInKB } from "../Dashboards/getCollectionDataUsageSize";
 import { ICosmosDbCollectionInfo, ICosmosDbDatabaseInfo } from "../models";
 import {
