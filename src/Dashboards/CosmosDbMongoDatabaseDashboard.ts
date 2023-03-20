@@ -99,11 +99,18 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
       tableComponent.onCellAction(async (arg: any /* Bug with definition: ICellActionEventArgs */) => {
         if (arg.name === "collection") {
           vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openMongoQuery",
+            "cosmosdb-ads-extension.openMongoShell",
             { ...databaseDashboardInfo },
-            databaseDashboardInfo.databaseName,
-            collections[arg.row].name
+            databaseDashboardInfo.databaseName
           );
+
+          // TODO Replace with this code to enable query editor
+          // vscode.commands.executeCommand(
+          //   "cosmosdb-ads-extension.openMongoQuery",
+          //   { ...databaseDashboardInfo },
+          //   databaseDashboardInfo.databaseName,
+          //   collections[arg.row].name
+          // );
 
           appContext.reporter?.sendActionEvent(
             Telemetry.sources.databaseDashboard,
