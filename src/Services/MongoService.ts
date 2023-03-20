@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import * as azdata from "azdata";
 import * as nls from "vscode-nls";
 import { Collection, MongoClient, MongoClientOptions } from "mongodb";
 import { isCosmosDBAccount } from "../MongoShell/mongoUtils";
@@ -11,8 +10,6 @@ import { EditorUserQuery, EditorQueryResult } from "../QueryClient/messageContra
 import { SampleData, askUserForConnectionProfile, isAzureAuthType } from "./ServiceUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { AbstractBackendService } from "./AbstractBackendService";
-import { buildMongoConnectionString } from "../Providers/connectionString";
-import { AbstractArmService } from "./AbstractArmService";
 import { ArmServiceMongo } from "./ArmServiceMongo";
 
 const localize = nls.loadMessageBundle();

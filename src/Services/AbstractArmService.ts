@@ -1,4 +1,3 @@
-import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as azdata from "azdata";
 import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
@@ -7,7 +6,6 @@ import { ResourceGraphClient } from "@azure/arm-resourcegraph";
 import { TokenCredentials } from "@azure/ms-rest-js";
 import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "../Dashboards/ServerUXStates";
-import { buildMongoConnectionString } from "../Providers/connectionString";
 import {
   IConnectionOptions,
   ICosmosDbCollectionInfo,
@@ -266,56 +264,6 @@ export abstract class AbstractArmService {
 
     return result.data[0];
   };
-
-  // public retrieveConnectionStringFromConnectionOptions = async (
-  //   connectionOptions: IConnectionOptions,
-  //   retrievePasswordFromAzData: boolean
-  // ): Promise<string | undefined> => {
-  //   const authenticationType = connectionOptions.authenticationType;
-
-  //   if (retrievePasswordFromAzData && (authenticationType === "SqlLogin" || authenticationType === "Integrated")) {
-  //     // Retrieve password
-  //     const serverName = connectionOptions.server;
-  //     if (!serverName) {
-  //       vscode.window.showErrorMessage(localize("missingServerName", "Missing serverName {0}", serverName));
-  //       return undefined;
-  //     }
-
-  //     const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
-  //     if (connection.length < 1) {
-  //       vscode.window.showErrorMessage(
-  //         localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName)
-  //       );
-  //       return undefined;
-  //     }
-  //     const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
-  //     connectionOptions.password = credentials["password"];
-  //   }
-
-  //   switch (authenticationType) {
-  //     case "AzureMFA":
-  //       try {
-  //         return this.retrieveConnectionStringFromArm(
-  //           connectionOptions.azureAccount,
-  //           connectionOptions.azureTenantId,
-  //           connectionOptions.azureResourceId,
-  //           connectionOptions.server
-  //         );
-  //       } catch (e) {
-  //         vscode.window.showErrorMessage((e as { message: string }).message);
-  //         return undefined;
-  //       }
-  //     case "SqlLogin":
-  //     case "Integrated":
-  //       return buildMongoConnectionString(connectionOptions);
-  //     default:
-  //       // Should never happen
-  //       vscode.window.showErrorMessage(
-  //         localize("unsupportedAuthenticationType", "Unsupposed authentication type {0}", authenticationType)
-  //       );
-  //       return undefined;
-  //   }
-  // };
 
   public abstract createDatabase(
     azureAccountId: string,

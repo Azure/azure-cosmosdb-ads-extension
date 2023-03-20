@@ -1,10 +1,7 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
 import * as path from "path";
 import * as nls from "vscode-nls";
 import { QueryEditorCommand, QueryEditorMessage, EditorUserQuery } from "./messageContract";
-
-const localize = nls.loadMessageBundle();
 
 export interface ViewLoaderOptions {
   extensionPath: string;
@@ -91,89 +88,4 @@ export default class ViewLoader {
     </body>
     </html>`;
   }
-
-  // private getWebviewContent(): string {
-  //   // const hostname = "https://localhost:5001";
-  //   const hostname = "https://localhost:44329";
-  //   const site = `${hostname}/notebookClient/dist/index.html`;
-
-  //   return `<!DOCTYPE html>
-  //   <html lang="en">
-  //   <head>
-  //       <meta charset="UTF-8">
-  //       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  //       <title>Open Query</title>
-
-  //       <meta http-equiv="Content-Security-Policy"
-  //                   content="
-  // 													 connect-src *;
-  //                            img-src https:;
-  //                            script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
-  //                            style-src vscode-resource: 'unsafe-inline';">
-  //   </head>
-  //   <body>
-  //     <iframe
-  // 			id="nbclient"
-  //       title="nbclient"
-  //       width="300"
-  //       height="200"
-  //       src="${site}">
-  //     </iframe>
-  // 		<script>
-  // 			const iframe = document.getElementById('nbclient');
-  //       // Handle the message inside the webview
-  //       window.addEventListener('message', event => {
-  //           const message = event.data; // The JSON data our extension sent
-  // 					console.log('Webview forwarding', message);
-  // 					iframe.contentWindow.postMessage(message, '${hostname}');
-  //       });
-
-  // 			iframe.onload = function (){
-  // 				const vscode = window.acquireVsCodeApi();
-  // 				vscode.postMessage({
-  // 					action: 'ready'
-  // 				});
-  // 			};
-  //   </script>
-  //   </body>
-  //   </html>`;
-  // }
-
-  // TODO No iframe version
-  // private getWebviewContent(): string {
-  //   // Local path to main script run in the webview
-  //   const reactAppPathOnDisk: vscode.Uri = vscode.Uri.file(
-  //     path.join(this._extensionPath, "output", "wwwroot", "notebookClient", "dist", "index.js")
-  //   );
-
-  //   const reactAppUri = reactAppPathOnDisk.with({ scheme: "vscode-resource" });
-
-  //   const configJson = { blah: 1234 };
-
-  //   return `<!DOCTYPE html>
-  //   <html lang="en">
-  //   <head>
-  //       <meta charset="UTF-8">
-  //       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  //       <title>Open Query</title>
-
-  //       <meta http-equiv="Content-Security-Policy"
-  //                   content="default-src 'none';
-  //                            connect-src *;
-  //                            img-src https:;
-  //                            script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
-  //                            style-src vscode-resource: 'unsafe-inline';">
-
-  //       <script>
-  //         window.acquireVsCodeApi = acquireVsCodeApi;
-  //         window.initialData = ${configJson};
-  //       </script>
-  //   </head>
-  //   <body>
-  //       <div id="content"></div>
-
-  //       <script src="${reactAppUri}"></script>
-  //   </body>
-  //   </html>`;
-  // }
 }

@@ -7,7 +7,6 @@ import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
 import { buildHeroCard } from "../util";
-import { convertToConnectionOptions } from "../models";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
 
 const localize = nls.loadMessageBundle();

@@ -10,7 +10,6 @@ import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { ICosmosDbCollectionInfo } from "../models";
-import { AbstractMongoDatabaseDashboard } from "./AbstractMongoDatabaseDashboard";
 import { AbstractArmService } from "../Services/AbstractArmService";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";

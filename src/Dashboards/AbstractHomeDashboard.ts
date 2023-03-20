@@ -1,13 +1,7 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { COSMOSDB_DOC_URL, Telemetry } from "../constant";
-import { IConnectionNodeInfo } from "../extension";
-import { convertToConnectionOptions } from "../models";
-import { buildHeroCard } from "../util";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-
-const localize = nls.loadMessageBundle();
 
 export abstract class AbstractHomeDashboard {
   protected refreshProperties?: () => void = undefined;

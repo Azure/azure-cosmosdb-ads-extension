@@ -7,7 +7,6 @@ import { TokenCredentials } from "@azure/ms-rest-js";
 import {
   MongoDBCollectionCreateUpdateParameters,
   MongoDBDatabaseCreateUpdateParameters,
-  ThroughputSettingsGetPropertiesResource,
 } from "@azure/arm-cosmosdb/esm/models";
 import { getUsageSizeInKB } from "../Dashboards/getCollectionDataUsageSize";
 import { ICosmosDbCollectionInfo, ICosmosDbDatabaseInfo } from "../models";

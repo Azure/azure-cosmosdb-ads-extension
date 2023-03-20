@@ -2,11 +2,7 @@ import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
-import { Telemetry } from "../constant";
-import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
-import { createNodePath } from "../Providers/objectExplorerNodeProvider";
-import { ingestSampleMongoData } from "../sampleData/DataSamplesUtil";
-import { buildHeroCard } from "../util";
+import { IDatabaseDashboardInfo } from "../extension";
 import { convertToConnectionOptions } from "../models";
 
 const localize = nls.loadMessageBundle();
