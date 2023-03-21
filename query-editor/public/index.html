@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>React App</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+
+    <!-- Mock the vscode api and initialize -->
+    <script>
+      window.acquireVsCodeApi = () => ({
+        postMessage: msg => {
+          console.log("mock posMessage:", msg);
+
+          switch (msg.action) {
+            case "ready":
+              // Send initialization
+              window.postMessage({
+                type: "initialize",
+                data: {
+                  connectionId: "connectionId",
+                  databaseName: "databaseName",
+                  collectionName: "collectionName"
+                }
+              });
+              break;
+            case "submitQuery":
+              window.postMessage({
+                type: "queryResult",
+                data: {
+                  documents: [
+                    { "_id": "6331aaf57332db3caefd02e1", "id": "0012D555-C7DE-4C4B-B4A4-2E8A6B8E1161", "type": "customer", "customerId": "0012D555-C7DE-4C4B-B4A4-2E8A6B8E1161", "title": "", "firstName": "Franklin", "lastName": "Ye", "emailAddress": "franklin9@adventure-works.com", "phoneNumber": "1 (11) 500 555-0139", "creationDate": "2014-02-05T00:00:00", "addresses": [{ "addressLine1": "1796 Westbury Dr.", "addressLine2": "", "city": "Melton", "state": "VIC", "country": "AU", "zipCode": "3337" }], "password": { "hash": "GQF7qjEgMl3LUppoPfDDnPtHp1tXmhQBw0GboOjB8bk=", "salt": "12C0F5A5" }, "salesOrderCount": 2 },
+                    { "_id": "6331aaf57332db3caefd03ab", "id": "03FD4278-2C77-4FC4-93F1-20E0E58AD87A", "type": "customer", "customerId": "03FD4278-2C77-4FC4-93F1-20E0E58AD87A", "title": "", "firstName": "Franklin", "lastName": "Zheng", "emailAddress": "franklin17@adventure-works.com", "phoneNumber": "1 (11) 500 555-0147", "creationDate": "2013-03-23T00:00:00", "addresses": [{ "addressLine1": "5664 Wilke Drive", "addressLine2": "", "city": "Liverpool", "state": "ENG", "country": "GB", "zipCode": "L4 4HB" }], "password": { "hash": "ygObbPAiw6iVKKqlDlVhD9WvGD4jQ5ZltuvMKkjA62I=", "salt": "32325DA1" }, "salesOrderCount": 2 },
+                    { "_id": "6331aaf57332db3caefd0694", "id": "137B4594-90AC-4A76-8AA3-6B4B3764E87E", "type": "customer", "customerId": "137B4594-90AC-4A76-8AA3-6B4B3764E87E", "title": "", "firstName": "Franklin", "lastName": "Jai", "emailAddress": "franklin29@adventure-works.com", "phoneNumber": "1 (11) 500 555-0114", "creationDate": "2014-05-05T00:00:00", "addresses": [{ "addressLine1": "409, rue Saint Denis", "addressLine2": "", "city": "Paris", "state": "75 ", "country": "FR", "zipCode": "75005" }], "password": { "hash": "X2vl0BTxqBFjVsoYWDMiIhx3SexKCVP2jIuVmsj/Zno=", "salt": "E8B8686B" }, "salesOrderCount": 1 },
+                    { "generation": 0, child: { "generation": 1, child: { "generation": 2, child: { "generation": 3 }, child: { "generation": 4 } } }}
+                  ],
+                  nbItems: 3,
+                  limit: 20,
+                  offset: 0,
+                  total: 3
+                }
+              });
+              break;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

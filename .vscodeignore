@@ -9,5 +9,8 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 ads-binary/**
+.github
+query-editor
+!query-editor/build
 online-resources/**
 local-resources/**

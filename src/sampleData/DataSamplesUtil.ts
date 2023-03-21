@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { AppContext, hideStatusBarItem, showStatusBarItem, validateMongoCollectionName } from "../appContext";
+import { AppContext, hideStatusBarItem, showStatusBarItem } from "../appContext";
 import * as fs from "fs";
 import * as path from "path";
 import { IDatabaseDashboardInfo } from "../extension";
 import { Events, ServerProvider } from "@microsoft/ads-service-downloader";
+import { validateMongoCollectionName } from "../Services/MongoService";
 
 const localize = nls.loadMessageBundle();
 
@@ -54,7 +55,7 @@ export const ingestSampleMongoData = async (
       let collectionToCreate = sampleData.collectionId;
 
       // If collection already exists
-      const collections = await appContext.listCollections(
+      const collections = await appContext.mongoService.listCollections(
         databaseDashboardInfo.server,
         databaseDashboardInfo.databaseName!
       );
@@ -97,7 +98,7 @@ export const ingestSampleMongoData = async (
             progress.report({
               message: localize("importingSampleData", "Importing sample data..."),
             });
-            const { count, elapsedTimeMS } = await appContext.insertDocuments(
+            const { count, elapsedTimeMS } = await appContext.mongoService.insertDocuments(
               databaseDashboardInfo,
               sampleData,
               collectionToCreate,
