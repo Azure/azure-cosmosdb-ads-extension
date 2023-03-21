@@ -1,5 +1,6 @@
 .vscode/**
 .vscode-test/**
+.ads-test/**
 out/test/**
 src/**
 .gitignore
@@ -8,7 +9,6 @@ vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
 **/*.ts
-ads-binary/**
 .github
 query-editor
 !query-editor/build
