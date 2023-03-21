@@ -352,6 +352,7 @@ MigrationBackup/
 # VSCode extension
 out
 .vscode-test/
+.ads-test/
 *.vsix
 
 # dotnet
@@ -359,9 +360,6 @@ output/
 
 # Mongoshell download
 mongoshellexecutable/
-
-# ADS executable for testing
-ads-binary/
 
 # Downloaded resources
 local-resources/
