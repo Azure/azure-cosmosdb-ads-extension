@@ -63,41 +63,6 @@
         "command": "cosmosdb-ads-extension.openMongoShell",
         "title": "Open Mongo Shell",
         "category": "Cosmos DB Mongo"
-      },
-      {
-        "command": "cosmosdb-ads-extension.createNoSqlDatabase",
-        "title": "Create Database...",
-        "category": "Cosmos DB NoSQL"
-      },
-      {
-        "command": "cosmosdb-ads-extension.createNoSqlContainer",
-        "title": "Create Collection...",
-        "category": "Cosmos DB NoSQL"
-      },
-      {
-        "command": "cosmosdb-ads-extension.deleteNoSqlContainer",
-        "title": "Delete Collection",
-        "category": "Cosmos DB NoSQL"
-      },
-      {
-        "command": "cosmosdb-ads-extension.deleteNoSqlDatabase",
-        "title": "Delete Database",
-        "category": "Cosmos DB NoSQL"
-      },
-      {
-        "command": "cosmosdb-ads-extension.openNoSqlDatabaseDashboard",
-        "title": "Open Database",
-        "category": "Cosmos DB NoSQL"
-      },
-      {
-        "command": "cosmosdb-ads-extension.openContainer",
-        "title": "Open Collection",
-        "category": "Cosmos DB NoSQL"
-      },
-      {
-        "command": "cosmosdb-ads-extension.openNoSqlQuery",
-        "title": "Open Query",
-        "category": "Cosmos DB NoSQL"
       }
     ],
     "menus": {
