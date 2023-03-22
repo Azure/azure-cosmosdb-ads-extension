@@ -1,6 +1,7 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
+import * as semver from "semver";
 import { v4 as uuid } from "uuid";
 import { AppContext } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
@@ -141,6 +142,10 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
       }
     } catch (e) {
       console.error("Invalid MongoDB connection string", e);
+      if (semver.gte(azdata.version, "1.43.0")) {
+        // older ADS won't handle reject properly
+        return Promise.reject(e);
+      }
     }
     return undefined!;
   }
