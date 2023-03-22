@@ -1,7 +1,7 @@
 .vscode/**
 .vscode-test/**
 .ads-test/**
-out/test/**
+out/**
 src/**
 .gitignore
 vsc-extension-quickstart.md
@@ -14,3 +14,4 @@ query-editor
 !query-editor/build
 online-resources/**
 local-resources/**
+node_modules
