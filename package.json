@@ -19,9 +19,9 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/main.js",
   "contributes": {
     "commands": [
       {
@@ -451,9 +451,9 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "yarn run compile && yarn run build:queryeditor",
+    "vscode:prepublish": "yarn run clean && yarn run compile && yarn run build:queryeditor && yarn run esbuild-base",
     "compile": "tsc -p ./",
-    "build:queryeditor": "cd query-editor && npm i && npm run build && cp ./build/query-editor.js ./build/query-editor.css ./build/query-editor.js.map ./build/query-editor.css.map ../out/",
+    "build:queryeditor": "cd query-editor && npm i && npm run build",
     "lint": "eslint src --ext ts",
     "watch": "tsc -watch -p ./",
     "pretest": "yarn run compile && yarn run lint && yarn run format:check",
@@ -462,7 +462,10 @@
     "format:check": "prettier --check \"{src,test}/**/*.{ts,tsx,html}\" \"*.{js,html}\"",
     "proposedapi": "node installTypings.js",
     "publish": "vsce package",
-    "clean": "rimraf --glob ./out ./azure-cosmosdb-ads-extension-*.vsix ./query-editor/{out,build}"
+    "clean": "rimraf --glob ./out ./azure-cosmosdb-ads-extension-*.vsix ./query-editor/{out,build} ./dist",
+    "esbuild-base": "npx mkdirp ./dist && esbuild ./src/extension.ts --bundle --outfile=dist/main.js --external:vscode --external:azdata --format=cjs --platform=node",
+    "esbuild": "yarn run esbuild-base --sourcemap",
+    "esbuild-watch": "yarn run esbuild-base --sourcemap --watch"
   },
   "dependencies": {
     "@azure/arm-cosmosdb": "13.0.0",
@@ -471,7 +474,6 @@
     "@azure/cosmos": "3.17.3",
     "@microsoft/ads-service-downloader": "1.1.0",
     "@microsoft/ads-extension-telemetry": "^3.0.1",
-    "mkdirp": "1.0.4",
     "mongodb": "4.5.0",
     "mongodb-connection-string-url": "2.5.2",
     "tar": "6.1.11",
@@ -481,10 +483,9 @@
   "devDependencies": {
     "@types/azdata": "1.38.0",
     "@types/glob": "7.2.0",
-    "@types/mkdirp": "1.0.2",
+    "@types/mkdirp": "2.0.0",
     "@types/mocha": "7.0.2",
     "@types/node": "13.13.52",
-    "@types/node-fetch": "2.6.2",
     "@types/tar": "6.1.2",
     "@types/tmp": "0.0.34",
     "@types/uuid": "8.3.1",
@@ -492,8 +493,10 @@
     "@typescript-eslint/eslint-plugin": "2.34.0",
     "@typescript-eslint/parser": "2.34.0",
     "azdata-test": "1.2.0",
+    "esbuild": "0.17.12",
     "eslint": "6.8.0",
     "glob": "7.2.0",
+    "mkdirp": "2.1.5",
     "mocha": "7.2.0",
     "prettier": "2.7.1",
     "rimraf": "4.4.0",

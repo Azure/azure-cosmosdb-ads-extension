@@ -350,7 +350,8 @@ MigrationBackup/
 .ionide/
 
 # VSCode extension
-out
+out/
+dist/
 .vscode-test/
 .ads-test/
 *.vsix
