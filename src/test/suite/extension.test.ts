@@ -239,6 +239,26 @@ suite("Connection String Test Suite", () => {
     assert.match(cs!, /appName=%40username%40/);
   });
 
+  test("Build connection string cosmosdb vCore account", () => {
+    const options = {
+      authenticationType: "SqlLogin",
+      user: "username",
+      password: "password",
+      server: "server.cosmos.azure.com",
+      pathname: "",
+      search: "",
+      isServer: true,
+    };
+    const cs = buildMongoConnectionString(options);
+    assert.strictEqual(cs !== undefined, true);
+    assert.doesNotMatch(cs!, /ssl=true/);
+    assert.doesNotMatch(cs!, /replicaSet=globaldb/);
+    assert.doesNotMatch(cs!, /appName=%40username%40/);
+    assert.match(cs!, /retrywrites=false/);
+    assert.match(cs!, /tls=true/);
+    assert.match(cs!, /maxIdleTimeMS=120000/);
+  });
+
   test("Build connection string cosmosdb account: do not overwrite maxIdleTimeMS", () => {
     const options = {
       authenticationType: "SqlLogin",

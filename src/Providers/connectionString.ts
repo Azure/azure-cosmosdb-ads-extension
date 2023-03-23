@@ -70,11 +70,18 @@ export const buildMongoConnectionString = (options: {
 
   // CosmosDB account need these parameters (hostname ends with cosmos.azure.com)
   if (options.server.match(/\.cosmos\.azure\.com(:[0-9]*)*$/g)) {
-    url.searchParams.set("ssl", "true");
-    url.searchParams.set("replicaSet", "globaldb");
     url.searchParams.set("retrywrites", "false");
     url.searchParams.set("maxIdleTimeMS", url.searchParams.get("maxIdleTimeMS") || "120000");
-    url.searchParams.set("appName", `@${options.user}@`);
+
+    if (!options.isServer) {
+      // always set this for RU based configs (not vCore)
+      url.searchParams.set("ssl", "true");
+      url.searchParams.set("replicaSet", "globaldb");
+      url.searchParams.set("appName", `@${options.user}@`);
+    } else {
+      // only for vCore
+      url.searchParams.set("tls", "true");
+    }
   }
   return url.toString();
 };
