@@ -257,6 +257,7 @@ suite("Connection String Test Suite", () => {
     assert.match(cs!, /retrywrites=false/);
     assert.match(cs!, /tls=true/);
     assert.match(cs!, /maxIdleTimeMS=120000/);
+    assert.match(cs!, /authMechanism=SCRAM-SHA-256/);
   });
 
   test("Build connection string cosmosdb account: do not overwrite maxIdleTimeMS", () => {

@@ -93,6 +93,9 @@ export const buildMongoConnectionString = (options: {
       if (!url.searchParams.get("ssl") && !url.searchParams.get("tls")) {
         url.searchParams.set("tls", "true");
       }
+      if (!url.searchParams.get("authMechanism")) {
+        url.searchParams.set("authMechanism", "SCRAM-SHA-256");
+      }
     }
   }
   return url.toString();
