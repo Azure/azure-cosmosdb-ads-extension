@@ -1,6 +1,7 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
+import * as semver from "semver";
 import { v4 as uuid } from "uuid";
 import { AppContext } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
@@ -134,12 +135,19 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   // Called when something is pasted to Server field (Mongo account)
   buildConnectionInfo?(connectionString: string): Promise<azdata.ConnectionInfo> {
     console.log("ConnectionProvider.buildConnectionInfo");
-    const info = parseMongoConnectionString(connectionString);
-    if (!info) {
-      return Promise.reject("Could not parse connection string");
+    try {
+      const info = parseMongoConnectionString(connectionString);
+      if (info) {
+        return Promise.resolve(info);
+      }
+    } catch (e) {
+      console.error("Invalid MongoDB connection string", e);
+      if (semver.gte(azdata.version, "1.43.0")) {
+        // older ADS won't handle reject properly
+        return Promise.reject(e);
+      }
     }
-
-    return Promise.resolve(info);
+    return undefined!;
   }
   registerOnConnectionComplete(handler: (connSummary: azdata.ConnectionInfoSummary) => any): void {
     console.log("ConnectionProvider.registerOnConnectionComplete");
