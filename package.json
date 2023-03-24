@@ -466,7 +466,7 @@
   },
   "dependencies": {
     "@azure/arm-cosmosdb": "15.0.0",
-    "@azure/arm-monitor": "6.1.1",
+    "@azure/arm-monitor": "7.0.0",
     "@azure/arm-resourcegraph": "4.2.1",
     "@azure/cosmos": "3.17.3",
     "@microsoft/ads-service-downloader": "1.1.0",

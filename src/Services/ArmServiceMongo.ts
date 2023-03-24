@@ -6,8 +6,7 @@ import {
   MongoDBCollectionCreateUpdateParameters,
   MongoDBDatabaseCreateUpdateParameters,
 } from "@azure/arm-cosmosdb";
-import { MonitorManagementClient } from "@azure/arm-monitor";
-import { TokenCredentials } from "@azure/ms-rest-js";
+import { MonitorClient } from "@azure/arm-monitor";
 import { getUsageSizeInKB } from "../Dashboards/getCollectionDataUsageSize";
 import { ICosmosDbCollectionInfo, ICosmosDbDatabaseInfo } from "../models";
 import {
@@ -39,7 +38,7 @@ export class ArmServiceMongo extends AbstractArmService {
     resourceGroupName: string,
     accountName: string,
     databaseName: string,
-    monitorARmClient: MonitorManagementClient,
+    monitorARmClient: MonitorClient,
     resourceUri: string,
     fetchThroughputOnly?: boolean
   ): Promise<ICosmosDbDatabaseInfo> => {
@@ -167,7 +166,7 @@ export class ArmServiceMongo extends AbstractArmService {
     accountName: string,
     databaseName: string,
     collectionName: string,
-    monitorARmClient: MonitorManagementClient,
+    monitorARmClient: MonitorClient,
     resourceUri: string
   ): Promise<ICosmosDbCollectionInfo> => {
     let throughputSetting = "";

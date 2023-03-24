@@ -2,7 +2,7 @@ import * as nls from "vscode-nls";
 import * as azdata from "azdata";
 import { CosmosDBManagementClient, ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb";
 import { TokenCredential } from "@azure/core-auth";
-import { MonitorManagementClient } from "@azure/arm-monitor";
+import { MonitorClient } from "@azure/arm-monitor";
 import { ResourceGraphClient } from "@azure/arm-resourcegraph";
 import { getServerState } from "../Dashboards/ServerUXStates";
 import {
@@ -141,7 +141,7 @@ export abstract class AbstractArmService {
     azureTenantId: string,
     azureResourceId: string,
     cosmosDbAccountName: string
-  ): Promise<MonitorManagementClient> => {
+  ): Promise<MonitorClient> => {
     const azureAccount = await this.retrieveAzureAccount(azureAccountId);
     const armEndpoint = azureAccount.properties?.providerSettings?.settings?.armResource?.endpoint; // TODO Get the endpoint from the resource, not the aad account
 
@@ -163,7 +163,7 @@ export abstract class AbstractArmService {
 
     const { subscriptionId } = this.parsedAzureResourceId(azureResourceId);
 
-    return new MonitorManagementClient(credentials, subscriptionId, { baseUri: armEndpoint });
+    return new MonitorClient(credentials, subscriptionId, { baseUri: armEndpoint });
   };
 
   /**

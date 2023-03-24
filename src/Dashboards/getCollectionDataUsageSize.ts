@@ -3,11 +3,10 @@
  * https://github.com/Azure/cosmos-explorer/blob/f968f57543985031ca8b623973c16ebe358a1947/src/Common/dataAccess/getCollectionDataUsageSize.ts
  */
 
-import { MonitorManagementClient } from "@azure/arm-monitor";
-import { Metric } from "@azure/arm-monitor/esm/models";
+import { Metric, MonitorClient } from "@azure/arm-monitor";
 
 export const getUsageSizeInKB = async (
-  monitorARmClient: MonitorManagementClient,
+  monitorARmClient: MonitorClient,
   resourceUri: string,
   databaseName: string,
   containerName?: string
