@@ -43,3 +43,13 @@
 ### Bug fixes
 * Connection provider : getConnectionString implementation (Thanks Bharath Palaksha)
 * Upgrade ads telemetry and downlaoder dependencies
+
+## [0.3.0] - 3/24/2023
+### New changes
+* Update README section: Add telemetry section and update privacy statement with latest approved wording
+* Switch unit test to using `azdata-test` package
+* Add `.editorconfig` defining our own indent style
+* Update NOTICES
+### Bug fixes
+* Handle connection string parsing errors
+* Fix connecting to a Mongo vCore cluster
