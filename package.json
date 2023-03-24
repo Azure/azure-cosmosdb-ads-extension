@@ -465,7 +465,7 @@
     "clean": "rimraf --glob ./out ./azure-cosmosdb-ads-extension-*.vsix ./query-editor/{out,build}"
   },
   "dependencies": {
-    "@azure/arm-cosmosdb": "13.0.0",
+    "@azure/arm-cosmosdb": "15.0.0",
     "@azure/arm-monitor": "6.1.1",
     "@azure/arm-resourcegraph": "4.2.1",
     "@azure/cosmos": "3.17.3",

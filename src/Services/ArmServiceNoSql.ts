@@ -1,10 +1,13 @@
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as azdata from "azdata";
-import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
+import {
+  CosmosDBManagementClient,
+  SqlContainerCreateUpdateParameters,
+  SqlDatabaseCreateUpdateParameters,
+} from "@azure/arm-cosmosdb";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { TokenCredentials } from "@azure/ms-rest-js";
-import { SqlContainerCreateUpdateParameters, SqlDatabaseCreateUpdateParameters } from "@azure/arm-cosmosdb/esm/models";
 import { getUsageSizeInKB } from "../Dashboards/getCollectionDataUsageSize";
 import { ICosmosDbCollectionInfo, ICosmosDbDatabaseInfo } from "../models";
 import {
@@ -15,7 +18,7 @@ import {
 } from "../dialogUtil";
 import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
-import { AbstractArmService } from "./AbstractArmService";
+import { AbstractArmService, azDataTokenToCoreAuthCredential } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
@@ -73,14 +76,21 @@ export class ArmServiceNoSql extends AbstractArmService {
     }
 
     showStatusBarItem(localize("retrievingSqlContainer", "Retrieving sql containers..."));
-    const collections = await client.sqlResources.listSqlContainers(resourceGroupName, accountName, databaseName);
+    let nbCollections = 0;
+    for await (let page of client.sqlResources
+      .listSqlContainers(resourceGroupName, accountName, databaseName)
+      .byPage({ maxPageSize: 20 })) {
+      for (const resource of page) {
+        nbCollections++;
+      }
+    }
 
     showStatusBarItem(localize("retrievingSqlDatabaseThroughput", "Retrieving sql database usage..."));
     const usageSizeKB = await getUsageSizeInKB(monitorARmClient, resourceUri, databaseName);
 
     return {
       name: databaseName,
-      nbCollections: collections.length,
+      nbCollections,
       throughputSetting,
       usageSizeKB,
       isAutoscale,
@@ -116,7 +126,15 @@ export class ArmServiceNoSql extends AbstractArmService {
     const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
 
     showStatusBarItem(localize("retrievingSqlDatabases", "Retrieving sql databases..."));
-    const sqlResources = await client.sqlResources.listSqlDatabases(resourceGroup, cosmosDbAccountName);
+    const sqlResources = [];
+    for await (let page of client.sqlResources
+      .listSqlDatabases(resourceGroup, cosmosDbAccountName)
+      .byPage({ maxPageSize: 20 })) {
+      for (const sqlDatabaseGetResult of page) {
+        sqlResources.push(sqlDatabaseGetResult);
+      }
+    }
+
     hideStatusBarItem();
     const monitorArmClient = await this.createArmMonitorClient(
       azureAccountId,
@@ -230,7 +248,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
     if (!azureResourceId) {
       const azureToken = await this.retrieveAzureToken(azureTenantId, azureAccountId);
-      const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+      const credentials = azDataTokenToCoreAuthCredential(azureToken);
 
       const azureResource = await this.retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
       if (!azureResource) {
@@ -242,7 +260,14 @@ export class ArmServiceNoSql extends AbstractArmService {
     const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
 
     showStatusBarItem(localize("retrievingSqlUsage", "Retrieving sql usage..."));
-    const sqlResources = await client.sqlResources.listSqlContainers(resourceGroup, cosmosDbAccountName, databaseName);
+    const sqlResources = [];
+    for await (let page of client.sqlResources
+      .listSqlContainers(resourceGroup, cosmosDbAccountName, databaseName)
+      .byPage({ maxPageSize: 20 })) {
+      for (const sqlDatabaseGetResult of page) {
+        sqlResources.push(sqlDatabaseGetResult);
+      }
+    }
     hideStatusBarItem();
 
     const monitorArmClient = await this.createArmMonitorClient(
@@ -374,7 +399,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
     try {
       showStatusBarItem(localize("migratingCollectionToAutoscale", "Migrating collection to autoscale..."));
-      const rpResponse = await client.sqlResources.migrateSqlContainerToAutoscale(
+      const rpResponse = await client.sqlResources.beginMigrateSqlContainerToAutoscaleAndWait(
         resourceGroup,
         cosmosDbAccountName,
         databaseName,
@@ -441,23 +466,18 @@ export class ArmServiceNoSql extends AbstractArmService {
         showStatusBarItem(
           localize("migratingCollectionToManualThroughput", "Migrating collection to manual throughput...")
         );
-        rpResponse = await client.sqlResources.migrateSqlContainerToManualThroughput(
+        rpResponse = await client.sqlResources.beginMigrateSqlContainerToManualThroughputAndWait(
           resourceGroup,
           cosmosDbAccountName,
           databaseName,
-          collectionName,
-          {
-            resource: {
-              throughput: requestedThroughput,
-            },
-          }
+          collectionName
         );
       }
 
       showStatusBarItem(
         localize("updatingCollectionThroughput", "Updating collection throughput to {0} RUs...", requestedThroughput)
       );
-      rpResponse = await client.sqlResources.updateSqlContainerThroughput(
+      rpResponse = await client.sqlResources.beginUpdateSqlContainerThroughputAndWait(
         resourceGroup,
         cosmosDbAccountName,
         databaseName,
@@ -577,7 +597,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
     try {
       showStatusBarItem(localize("migratingDatabaseToAutoscale", "Migrating database to autoscale..."));
-      const rpResponse = await client.sqlResources.migrateSqlDatabaseToAutoscale(
+      const rpResponse = await client.sqlResources.beginMigrateSqlDatabaseToAutoscaleAndWait(
         resourceGroup,
         cosmosDbAccountName,
         databaseName
@@ -642,22 +662,17 @@ export class ArmServiceNoSql extends AbstractArmService {
         showStatusBarItem(
           localize("migratingDatabaseToManualThroughput", "Migrating database to manual throughput...")
         );
-        rpResponse = await client.sqlResources.migrateSqlDatabaseToManualThroughput(
+        rpResponse = await client.sqlResources.beginMigrateSqlDatabaseToManualThroughputAndWait(
           resourceGroup,
           cosmosDbAccountName,
-          databaseName,
-          {
-            resource: {
-              throughput: requestedThroughput,
-            },
-          }
+          databaseName
         );
       }
 
       showStatusBarItem(
         localize("updatingDatabaseThroughput", "Updating database throughput to {0} RUs...", requestedThroughput)
       );
-      rpResponse = await client.sqlResources.updateSqlDatabaseThroughput(
+      rpResponse = await client.sqlResources.beginUpdateSqlDatabaseThroughputAndWait(
         resourceGroup,
         cosmosDbAccountName,
         databaseName,
@@ -718,8 +733,13 @@ export class ArmServiceNoSql extends AbstractArmService {
         try {
           showStatusBarItem(localize("creatingSqlDatabase", "Creating CosmosDB database"));
           const dbresult = await client.sqlResources
-            .createUpdateSqlDatabase(resourceGroup, cosmosDbAccountName, inputData.newDatabaseName, createDbParams)
-            .catch((e) => reject(e));
+            .beginCreateUpdateSqlDatabaseAndWait(
+              resourceGroup,
+              cosmosDbAccountName,
+              inputData.newDatabaseName,
+              createDbParams
+            )
+            .catch((e: any) => reject(e));
 
           if (!dbresult || !dbresult.resource?.id) {
             reject("Could not create database");
@@ -805,13 +825,13 @@ export class ArmServiceNoSql extends AbstractArmService {
               }
 
               const dbresult = await client.sqlResources
-                .createUpdateSqlDatabase(
+                .beginCreateUpdateSqlDatabaseAndWait(
                   resourceGroup,
                   cosmosDbAccountName,
                   inputData.newDatabaseInfo.newDatabaseName,
                   createDbParams
                 )
-                .catch((e) => reject(e));
+                .catch((e: any) => reject(e));
 
               if (!dbresult || !dbresult.resource?.id) {
                 reject(localize("failedCreatingDatabase", "Failed creating database"));
@@ -855,14 +875,14 @@ export class ArmServiceNoSql extends AbstractArmService {
 
             showStatusBarItem(localize("creatingSqlContainer", "Creating CosmosDB NoSql container"));
             const collResult = await client.sqlResources
-              .createUpdateSqlContainer(
+              .beginCreateUpdateSqlContainerAndWait(
                 resourceGroup,
                 cosmosDbAccountName,
                 newDatabaseName,
                 inputData.newCollectionName,
                 createContainerParams
               )
-              .catch((e) => reject(e));
+              .catch((e: any) => reject(e));
 
             if (!collResult || !collResult.resource?.id) {
               reject(localize("failedCreatingCollection", "Failed creating collection"));

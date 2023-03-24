@@ -1,10 +1,9 @@
 import * as nls from "vscode-nls";
 import * as azdata from "azdata";
-import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
+import { CosmosDBManagementClient, ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb";
+import { TokenCredential } from "@azure/core-auth";
 import { MonitorManagementClient } from "@azure/arm-monitor";
 import { ResourceGraphClient } from "@azure/arm-resourcegraph";
-import { TokenCredentials } from "@azure/ms-rest-js";
-import { ThroughputSettingsGetPropertiesResource } from "@azure/arm-cosmosdb/esm/models";
 import { getServerState } from "../Dashboards/ServerUXStates";
 import {
   IConnectionOptions,
@@ -16,6 +15,18 @@ import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 
 const localize = nls.loadMessageBundle();
+
+const TOKEN_EXPIRATION_TIMESTAMP = Date.now() + 10_000; // ms since epoch. 10 seconds from now
+
+export const azDataTokenToCoreAuthCredential = (azureToken: azdata.accounts.AccountSecurityToken) => ({
+  getToken: () =>
+    new Promise<{ token: string; expiresOnTimestamp: number }>((resolve) =>
+      resolve({
+        token: azureToken.token,
+        expiresOnTimestamp: TOKEN_EXPIRATION_TIMESTAMP,
+      })
+    ),
+});
 
 export abstract class AbstractArmService {
   public retrievePortalEndpoint = async (accountId: string): Promise<string> =>
@@ -35,7 +46,7 @@ export abstract class AbstractArmService {
   protected retrieveAzureToken = async (
     tenantId: string,
     azureAccountId: string
-  ): Promise<{ token: string; tokenType?: string | undefined }> => {
+  ): Promise<azdata.accounts.AccountSecurityToken> => {
     const azureAccount = await this.retrieveAzureAccount(azureAccountId);
 
     showStatusBarItem(localize("retrievingAzureToken", "Retrieving Azure Token..."));
@@ -81,7 +92,8 @@ export abstract class AbstractArmService {
   ): Promise<string> => {
     if (!azureResourceId) {
       const azureToken = await this.retrieveAzureToken(azureTenantId, azureAccountId);
-      const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+      const credentials = azDataTokenToCoreAuthCredential(azureToken);
+      // const credentials = new TokenCredential(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
 
       const azureResource = await this.retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
       if (!azureResource) {
@@ -108,7 +120,7 @@ export abstract class AbstractArmService {
     }
 
     const azureToken = await this.retrieveAzureToken(azureTenantId, azureAccountId);
-    const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+    const credentials = azDataTokenToCoreAuthCredential(azureToken);
 
     if (!azureResourceId) {
       const azureResource = await this.retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
@@ -138,7 +150,7 @@ export abstract class AbstractArmService {
     }
 
     const azureToken = await this.retrieveAzureToken(azureTenantId, azureAccountId);
-    const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+    const credentials = azDataTokenToCoreAuthCredential(azureToken);
 
     if (!azureResourceId) {
       const azureResource = await this.retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
@@ -205,7 +217,7 @@ export abstract class AbstractArmService {
 
     if (!azureResourceId) {
       const azureToken = await this.retrieveAzureToken(azureTenantId, azureAccountId);
-      const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+      const credentials = azDataTokenToCoreAuthCredential(azureToken);
 
       const azureResource = await this.retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
       if (!azureResource) {
@@ -247,7 +259,7 @@ export abstract class AbstractArmService {
 
   protected retrieveResourceInfofromArm = async (
     cosmosDbAccountName: string,
-    credentials: TokenCredentials
+    credentials: TokenCredential
   ): Promise<{ subscriptionId: string; id: string } | undefined> => {
     const client = new ResourceGraphClient(credentials);
     const result = await client.resources(
