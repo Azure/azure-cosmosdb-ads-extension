@@ -20,7 +20,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   private connectionUriToServerMap = new Map<string, string>();
 
   // Maintain current connections - connection string <--> connectionUri
-  private connectionUriToConnectionStringMap = new Map<string,string|undefined>();
+  private connectionUriToConnectionStringMap = new Map<string, string | undefined>();
 
   private onConnectionCompleteEmitter: vscode.EventEmitter<azdata.ConnectionInfoSummary> = new vscode.EventEmitter();
   onConnectionComplete: vscode.Event<azdata.ConnectionInfoSummary> = this.onConnectionCompleteEmitter.event;
@@ -47,8 +47,11 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
 
     let connectionString;
     try {
-      connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
-      this.connectionUriToConnectionStringMap.set(connectionUri,connectionString);
+      connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(
+        connectionOptions,
+        false
+      );
+      this.connectionUriToConnectionStringMap.set(connectionUri, connectionString);
     } catch (e) {
       showErrorMessage((e as { message: string }).message);
       return false;
