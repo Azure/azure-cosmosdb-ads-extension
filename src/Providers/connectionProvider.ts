@@ -19,8 +19,8 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   // Maintain current connections server <--> connectionUri
   private connectionUriToServerMap = new Map<string, string>();
 
-  // Maintain connection string to return through connection provider
-  private connectionString: string | undefined;
+  // Maintain current connections - connection string <--> connectionUri
+  private connectionUriToConnectionStringMap = new Map<string,string|undefined>();
 
   private onConnectionCompleteEmitter: vscode.EventEmitter<azdata.ConnectionInfoSummary> = new vscode.EventEmitter();
   onConnectionComplete: vscode.Event<azdata.ConnectionInfoSummary> = this.onConnectionCompleteEmitter.event;
@@ -45,23 +45,22 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     const connectionOptions = convertToConnectionOptions(connectionInfo);
     this.connectionUriToServerMap.set(connectionUri, server);
 
+    let connectionString;
     try {
-      this.connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(
-        connectionOptions,
-        false
-      );
+      connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
+      this.connectionUriToConnectionStringMap.set(connectionUri,connectionString);
     } catch (e) {
       showErrorMessage((e as { message: string }).message);
       return false;
     }
 
-    if (!this.connectionString) {
+    if (!connectionString) {
       showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
       return false;
     }
 
     try {
-      if (!(await this.backendService.connect(server, this.connectionString))) {
+      if (!(await this.appContext.connect(server, connectionString))) {
         vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
         return false;
       }
@@ -100,8 +99,9 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
       return Promise.reject(`ConnectionUri unknown: ${connectionUri}`);
     }
 
-    this.backendService.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
+    this.appContext.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
     this.connectionUriToServerMap.delete(connectionUri);
+    this.connectionUriToConnectionStringMap.delete(connectionUri);
 
     return Promise.resolve(true);
   }
@@ -125,8 +125,9 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   }
   getConnectionString(connectionUri: string, includePassword: boolean): Promise<string> {
     console.log("ConnectionProvider.getConnectionString");
-    if (this.connectionString) {
-      return Promise.resolve(this.connectionString);
+    const connectionString = this.connectionUriToConnectionStringMap.get(connectionUri);
+    if (connectionString) {
+      return Promise.resolve(connectionString);
     } else {
       return Promise.resolve("");
     }
