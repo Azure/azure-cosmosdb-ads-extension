@@ -47,7 +47,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
 
     let connectionString;
     try {
-      connectionString = await retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
+      connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(connectionOptions, false);
       this.connectionUriToConnectionStringMap.set(connectionUri,connectionString);
     } catch (e) {
       showErrorMessage((e as { message: string }).message);
