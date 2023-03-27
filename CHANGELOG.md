@@ -53,3 +53,8 @@
 ### Bug fixes
 * Handle connection string parsing errors
 * Fix connecting to a Mongo vCore cluster
+
+## [0.3.1] - 3/27/2023
+### Bug fixes
+* Fix ggetConnectionString in connection provider for multiple connections
+
