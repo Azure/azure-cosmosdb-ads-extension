@@ -60,7 +60,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     }
 
     try {
-      if (!(await this.appContext.connect(server, connectionString))) {
+      if (!(await this.backendService.connect(server, connectionString))) {
         vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
         return false;
       }
@@ -99,7 +99,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
       return Promise.reject(`ConnectionUri unknown: ${connectionUri}`);
     }
 
-    this.appContext.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
+    this.backendService.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
     this.connectionUriToServerMap.delete(connectionUri);
     this.connectionUriToConnectionStringMap.delete(connectionUri);
 
