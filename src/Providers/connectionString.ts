@@ -70,11 +70,33 @@ export const buildMongoConnectionString = (options: {
 
   // CosmosDB account need these parameters (hostname ends with cosmos.azure.com)
   if (options.server.match(/\.cosmos\.azure\.com(:[0-9]*)*$/g)) {
-    url.searchParams.set("ssl", "true");
-    url.searchParams.set("replicaSet", "globaldb");
-    url.searchParams.set("retrywrites", "false");
-    url.searchParams.set("maxIdleTimeMS", url.searchParams.get("maxIdleTimeMS") || "120000");
-    url.searchParams.set("appName", `@${options.user}@`);
+    if (!url.searchParams.get("retrywrites")) {
+      url.searchParams.set("retrywrites", "false");
+    }
+    if (!url.searchParams.get("maxIdleTimeMS")) {
+      url.searchParams.set("maxIdleTimeMS", "120000");
+    }
+
+    if (!options.isServer) {
+      // always set this for RU based configs (not vCore)
+      if (!url.searchParams.get("ssl") && !url.searchParams.get("tls")) {
+        url.searchParams.set("ssl", "true");
+      }
+      if (!url.searchParams.get("replicaSet")) {
+        url.searchParams.set("replicaSet", "globaldb");
+      }
+      if (!url.searchParams.get("appName")) {
+        url.searchParams.set("appName", `@${options.user}@`);
+      }
+    } else {
+      // only for vCore
+      if (!url.searchParams.get("ssl") && !url.searchParams.get("tls")) {
+        url.searchParams.set("tls", "true");
+      }
+      if (!url.searchParams.get("authMechanism")) {
+        url.searchParams.set("authMechanism", "SCRAM-SHA-256");
+      }
+    }
   }
   return url.toString();
 };

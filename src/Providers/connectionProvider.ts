@@ -1,6 +1,7 @@
 import * as azdata from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
+import * as semver from "semver";
 import { v4 as uuid } from "uuid";
 import { AppContext } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
@@ -18,8 +19,8 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   // Maintain current connections server <--> connectionUri
   private connectionUriToServerMap = new Map<string, string>();
 
-  // Maintain connection string to return through connection provider
-  private connectionString: string | undefined;
+  // Maintain current connections - connection string <--> connectionUri
+  private connectionUriToConnectionStringMap = new Map<string, string | undefined>();
 
   private onConnectionCompleteEmitter: vscode.EventEmitter<azdata.ConnectionInfoSummary> = new vscode.EventEmitter();
   onConnectionComplete: vscode.Event<azdata.ConnectionInfoSummary> = this.onConnectionCompleteEmitter.event;
@@ -44,23 +45,25 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     const connectionOptions = convertToConnectionOptions(connectionInfo);
     this.connectionUriToServerMap.set(connectionUri, server);
 
+    let connectionString;
     try {
-      this.connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(
+      connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(
         connectionOptions,
         false
       );
+      this.connectionUriToConnectionStringMap.set(connectionUri, connectionString);
     } catch (e) {
       showErrorMessage((e as { message: string }).message);
       return false;
     }
 
-    if (!this.connectionString) {
+    if (!connectionString) {
       showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
       return false;
     }
 
     try {
-      if (!(await this.backendService.connect(server, this.connectionString))) {
+      if (!(await this.backendService.connect(server, connectionString))) {
         vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
         return false;
       }
@@ -101,6 +104,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
 
     this.backendService.disconnect(this.connectionUriToServerMap.get(connectionUri)!);
     this.connectionUriToServerMap.delete(connectionUri);
+    this.connectionUriToConnectionStringMap.delete(connectionUri);
 
     return Promise.resolve(true);
   }
@@ -124,8 +128,9 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   }
   getConnectionString(connectionUri: string, includePassword: boolean): Promise<string> {
     console.log("ConnectionProvider.getConnectionString");
-    if (this.connectionString) {
-      return Promise.resolve(this.connectionString);
+    const connectionString = this.connectionUriToConnectionStringMap.get(connectionUri);
+    if (connectionString) {
+      return Promise.resolve(connectionString);
     } else {
       return Promise.resolve("");
     }
@@ -134,12 +139,19 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   // Called when something is pasted to Server field (Mongo account)
   buildConnectionInfo?(connectionString: string): Promise<azdata.ConnectionInfo> {
     console.log("ConnectionProvider.buildConnectionInfo");
-    const info = parseMongoConnectionString(connectionString);
-    if (!info) {
-      return Promise.reject("Could not parse connection string");
+    try {
+      const info = parseMongoConnectionString(connectionString);
+      if (info) {
+        return Promise.resolve(info);
+      }
+    } catch (e) {
+      console.error("Invalid MongoDB connection string", e);
+      if (semver.gte(azdata.version, "1.43.0")) {
+        // older ADS won't handle reject properly
+        return Promise.reject(e);
+      }
     }
-
-    return Promise.resolve(info);
+    return undefined!;
   }
   registerOnConnectionComplete(handler: (connSummary: azdata.ConnectionInfoSummary) => any): void {
     console.log("ConnectionProvider.registerOnConnectionComplete");
