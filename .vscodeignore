@@ -2,13 +2,10 @@
 .vscode-test/**
 .ads-test/**
 out/**
-src/**
 .gitignore
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
-**/*.map
-**/*.ts
 .github
 query-editor
 !query-editor/build

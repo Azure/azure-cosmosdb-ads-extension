@@ -42,3 +42,45 @@ export const Telemetry = {
     },
   },
 };
+
+/** From @microsoft/ads-service-downloader
+ * Events does not exist in the compiled javascript and is only defined in .d.ts. The strings are hardcoded in the javascript code.
+ * esbuild does not bundle d.ts definitions
+ */
+export const enum Events {
+  /**
+   * Download start, data will be downloading url and size of the download in bytes
+   */
+  DOWNLOAD_START = "download_start",
+  /**
+   * Download progress event, data will be the current progress of the download
+   */
+  DOWNLOAD_PROGRESS = "download_progress",
+  /**
+   * Download end
+   */
+  DOWNLOAD_END = "download_end",
+  /**
+   * Install Start, data will be install directory
+   */
+  INSTALL_START = "install_start",
+  /**
+   * Entry extracted from downloaded archive.
+   * Data :
+   *  0 : Path to file/folder
+   *  1 : Entry number
+   *  2 : Total number of entries
+   */
+  ENTRY_EXTRACTED = "entry_extracted",
+  /**
+   * Install End
+   */
+  INSTALL_END = "install_end",
+  /**
+   * When log is emitted.
+   * Event arguments:
+   * 1. Log Level
+   * 2. Message
+   */
+  LOG_EMITTED = "log_emitted",
+}

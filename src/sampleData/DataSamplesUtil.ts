@@ -4,8 +4,13 @@ import { AppContext, hideStatusBarItem, showStatusBarItem } from "../appContext"
 import * as fs from "fs";
 import * as path from "path";
 import { IDatabaseDashboardInfo } from "../extension";
-import { Events, ServerProvider } from "@microsoft/ads-service-downloader";
 import { validateMongoCollectionName } from "../Services/MongoService";
+
+// --------------------------------------------------------
+// DO NOT IMPORT Events see Events in constants.ts
+import { ServerProvider /*, Events */ } from "@microsoft/ads-service-downloader";
+import { Events } from "../constant";
+// ---------------------------------------------------------
 
 const localize = nls.loadMessageBundle();
 
@@ -161,6 +166,9 @@ function generateHandleServerProviderEvent() {
         break;
       case Events.DOWNLOAD_END:
         outputChannel.appendLine(localize("doneInstallingSampleData", "Done installing sample data"));
+        break;
+      case Events.LOG_EMITTED:
+        // noop
         break;
       default:
         console.error(
