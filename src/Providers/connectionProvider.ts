@@ -49,7 +49,7 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     try {
       connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(
         connectionOptions,
-        false
+        true
       );
       this.connectionUriToConnectionStringMap.set(connectionUri, connectionString);
     } catch (e) {
