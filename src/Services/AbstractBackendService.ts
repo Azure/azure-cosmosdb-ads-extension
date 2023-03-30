@@ -22,25 +22,6 @@ export abstract class AbstractBackendService {
   ): Promise<string | undefined> => {
     const authenticationType = connectionOptions.authenticationType;
 
-    if (retrievePasswordFromAzData && (authenticationType === "SqlLogin" || authenticationType === "Integrated")) {
-      // Retrieve password
-      const serverName = connectionOptions.server;
-      if (!serverName) {
-        vscode.window.showErrorMessage(localize("missingServerName", "Missing serverName {0}", serverName));
-        return undefined;
-      }
-
-      const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
-      if (connection.length < 1) {
-        vscode.window.showErrorMessage(
-          localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName)
-        );
-        return undefined;
-      }
-      const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
-      connectionOptions.password = credentials["password"];
-    }
-
     switch (authenticationType) {
       case "AzureMFA":
         try {
@@ -56,6 +37,24 @@ export abstract class AbstractBackendService {
         }
       case "SqlLogin":
       case "Integrated":
+        if (retrievePasswordFromAzData) {
+          // Retrieve password
+          const serverName = connectionOptions.server;
+          if (!serverName) {
+            vscode.window.showErrorMessage(localize("missingServerName", "Missing serverName {0}", serverName));
+            return undefined;
+          }
+
+          const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
+          if (connection.length < 1) {
+            vscode.window.showErrorMessage(
+              localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName)
+            );
+            return undefined;
+          }
+          const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
+          connectionOptions.password = credentials["password"];
+        }
         return buildMongoConnectionString(connectionOptions);
       default:
         // Should never happen
