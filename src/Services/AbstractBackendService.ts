@@ -37,23 +37,25 @@ export abstract class AbstractBackendService {
         }
       case "SqlLogin":
       case "Integrated":
-        if (retrievePasswordFromAzData) {
+        const serverName = connectionOptions.server;
+        if (!connectionOptions.password && retrievePasswordFromAzData) {
           // Retrieve password
-          const serverName = connectionOptions.server;
           if (!serverName) {
             vscode.window.showErrorMessage(localize("missingServerName", "Missing serverName {0}", serverName));
             return undefined;
           }
 
           const connection = (await azdata.connection.getConnections()).filter((c) => c.serverName === serverName);
-          if (connection.length < 1) {
-            vscode.window.showErrorMessage(
-              localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName)
-            );
-            return undefined;
+          if (connection.length > 0) {
+            const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
+            connectionOptions.password = credentials["password"];
           }
-          const credentials = await azdata.connection.getCredentials(connection[0].connectionId);
-          connectionOptions.password = credentials["password"];
+        }
+        if (!connectionOptions.password) {
+          vscode.window.showErrorMessage(
+            localize("failRetrieveCredentials", "Unable to retrieve credentials for {0}", serverName)
+          );
+          return undefined;
         }
         return buildMongoConnectionString(connectionOptions);
       default:
