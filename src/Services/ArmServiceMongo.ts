@@ -1,13 +1,12 @@
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as azdata from "azdata";
-import { CosmosDBManagementClient } from "@azure/arm-cosmosdb";
-import { MonitorManagementClient } from "@azure/arm-monitor";
-import { TokenCredentials } from "@azure/ms-rest-js";
 import {
+  CosmosDBManagementClient,
   MongoDBCollectionCreateUpdateParameters,
   MongoDBDatabaseCreateUpdateParameters,
-} from "@azure/arm-cosmosdb/esm/models";
+} from "@azure/arm-cosmosdb";
+import { MonitorClient } from "@azure/arm-monitor";
 import { getUsageSizeInKB } from "../Dashboards/getCollectionDataUsageSize";
 import { ICosmosDbCollectionInfo, ICosmosDbDatabaseInfo } from "../models";
 import {
@@ -18,7 +17,7 @@ import {
 } from "../dialogUtil";
 import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
-import { AbstractArmService } from "./AbstractArmService";
+import { AbstractArmService, azDataTokenToCoreAuthCredential } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
@@ -39,7 +38,7 @@ export class ArmServiceMongo extends AbstractArmService {
     resourceGroupName: string,
     accountName: string,
     databaseName: string,
-    monitorARmClient: MonitorManagementClient,
+    monitorARmClient: MonitorClient,
     resourceUri: string,
     fetchThroughputOnly?: boolean
   ): Promise<ICosmosDbDatabaseInfo> => {
@@ -76,18 +75,21 @@ export class ArmServiceMongo extends AbstractArmService {
     }
 
     showStatusBarItem(localize("retrievingMongoDbCollection", "Retrieving mongodb collections..."));
-    const collections = await client.mongoDBResources.listMongoDBCollections(
-      resourceGroupName,
-      accountName,
-      databaseName
-    );
+    let nbCollections = 0;
+    for await (let page of client.mongoDBResources
+      .listMongoDBCollections(resourceGroupName, accountName, databaseName)
+      .byPage({ maxPageSize: 20 })) {
+      for (const resource of page) {
+        nbCollections++;
+      }
+    }
 
     showStatusBarItem(localize("retrievingMongoDbDatabaseThroughput", "Retrieving mongodb database usage..."));
     const usageSizeKB = await getUsageSizeInKB(monitorARmClient, resourceUri, databaseName);
 
     return {
       name: databaseName,
-      nbCollections: collections.length,
+      nbCollections,
       throughputSetting,
       usageSizeKB,
       isAutoscale,
@@ -123,7 +125,15 @@ export class ArmServiceMongo extends AbstractArmService {
     const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
 
     showStatusBarItem(localize("retrievingMongoDbDatabases", "Retrieving mongodb databases..."));
-    const mongoDBResources = await client.mongoDBResources.listMongoDBDatabases(resourceGroup, cosmosDbAccountName);
+    const mongoDBResources = [];
+    for await (let page of client.mongoDBResources
+      .listMongoDBDatabases(resourceGroup, cosmosDbAccountName)
+      .byPage({ maxPageSize: 20 })) {
+      for (const sqlDatabaseGetResult of page) {
+        mongoDBResources.push(sqlDatabaseGetResult);
+      }
+    }
+
     hideStatusBarItem();
     const monitorArmClient = await this.createArmMonitorClient(
       azureAccountId,
@@ -156,7 +166,7 @@ export class ArmServiceMongo extends AbstractArmService {
     accountName: string,
     databaseName: string,
     collectionName: string,
-    monitorARmClient: MonitorManagementClient,
+    monitorARmClient: MonitorClient,
     resourceUri: string
   ): Promise<ICosmosDbCollectionInfo> => {
     let throughputSetting = "";
@@ -236,7 +246,7 @@ export class ArmServiceMongo extends AbstractArmService {
 
     if (!azureResourceId) {
       const azureToken = await this.retrieveAzureToken(azureTenantId, azureAccountId);
-      const credentials = new TokenCredentials(azureToken.token, azureToken.tokenType /* , 'Bearer' */);
+      const credentials = azDataTokenToCoreAuthCredential(azureToken);
 
       const azureResource = await this.retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
       if (!azureResource) {
@@ -248,11 +258,15 @@ export class ArmServiceMongo extends AbstractArmService {
     const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
 
     showStatusBarItem(localize("retrievingMongoDbUsage", "Retrieving mongodb usage..."));
-    const mongoDBResources = await client.mongoDBResources.listMongoDBCollections(
-      resourceGroup,
-      cosmosDbAccountName,
-      databaseName
-    );
+    const mongoDBResources = [];
+    for await (let page of client.mongoDBResources
+      .listMongoDBCollections(resourceGroup, cosmosDbAccountName, databaseName)
+      .byPage({ maxPageSize: 20 })) {
+      for (const sqlDatabaseGetResult of page) {
+        mongoDBResources.push(sqlDatabaseGetResult);
+      }
+    }
+
     hideStatusBarItem();
 
     const monitorArmClient = await this.createArmMonitorClient(
@@ -384,7 +398,7 @@ export class ArmServiceMongo extends AbstractArmService {
     const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
     try {
       showStatusBarItem(localize("migratingCollectionToAutoscale", "Migrating collection to autoscale..."));
-      const rpResponse = await client.mongoDBResources.migrateMongoDBCollectionToAutoscale(
+      const rpResponse = await client.mongoDBResources.beginMigrateMongoDBCollectionToAutoscaleAndWait(
         resourceGroup,
         cosmosDbAccountName,
         databaseName,
@@ -451,23 +465,18 @@ export class ArmServiceMongo extends AbstractArmService {
         showStatusBarItem(
           localize("migratingCollectionToManualThroughput", "Migrating collection to manual throughput...")
         );
-        rpResponse = await client.mongoDBResources.migrateMongoDBCollectionToManualThroughput(
+        rpResponse = await client.mongoDBResources.beginMigrateMongoDBCollectionToManualThroughput(
           resourceGroup,
           cosmosDbAccountName,
           databaseName,
-          collectionName,
-          {
-            resource: {
-              throughput: requestedThroughput,
-            },
-          }
+          collectionName
         );
       }
 
       showStatusBarItem(
         localize("updatingCollectionThroughput", "Updating collection throughput to {0} RUs...", requestedThroughput)
       );
-      rpResponse = await client.mongoDBResources.updateMongoDBCollectionThroughput(
+      rpResponse = await client.mongoDBResources.beginUpdateMongoDBCollectionThroughputAndWait(
         resourceGroup,
         cosmosDbAccountName,
         databaseName,
@@ -587,7 +596,7 @@ export class ArmServiceMongo extends AbstractArmService {
     const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
     try {
       showStatusBarItem(localize("migratingDatabaseToAutoscale", "Migrating database to autoscale..."));
-      const rpResponse = await client.mongoDBResources.migrateMongoDBDatabaseToAutoscale(
+      const rpResponse = await client.mongoDBResources.beginMigrateMongoDBDatabaseToAutoscaleAndWait(
         resourceGroup,
         cosmosDbAccountName,
         databaseName
@@ -652,22 +661,17 @@ export class ArmServiceMongo extends AbstractArmService {
         showStatusBarItem(
           localize("migratingDatabaseToManualThroughput", "Migrating database to manual throughput...")
         );
-        rpResponse = await client.mongoDBResources.migrateMongoDBDatabaseToManualThroughput(
+        rpResponse = await client.mongoDBResources.beginMigrateMongoDBDatabaseToManualThroughputAndWait(
           resourceGroup,
           cosmosDbAccountName,
-          databaseName,
-          {
-            resource: {
-              throughput: requestedThroughput,
-            },
-          }
+          databaseName
         );
       }
 
       showStatusBarItem(
         localize("updatingDatabaseThroughput", "Updating database throughput to {0} RUs...", requestedThroughput)
       );
-      rpResponse = await client.mongoDBResources.updateMongoDBDatabaseThroughput(
+      rpResponse = await client.mongoDBResources.beginUpdateMongoDBDatabaseThroughputAndWait(
         resourceGroup,
         cosmosDbAccountName,
         databaseName,
@@ -728,7 +732,12 @@ export class ArmServiceMongo extends AbstractArmService {
         try {
           showStatusBarItem(localize("creatingMongoDatabase", "Creating CosmosDB database"));
           const dbresult = await client.mongoDBResources
-            .createUpdateMongoDBDatabase(resourceGroup, cosmosDbAccountName, inputData.newDatabaseName, createDbParams)
+            .beginCreateUpdateMongoDBDatabaseAndWait(
+              resourceGroup,
+              cosmosDbAccountName,
+              inputData.newDatabaseName,
+              createDbParams
+            )
             .catch((e) => reject(e));
 
           if (!dbresult || !dbresult.resource?.id) {
@@ -815,7 +824,7 @@ export class ArmServiceMongo extends AbstractArmService {
               }
 
               const dbresult = await client.mongoDBResources
-                .createUpdateMongoDBDatabase(
+                .beginCreateUpdateMongoDBDatabaseAndWait(
                   resourceGroup,
                   cosmosDbAccountName,
                   inputData.newDatabaseInfo.newDatabaseName,
@@ -865,7 +874,7 @@ export class ArmServiceMongo extends AbstractArmService {
 
             showStatusBarItem(localize("creatingMongoCollection", "Creating CosmosDB Mongo collection"));
             const collResult = await client.mongoDBResources
-              .createUpdateMongoDBCollection(
+              .beginCreateUpdateMongoDBCollectionAndWait(
                 resourceGroup,
                 cosmosDbAccountName,
                 newDatabaseName,
