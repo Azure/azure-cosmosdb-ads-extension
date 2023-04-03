@@ -52,10 +52,12 @@ export class NativeMongoHomeDashboard extends AbstractHomeDashboard {
           dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
         },
         onDidClick: () => {
-          vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openMongoShell",
-            convertToConnectionOptions(view.connection)
-          );
+          const connectionOptions = convertToConnectionOptions(view.connection);
+          vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", undefined, {
+            ...connectionOptions,
+            databaseName: undefined,
+            serverName: connectionOptions.server,
+          });
           this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,

@@ -50,11 +50,6 @@
         "category": "Cosmos DB Mongo"
       },
       {
-        "command": "cosmosdb-ads-extension.openCollection",
-        "title": "Open Collection",
-        "category": "Cosmos DB Mongo"
-      },
-      {
         "command": "cosmosdb-ads-extension.openMongoQuery",
         "title": "Open Query",
         "category": "Cosmos DB Mongo"
@@ -98,39 +93,10 @@
           "group": "cosmosdb"
         },
         {
-          "command": "cosmosdb-ads-extension.openCollection",
-          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Assembly",
-          "group": "cosmosdb"
-        },
-        {
-          "command": "cosmosdb-ads-extension.createNoSqlDatabase",
-          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Server",
-          "group": "cosmosdb"
-        },
-        {
-          "command": "cosmosdb-ads-extension.openNoSqlDatabaseDashboard",
-          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == CosmosDbDatabase",
-          "group": "cosmosdb"
-        },
-        {
-          "command": "cosmosdb-ads-extension.createNoSqlContainer",
-          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == CosmosDbDatabase",
-          "group": "cosmosdb"
-        },
-        {
-          "command": "cosmosdb-ads-extension.deleteNoSqlDatabase",
-          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == CosmosDbDatabase",
-          "group": "cosmosdb"
-        },
-        {
-          "command": "cosmosdb-ads-extension.deleteNoSqlContainer",
-          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Queue",
-          "group": "cosmosdb"
-        },
-        {
-          "command": "cosmosdb-ads-extension.openContainer",
-          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Assembly",
-          "group": "cosmosdb"
+          "command": "cosmosdb-ads-extension.openMongoShell",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Queue",
+          "group": "cosmosdb",
+          "isDefault": true
         }
       ]
     },

@@ -49,11 +49,10 @@ export abstract class AbstractMongoDatabaseDashboard extends AbstractDatabaseDas
           dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
         },
         onDidClick() {
-          vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openMongoShell",
-            { ...databaseDashboardInfo },
-            databaseDashboardInfo.databaseName
-          );
+          vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", undefined, {
+            ...databaseDashboardInfo,
+            serverName: databaseDashboardInfo.server,
+          });
           appContext.reporter?.sendActionEvent(
             Telemetry.sources.databaseDashboard,
             Telemetry.actions.click,

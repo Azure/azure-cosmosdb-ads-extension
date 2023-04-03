@@ -56,6 +56,11 @@ export interface IDatabaseDashboardInfo extends IConnectionOptions {
   connectionId: string;
 }
 
+export interface IMongoShellInfo extends IConnectionOptions {
+  databaseName: string | undefined;
+  serverName: string;
+}
+
 let appContext: AppContext;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -447,13 +452,6 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("cosmosdb-ads-extension.openCollection", (collectionName: string) => {
-      // TODO implement
-      vscode.window.showInformationMessage(collectionName);
-    })
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoQuery",
       async (connectionOptions?: IConnectionOptions, databaseName?: string, collectionName?: string) => {
@@ -554,14 +552,34 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoShell",
-      async (connectionOptions?: IConnectionOptions, databaseName?: string) => {
-        const serverName = connectionOptions?.server;
-        if (!serverName) {
-          vscode.window.showErrorMessage(localize("noServerSpecified", "No server specified"));
-          return;
+      async (objectExplorerContext: azdata.ObjectExplorerContext, mongoShellInfo?: IMongoShellInfo) => {
+        if (objectExplorerContext?.connectionProfile) {
+          // Called from menu tree item context menu
+
+          if (!objectExplorerContext.nodeInfo) {
+            // TODO handle error;
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return;
+          }
+
+          const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
+          const connectionProfile = objectExplorerContext.connectionProfile;
+          mongoShellInfo = {
+            databaseName: nodeInfo.databaseName,
+            serverName: connectionProfile.serverName,
+            ...convertToConnectionOptions(connectionProfile),
+          };
+        } else {
+          // Called from extension code
+          if (!mongoShellInfo) {
+            vscode.window.showErrorMessage(localize("missingMongoShellInfo", "Missing mongo shell information"));
+            return;
+          }
         }
 
-        const terminalName = `${serverName}${databaseName ? "/" + databaseName : ""}`;
+        const terminalName = `${mongoShellInfo.serverName}${
+          mongoShellInfo.databaseName ? "/" + mongoShellInfo.databaseName : ""
+        }`;
 
         let counter = terminalMap.get(terminalName) ?? -1;
         const isTerminalOpen = terminalMap.size > 0;
@@ -586,7 +604,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage(localize("failInstallMongoShell", "Unable to install mongo shell"));
           return;
         }
-        const mongoShellOptions = await appContext.mongoService.getMongoShellOptions(connectionOptions);
+        const mongoShellOptions = await appContext.mongoService.getMongoShellOptions(mongoShellInfo);
 
         const terminalOptions: vscode.TerminalOptions = {
           name: `Mongo Shell: ${terminalName}-${counter}`,
@@ -620,13 +638,13 @@ export function activate(context: vscode.ExtensionContext) {
         const terminal = vscode.window.createTerminal(terminalOptions);
         context.subscriptions.push(terminal);
         vscode.window.onDidCloseTerminal((t: vscode.Terminal) => {
-          if (t === terminal && t.exitStatus !== undefined) {
-            terminalMap.delete(serverName);
+          if (t === terminal && t.exitStatus !== undefined && mongoShellInfo) {
+            terminalMap.delete(mongoShellInfo.serverName);
           }
         });
 
-        if (databaseName !== undefined) {
-          terminal.sendText(`use ${databaseName}\n`);
+        if (mongoShellInfo.databaseName !== undefined) {
+          terminal.sendText(`use ${mongoShellInfo.databaseName}\n`);
         }
         terminal.show();
 

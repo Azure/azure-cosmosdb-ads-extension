@@ -13,6 +13,7 @@ import { buildHeroCard } from "../util";
 import { AbstractArmService } from "../Services/AbstractArmService";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { AbstractCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
+import { systemDefaultPlatform } from "azdata-test/out/util";
 
 const localize = nls.loadMessageBundle();
 
@@ -51,10 +52,12 @@ export class CosmosDbMongoHomeDashboard extends AbstractCosmosDbHomeDashboard {
           dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
         },
         onDidClick: () => {
-          vscode.commands.executeCommand(
-            "cosmosdb-ads-extension.openMongoShell",
-            convertToConnectionOptions(view.connection)
-          );
+          const connectionOptions = convertToConnectionOptions(view.connection);
+          vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", undefined, {
+            ...connectionOptions,
+            databaseName: undefined,
+            serverName: connectionOptions.server,
+          });
           this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
