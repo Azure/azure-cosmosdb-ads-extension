@@ -556,19 +556,17 @@ export function activate(context: vscode.ExtensionContext) {
         if (objectExplorerContext?.connectionProfile) {
           // Called from menu tree item context menu
 
-          if (!objectExplorerContext.nodeInfo) {
-            // TODO handle error;
-            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
-            return;
-          }
-
-          const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
           const connectionProfile = objectExplorerContext.connectionProfile;
           mongoShellInfo = {
-            databaseName: nodeInfo.databaseName,
+            databaseName: undefined,
             serverName: connectionProfile.serverName,
             ...convertToConnectionOptions(connectionProfile),
           };
+
+          if (objectExplorerContext.nodeInfo) {
+            const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
+            mongoShellInfo.databaseName = nodeInfo.databaseName;
+          }
         } else {
           // Called from extension code
           if (!mongoShellInfo) {
