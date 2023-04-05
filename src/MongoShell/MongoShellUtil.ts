@@ -2,8 +2,13 @@ import * as path from "path";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as fs from "fs";
-import { ServerProvider, Events } from "@microsoft/ads-service-downloader";
 import { showStatusBarItem } from "../appContext";
+
+// --------------------------------------------------------
+// DO NOT IMPORT Events see Events in constants.ts
+import { ServerProvider /*, Events */ } from "@microsoft/ads-service-downloader";
+import { Events } from "../constant";
+// ---------------------------------------------------------
 
 const localize = nls.loadMessageBundle();
 let outputChannel: vscode.OutputChannel;
@@ -50,6 +55,9 @@ function generateHandleServerProviderEvent() {
         break;
       case Events.DOWNLOAD_END:
         outputChannel.appendLine(localize("doneInstallingMongoShell", "Done installing MongoShell"));
+        break;
+      case Events.LOG_EMITTED:
+        // noop
         break;
       default:
         console.error(

@@ -3,9 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import * as fs from "fs";
 import * as cp from "child_process";
-import * as path from "path";
 
 // The module 'azdata' contains the Azure Data Studio extensibility API
 // This is a complementary set of APIs that add SQL / Data-specific functionality to the app

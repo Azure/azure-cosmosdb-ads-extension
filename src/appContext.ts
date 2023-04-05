@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import * as nls from "vscode-nls";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { MongoService } from "./Services/MongoService";
 import { CosmosDbNoSqlService } from "./Services/CosmosDbNoSqlService";
