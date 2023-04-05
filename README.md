@@ -4,7 +4,7 @@ The [Azure Cosmos DB extension for Azure Data Studio](https://github.com/Azure/a
 
 ## Getting Started
 Download and install [Azure Data Studio](https://docs.microsoft.com/sql/azure-data-studio/download-azure-data-studio).
-Click on the Extension and install the Azure Cosmos DB (Mongo API) and Mongo extension.
+Click on the Extensions icon and install the Azure Cosmos DB (Mongo API) and Mongo extension.
 
 ## Contributing
 
@@ -19,6 +19,58 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+### Building the extension from source
+* Clone the repository
+* `cd <path_to_clone>`
+* `yarn`
+* `yarn run publish`
+
+This creates an `azure-cosmosdb-ads-extension-x.y.z.vsix` file which can be manually installed in ADS.
+
+#### Where are the build artifacts
+The `out/` folder contains the output of the build process. The ESBuild bundler may only transpile `extension.js` (it transpiles the typescript source files as it bundles and therefore does not need `tsc` to transpiled the source before bundling) while `tsc` will transpile all the typescript files.
+
+The `dist/` folder contains the output of the bundling process from ESBuild.
+### Debugging the extension from source
+There are two ways to debug the extension using Visual Studio Code:
+* Debug using a regular installation of Azure Data Studio (Recommended)
+* Debug using the source code of Azure Data Studio
+
+#### Debugging using a regular installation of Azure Data Studio
+This is the simplest way to debug.
+* Make sure Azure Data Studio (ADS) is installed. You can download it from [here](https://learn.microsoft.com/sql/azure-data-studio/download-azure-data-studio).
+* Clone this repository and open the folder in Visual Studio Code.
+* `yarn` to install the dependencies
+* `yarn run esbuild:watch` to automatically re-bundle for every source change.
+* In the "Run and Debug" section of VSCode, select and run the "Extension" target. VSCode launches ADS and attaches to the process. You can set breakpoints etc.
+* If you modify any code, you must re-run the debug target for the changes to take effect.
+
+
+#### Debugging using Azure Data Studio source code
+This setup is useful if your extension depend on some changes that you are bringing to Azure Data Studio. In this situation, you need to run the modified version of ADS and not a regular installation.
+In that case, you want to run your modified version of ADS and also load your modified extension.
+* Clone the [ADS repository](https://github.com/microsoft/azuredatastudio) (or your fork of it).
+* Inside the ADS repository, there is an `extensions/` folder which contains all the ADS built-in extensions. Clone this extension repository inside this folder. Your extension path should now be: `<path_to_ADS_clone>/extensions/azure-cosmosdb-ads-extension`.
+* In ADS, update the debug configuration file `launch.json`:
+  Look for the "Attach to Extension Host" target and add the `dist/` directory in the `"outFiles"` section:
+```
+"outFiles": [
+  "${workspaceFolder}/out/**/*.js",
+  "${workspaceFolder}/extensions/*/out/**/*.js",
+  "${workspaceFolder}/extensions/*/dist/**/*.js"   <------------- Add this line
+],
+```
+* In one terminal window, automatically rebuild ADS on any changes:
+  * cd `<path_to_ADS_clone>`
+  * `yarn`
+  * `yarn run watch`
+* In another terminal window, automatically bundle the extension on any changes:
+  * cd `<path_to_ADS_clone>/extensions/azure-cosmosdb-ads-extension`
+  * `yarn`
+  * `yarn run esbuild:watch`
+* In ADS, launch the debug target: "Launch ADS & Debug Renderer and Extension Host". This will launch ADS and attach to the process.
+* If you modify any code in ADS or the extension, you must re-start this target.
 
 ## Telemetry
 
