@@ -294,7 +294,7 @@ export abstract class AbstractArmService {
     AbstractArmService.trimAzureHost(connectionOptions.server);
 
   static trimAzureHost = (server: string): string => {
-    if (server.includes("cosmos.azure.com")) {
+    if (server.endsWith("cosmos.azure.com")) {
       return server.replace(".mongocluster.cosmos.azure.com", "").replace(".mongo.cosmos.azure.com", "");
     }
     return server;
