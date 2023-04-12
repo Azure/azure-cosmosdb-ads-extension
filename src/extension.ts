@@ -586,6 +586,13 @@ export function activate(context: vscode.ExtensionContext) {
         try {
           showStatusBarItem(localize("downloadingMongoShell", "Downloading mongo shell..."));
           executablePath = await downloadMongoShell(context.extensionPath);
+
+          switch (process.platform) {
+            case "darwin":
+            case "linux":
+              await fs.promises.chmod(executablePath, "755");
+              break;
+          }
           hideStatusBarItem();
         } catch (e) {
           if (!executablePath) {
