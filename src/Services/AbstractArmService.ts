@@ -254,8 +254,17 @@ export abstract class AbstractArmService {
   };
 
   // TODO Find a better way to express this
-  public getAccountName = (connectionInfo: azdata.ConnectionInfo): string => connectionInfo.options["server"];
-  public getAccountNameFromOptions = (connectionOptions: IConnectionOptions): string => connectionOptions.server;
+  public getAccountName = (connectionInfo: azdata.ConnectionInfo): string =>
+    AbstractArmService.trimAzureHost(connectionInfo.options["server"]);
+  public getAccountNameFromOptions = (connectionOptions: IConnectionOptions): string =>
+    AbstractArmService.trimAzureHost(connectionOptions.server);
+
+  static trimAzureHost = (server: string): string => {
+    if (server.includes("cosmos.azure.com")) {
+      return server.replace(".mongocluster.cosmos.azure.com", "").replace(".mongo.cosmos.azure.com", "");
+    }
+    return server;
+  };
 
   protected retrieveResourceInfofromArm = async (
     cosmosDbAccountName: string,

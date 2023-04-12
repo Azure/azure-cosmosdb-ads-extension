@@ -41,7 +41,7 @@ export abstract class AbstractCosmosDbHomeDashboard extends AbstractHomeDashboar
           connectionInfo.options["azureAccount"],
           connectionInfo.options["azureTenantId"],
           connectionInfo.options["azureResourceId"],
-          connectionInfo.options["server"]
+          this.armService.getAccountName(connectionInfo)
         )
         .then((databaseAccountInfo) => {
           const propertyItems: azdata.PropertiesContainerItem[] = [
