@@ -10,6 +10,7 @@ import {
   ICosmosDbCollectionInfo,
   ICosmosDbDatabaseAccountInfo,
   ICosmosDbDatabaseInfo,
+  ICosmosDbClusterInfo,
 } from "../models";
 import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
@@ -243,6 +244,39 @@ export abstract class AbstractArmService {
     };
   };
 
+  public retrieveClusterInfo = async (
+    azureAccountId: string,
+    azureTenantId: string,
+    azureResourceId: string,
+    cosmosDbAccountName: string
+  ): Promise<ICosmosDbClusterInfo> => {
+    const client = await this.createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+
+    if (!azureResourceId) {
+      const azureToken = await this.retrieveAzureToken(azureTenantId, azureAccountId);
+      const credentials = azDataTokenToCoreAuthCredential(azureToken);
+
+      const azureResource = await this.retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
+      if (!azureResource) {
+        throw new Error(localize("azureResourceNotFound", "Azure Resource not found"));
+      } else {
+        azureResourceId = azureResource.id;
+      }
+    }
+    const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
+
+    showStatusBarItem(localize("retrievingMongoCluster", "Retrieving Mongo cluster information..."));
+    const cluster = await client.mongoClusters.get(resourceGroup, cosmosDbAccountName);
+    const location = await client.locations.get(cluster.location);
+    hideStatusBarItem();
+    return {
+      provisioningStatus: getServerState(cluster.provisioningState),
+      location: location.name ?? localize("unknown", "Unknown"),
+      clusterStatus: cluster.clusterStatus ?? localize("unknown", "Unknown"),
+      serverVersion: cluster.serverVersion ?? localize("unknown", "Unknown"),
+    };
+  };
+
   protected throughputSettingToString = (throughputSetting: ThroughputSettingsGetPropertiesResource): string => {
     if (throughputSetting.autoscaleSettings) {
       return `Max: ${throughputSetting.autoscaleSettings.maxThroughput} RU/s (autoscale)`;
@@ -273,7 +307,7 @@ export abstract class AbstractArmService {
     const client = new ResourceGraphClient(credentials);
     const result = await client.resources(
       {
-        query: `Resources | where type == "microsoft.documentdb/databaseaccounts" and name == "${cosmosDbAccountName}"`,
+        query: `Resources | where (type == "microsoft.documentdb/databaseaccounts" or type == "microsoft.documentdb/mongoclusters") and name == "${cosmosDbAccountName}"`,
       },
       {
         $top: 1000,

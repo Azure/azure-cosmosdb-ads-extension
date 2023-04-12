@@ -434,7 +434,7 @@
     "esbuild:watch": "yarn run esbuild:base --sourcemap --watch"
   },
   "dependencies": {
-    "@azure/arm-cosmosdb": "15.0.0",
+    "@azure/arm-cosmosdb": "15.4.0",
     "@azure/arm-monitor": "7.0.0",
     "@azure/arm-resourcegraph": "4.2.1",
     "@azure/cosmos": "3.17.3",
