@@ -29,7 +29,7 @@ import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { getErrorMessage, getPackageInfo } from "./util";
 import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
 import { EditorUserQuery } from "./QueryClient/messageContract";
-import { askUserForConnectionProfile, isAzureAuthType } from "./Services/ServiceUtil";
+import { askUserForConnectionProfile, isAzureConnection } from "./Services/ServiceUtil";
 import { CosmosDbMongoDatabaseDashboard } from "./Dashboards/CosmosDbMongoDatabaseDashboard";
 import { NativeMongoDatabaseDashboard } from "./Dashboards/NativeMongoDatabaseDashboard";
 import { ArmServiceMongo } from "./Services/ArmServiceMongo";
@@ -396,9 +396,10 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        const databaseDashboard = isAzureAuthType(databaseDashboardInfo.authenticationType)
-          ? new CosmosDbMongoDatabaseDashboard(MongoProviderId, new ArmServiceMongo())
-          : new NativeMongoDatabaseDashboard(MongoProviderId);
+        const databaseDashboard =
+          isAzureConnection(databaseDashboardInfo) && !databaseDashboardInfo.isServer
+            ? new CosmosDbMongoDatabaseDashboard(MongoProviderId, new ArmServiceMongo())
+            : new NativeMongoDatabaseDashboard(MongoProviderId);
         databaseDashboard.openDatabaseDashboard(databaseDashboardInfo, appContext, context);
       }
     )

@@ -25,7 +25,7 @@ export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext,
 
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     await view.initializeModel(
-      isAzureConnection(view.connection)
+      isAzureConnection(view.connection) && !view.connection.options["isServer"]
         ? cosmosDbMongoHomeDashboard.buildModel(view, context)
         : nativeMongoDashboard.buildModel(view, context)
     );
@@ -33,7 +33,7 @@ export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext,
 
   azdata.ui.registerModelViewProvider("mongo-databases.tab", async (view) => {
     await view.initializeModel(
-      isAzureConnection(view.connection)
+      isAzureConnection(view.connection) && !view.connection.options["isServer"]
         ? await cosmosDbMongoHomeDashboard.buildDatabasesArea(view, context)
         : await nativeMongoDashboard.buildDatabasesArea(view, context)
     );

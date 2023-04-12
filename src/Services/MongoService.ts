@@ -7,7 +7,7 @@ import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { EditorUserQuery, EditorQueryResult, QueryOffsetPagingInfo } from "../QueryClient/messageContract";
-import { SampleData, askUserForConnectionProfile, isAzureAuthType } from "./ServiceUtil";
+import { SampleData, askUserForConnectionProfile, isAzureConnection } from "./ServiceUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { AbstractBackendService } from "./AbstractBackendService";
 import { ArmServiceMongo } from "./ArmServiceMongo";
@@ -110,7 +110,7 @@ export class MongoService extends AbstractBackendService {
     connectionOptions: IConnectionOptions,
     databaseName?: string
   ): Promise<{ databaseName: string }> {
-    return isAzureAuthType(connectionOptions.authenticationType)
+    return isAzureConnection(connectionOptions) && !connectionOptions.isServer
       ? this.createMongoDatabaseWithArm(connectionOptions, databaseName)
       : // In MongoDB, a database cannot be empty.
         this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, undefined);
@@ -130,7 +130,7 @@ export class MongoService extends AbstractBackendService {
     collectionName?: string,
     cdbCreateInfo?: CdbCollectionCreateInfo
   ): Promise<{ databaseName: string; collectionName: string | undefined }> {
-    return isAzureAuthType(connectionOptions.authenticationType)
+    return isAzureConnection(connectionOptions) && !connectionOptions.isServer
       ? this.createMongoDatabaseAndCollectionWithArm(connectionOptions, databaseName, collectionName)
       : this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, collectionName);
   }
