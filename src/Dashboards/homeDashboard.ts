@@ -12,12 +12,18 @@ import { ArmServiceMongo } from "../Services/ArmServiceMongo";
 import { ArmServiceNoSql } from "../Services/ArmServiceNoSql";
 import { CosmosDbMongoHomeDashboard } from "./CosmosDbMongoHomeDashboard";
 import { CosmosDbNoSqlHomeDashboard } from "./CosmosDbNoSqlHomeDashboard";
+import { CosmosDbMongoClusterHomeDashboard } from "./CosmosDbMongoClusterHomeDashboard";
 
 const dashboards = [];
 
 export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
   const cosmosDbMongoHomeDashboard = new CosmosDbMongoHomeDashboard(appContext.reporter, new ArmServiceMongo());
   const cosmosDbNoSqlHomeDashboard = new CosmosDbNoSqlHomeDashboard(appContext.reporter, new ArmServiceNoSql());
+  const cosmosDbMongoClusterHomeDashboard = new CosmosDbMongoClusterHomeDashboard(
+    appContext.reporter,
+    appContext.mongoService,
+    new ArmServiceMongo()
+  );
   const nativeMongoDashboard = new NativeMongoHomeDashboard(appContext.reporter, appContext.mongoService);
   dashboards.push(cosmosDbMongoHomeDashboard);
   dashboards.push(cosmosDbNoSqlHomeDashboard);
@@ -25,8 +31,10 @@ export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext,
 
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     await view.initializeModel(
-      isAzureConnection(view.connection) && !view.connection.options["isServer"]
-        ? cosmosDbMongoHomeDashboard.buildModel(view, context)
+      isAzureConnection(view.connection)
+        ? view.connection.options["isServer"]
+          ? cosmosDbMongoClusterHomeDashboard.buildModel(view, context)
+          : cosmosDbMongoHomeDashboard.buildModel(view, context)
         : nativeMongoDashboard.buildModel(view, context)
     );
   });

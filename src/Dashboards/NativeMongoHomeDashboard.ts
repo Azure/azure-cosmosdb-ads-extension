@@ -169,9 +169,14 @@ export class NativeMongoHomeDashboard extends AbstractHomeDashboard {
 
   public buildModel(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.FlexContainer {
     const viewItems: azdata.Component[] = [this.buildToolbar(view, context)];
-    viewItems.push(this.buildGettingStarted(view, context));
-
+    this.createModelViewItems(view, context).forEach((p) => {
+      viewItems.push(p);
+    });
     return view.modelBuilder.flexContainer().withItems(viewItems).withLayout({ flexFlow: "column" }).component();
+  }
+
+  protected createModelViewItems(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component[] {
+    return [this.buildGettingStarted(view, context)];
   }
 
   private buildGettingStarted(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {

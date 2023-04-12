@@ -94,34 +94,29 @@ export abstract class AbstractCosmosDbHomeDashboard extends AbstractHomeDashboar
     return component;
   }
 
-  private buildGettingStarted(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {
-    const addOpenInPortalButton = async (connectionInfo: azdata.ConnectionInfo) => {
-      const portalEndpoint = await this.armService.retrievePortalEndpoint(connectionInfo.options["azureAccount"]);
-      const resourceId = await this.armService.retrieveResourceId(
-        connectionInfo.options["azureAccount"],
-        connectionInfo.options["azureTenantId"],
-        connectionInfo.options["azureResourceId"],
-        this.armService.getAccountName(connectionInfo)
-      );
-      heroCardsContainer.addItem(
-        buildHeroCard(
-          view,
-          context.asAbsolutePath("resources/fluent/azure.svg"),
-          localize("openInPortal", "Open in portal"),
-          localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
-          () => {
-            this.openInPortal(portalEndpoint, resourceId);
-            this.reporter.sendActionEvent(
-              Telemetry.sources.homeDashboard,
-              Telemetry.actions.click,
-              Telemetry.targets.homeDashboard.gettingStartedOpenInPortal
-            );
-          }
-        ),
-        { flex: "0 0 auto" }
-      );
-    };
+  static createOpenInPortalButton(
+    view: azdata.ModelView,
+    context: vscode.ExtensionContext,
+    reporter: TelemetryReporter,
+    armService: AbstractArmService
+  ): azdata.ButtonComponent {
+    return buildHeroCard(
+      view,
+      context.asAbsolutePath("resources/fluent/azure.svg"),
+      localize("openInPortal", "Open in portal"),
+      localize("openInPortalDescription", "View and manage this account (e.g. backup settings) in Azure portal"),
+      () => {
+        this.openInPortal(view.connection, armService);
+        reporter.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.gettingStartedOpenInPortal
+        );
+      }
+    );
+  }
 
+  private buildGettingStarted(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {
     const heroCards: azdata.ButtonComponent[] = this.createGettingStartedDefaultButtons(view, context);
 
     const heroCardsContainer = view.modelBuilder
@@ -131,7 +126,10 @@ export abstract class AbstractCosmosDbHomeDashboard extends AbstractHomeDashboar
       .withProps({ CSSStyles: { width: "100%" } })
       .component();
 
-    addOpenInPortalButton(view.connection);
+    heroCardsContainer.addItem(
+      AbstractCosmosDbHomeDashboard.createOpenInPortalButton(view, context, this.reporter, this.armService),
+      { flex: "0 0 auto" }
+    );
 
     return view.modelBuilder
       .flexContainer()
@@ -300,7 +298,14 @@ export abstract class AbstractCosmosDbHomeDashboard extends AbstractHomeDashboar
       .component();
   }
 
-  private openInPortal(azurePortalEndpoint: string, azureResourceId: string) {
+  private static async openInPortal(connectionInfo: azdata.ConnectionInfo, armService: AbstractArmService) {
+    const azurePortalEndpoint = await armService.retrievePortalEndpoint(connectionInfo.options["azureAccount"]);
+    const azureResourceId = await armService.retrieveResourceId(
+      connectionInfo.options["azureAccount"],
+      connectionInfo.options["azureTenantId"],
+      connectionInfo.options["azureResourceId"],
+      armService.getAccountName(connectionInfo)
+    );
     if (!azurePortalEndpoint || !azureResourceId) {
       vscode.window.showErrorMessage(localize("missingAzureInformation", "Missing azure information from connection"));
       return;
