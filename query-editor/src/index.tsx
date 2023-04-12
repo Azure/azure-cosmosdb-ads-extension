@@ -32,9 +32,9 @@ const Bootstrapper = (props: { onReady: () => void }) => {
 const queryEditorProps: QueryEditorProps = {
   connectionId: "",
   databaseName: "",
-  collectionName: "",
+  containerName: "",
 	defaultQueryText: "{ }",
-	paginationType: "offset",
+	pagingType: "offset",
   queryInputLabel: "Enter filter",
   queryButtonLabel: "Find",
   onSubmitQuery
@@ -48,8 +48,8 @@ window.addEventListener('message', event => {
     case "initialize":
       queryEditorProps.connectionId = JSON.stringify(message.data);
       queryEditorProps.databaseName = message.data.databaseName;
-      queryEditorProps.collectionName = message.data.collectionName;
-			queryEditorProps.paginationType = message.data.paginationTpe;
+      queryEditorProps.containerName = message.data.containerName;
+			queryEditorProps.pagingType = message.data.pagingType;
 			queryEditorProps.defaultQueryText = message.data.defaultQueryText;
       break;
     case "queryResult":

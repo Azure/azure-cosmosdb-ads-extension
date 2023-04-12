@@ -469,8 +469,8 @@ export function activate(context: vscode.ExtensionContext) {
               data: {
                 connectionId: connectionOptions.server,
                 databaseName,
-                collectionName,
-                paginationTpe: "offset",
+                containerName: collectionName,
+                pagingType: "offset",
                 defaultQueryText: "{}",
               },
             });
@@ -484,7 +484,7 @@ export function activate(context: vscode.ExtensionContext) {
                 collectionName,
                 query
               );
-              console.log("query # results:", queryResult.documents.length, queryResult.offsetPagingInfo);
+              console.log("query # results:", queryResult.documents.length, queryResult.pagingInfo);
               view.sendCommand({
                 type: "queryResult",
                 data: queryResult,
@@ -518,8 +518,8 @@ export function activate(context: vscode.ExtensionContext) {
               data: {
                 connectionId: connectionOptions.server,
                 databaseName,
-                collectionName,
-                paginationTpe: "infinite",
+                containerName: collectionName,
+                pagingType: "infinite",
                 defaultQueryText: "select * from c",
               },
             });
@@ -533,7 +533,7 @@ export function activate(context: vscode.ExtensionContext) {
                 collectionName,
                 query
               );
-              console.log("query # results:", queryResult.documents.length, queryResult.offsetPagingInfo);
+              console.log("query # results:", queryResult.documents.length, queryResult.pagingInfo);
               view.sendCommand({
                 type: "queryResult",
                 data: queryResult,
