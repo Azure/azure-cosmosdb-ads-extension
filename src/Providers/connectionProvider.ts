@@ -63,12 +63,9 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     }
 
     try {
-      if (!(await this.backendService.connect(server, connectionString))) {
-        vscode.window.showErrorMessage(localize("failConnect", "Failed to connect"));
-        return false;
-      }
+      await this.backendService.connect(server, connectionString);
     } catch (e) {
-      showErrorMessage((e as { message: string }).message);
+      showErrorMessage(`${localize("failConnect", "Failed to connect")}: ${(e as { message: string }).message}`);
       return false;
     }
 

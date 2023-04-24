@@ -12,7 +12,14 @@ const localize = nls.loadMessageBundle();
 export abstract class AbstractBackendService {
   constructor(protected armService: AbstractArmService) {}
 
-  public abstract connect(server: string, connectionString: string): Promise<MongoClient | CosmosClient | undefined>;
+  /**
+   * Connect to a server.
+   * May throw an error if the connection fails: make sure to catch it.
+   * @param server - The server to connect to
+   * @param connectionString - The connection string to use
+   * @returns client
+   */
+  public abstract connect(server: string, connectionString: string): Promise<MongoClient | CosmosClient>;
   public abstract disconnect(server: string): Promise<void> | void;
   public abstract listDatabases(server: string): Promise<IDatabaseInfo[]>;
 

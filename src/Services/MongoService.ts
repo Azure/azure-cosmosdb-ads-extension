@@ -21,16 +21,17 @@ export class MongoService extends AbstractBackendService {
     super(new ArmServiceMongo());
   }
 
-  public async connect(server: string, connectionString: string): Promise<MongoClient | undefined> {
+  /**
+   * Connect to a server. May throw an error if the connection fails.
+   * @param server - The server to connect to
+   * @param connectionString - The connection string to use
+   * @returns The MongoClient
+   */
+  public async connect(server: string, connectionString: string): Promise<MongoClient> {
     const options: MongoClientOptions = <MongoClientOptions>{};
-    try {
-      const mongoClient = await MongoClient.connect(connectionString, options);
-      this._mongoClients.set(server, mongoClient);
-      return mongoClient;
-    } catch (error) {
-      console.error(error);
-      return undefined;
-    }
+    const mongoClient = await MongoClient.connect(connectionString, options);
+    this._mongoClients.set(server, mongoClient);
+    return mongoClient;
   }
 
   public hasConnection(server: string): boolean {

@@ -32,19 +32,20 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     super(new ArmServiceNoSql());
   }
 
-  public async connect(server: string, connectionString: string): Promise<CosmosClient | undefined> {
+  /**
+   * Connect to a server. May throw an error if the connection fails.
+   * @param server - The server to connect to
+   * @param connectionString - The connection string to use
+   * @returns The CosmosClient
+   */
+  public async connect(server: string, connectionString: string): Promise<CosmosClient> {
     if (!this._cosmosDbProxies.has(server)) {
       this._cosmosDbProxies.set(server, new CosmosDbProxy(connectionString));
     }
 
-    try {
-      const client = new CosmosClient(connectionString);
-      this._cosmosClients.set(server, client);
-      return client;
-    } catch (error) {
-      console.error(error);
-      return undefined;
-    }
+    const client = new CosmosClient(connectionString);
+    this._cosmosClients.set(server, client);
+    return client;
   }
 
   public hasConnection(server: string): boolean {
