@@ -32,7 +32,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     super(new ArmServiceNoSql());
   }
 
-    /**
+  /**
    * Connect to a server. May throw an error if the connection fails.
    * @param server - The server to connect to
    * @param connectionString - The connection string to use

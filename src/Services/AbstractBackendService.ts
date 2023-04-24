@@ -12,7 +12,7 @@ const localize = nls.loadMessageBundle();
 export abstract class AbstractBackendService {
   constructor(protected armService: AbstractArmService) {}
 
-   /**
+  /**
    * Connect to a server.
    * May throw an error if the connection fails: make sure to catch it.
    * @param server - The server to connect to
