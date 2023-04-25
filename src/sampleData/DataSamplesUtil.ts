@@ -103,7 +103,7 @@ export const ingestSampleMongoData = async (
             progress.report({
               message: localize("importingSampleData", "Importing sample data..."),
             });
-            const { count, elapsedTimeMS } = await appContext.mongoService.insertDocuments(
+            const { count, elapsedTimeMS } = await appContext.mongoService.createCollectionWithSampleData(
               databaseDashboardInfo,
               sampleData,
               collectionToCreate,

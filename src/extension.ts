@@ -665,6 +665,212 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.importDocuments",
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        connectionNodeInfo: IConnectionNodeInfo,
+        databaseName?: string,
+        collectionName?: string
+      ) => {
+        if (objectExplorerContext) {
+          // Called from tree item context menu
+          if (!objectExplorerContext.connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          if (!objectExplorerContext.nodeInfo) {
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return Promise.reject();
+          }
+
+          const connectionProfile = objectExplorerContext.connectionProfile!;
+          connectionNodeInfo = {
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: objectExplorerContext.nodeInfo?.nodePath,
+          };
+        }
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: createNodePath(connectionProfile.serverName),
+          };
+        }
+
+        const nodeInfo = getNodeInfo(connectionNodeInfo.nodePath!);
+        databaseName = databaseName ?? nodeInfo?.databaseName;
+        collectionName = collectionName ?? nodeInfo?.collectionName;
+
+        if (databaseName === undefined || collectionName === undefined) {
+          vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing database or collection"));
+          return Promise.reject();
+        }
+
+        const fileUri = await vscode.window.showOpenDialog({
+          filters: {
+            JSON: ["json"],
+          },
+          openLabel: localize("import", "Import"),
+          title: localize("selectMongoCollectionToImport", "Select Mongo collection to import"),
+        });
+
+        if (!fileUri || fileUri.length === 0) {
+          return Promise.reject();
+        }
+
+        fs.readFile(fileUri[0].fsPath, "utf8", async (error, rawData) => {
+          if (error) {
+            vscode.window.showErrorMessage(
+              localize("errorReadingDataFileToImport", "Error reading data file to import")
+            );
+            return;
+          }
+
+          try {
+            const data = JSON.parse(rawData);
+
+            await vscode.window.withProgress(
+              {
+                location: vscode.ProgressLocation.Notification,
+                cancellable: false,
+              },
+              async (progress) => {
+                progress.report({
+                  message: localize("importingDocuments", "Importing documents..."),
+                });
+                await appContext.mongoService.insertDocuments(
+                  connectionNodeInfo.server,
+                  databaseName!,
+                  collectionName!,
+                  data as unknown[]
+                );
+              }
+            );
+            vscode.window.showInformationMessage(
+              localize("successfullyImportedDocuments", "Successfully imported documents")
+            );
+          } catch (e) {
+            vscode.window.showErrorMessage(`${localize("errorImportingData", "Error importing data")}: ${e}`);
+          }
+        });
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.exportContainer",
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        connectionNodeInfo: IConnectionNodeInfo,
+        databaseName?: string,
+        collectionName?: string
+      ) => {
+        if (objectExplorerContext) {
+          // Called from tree item context menu
+          if (!objectExplorerContext.connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          if (!objectExplorerContext.nodeInfo) {
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return Promise.reject();
+          }
+
+          const connectionProfile = objectExplorerContext.connectionProfile!;
+          connectionNodeInfo = {
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: objectExplorerContext.nodeInfo?.nodePath,
+          };
+        }
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: createNodePath(connectionProfile.serverName),
+          };
+        }
+
+        const nodeInfo = getNodeInfo(connectionNodeInfo.nodePath!);
+        databaseName = databaseName ?? nodeInfo?.databaseName;
+        collectionName = collectionName ?? nodeInfo?.collectionName;
+
+        if (databaseName === undefined || collectionName === undefined) {
+          vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing database or collection"));
+          return Promise.reject();
+        }
+
+        const fileUri = await vscode.window.showSaveDialog({
+          filters: {
+            JSON: ["json"],
+          },
+          saveLabel: localize("export", "Export"),
+          title: localize("saveToFile", "Save to file"),
+        });
+
+        if (!fileUri) {
+          return Promise.reject();
+        }
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async (progress) => {
+            progress.report({
+              message: localize("exportingDocuments", "Exporting documents..."),
+            });
+            showStatusBarItem(localize("readingDocuments", "Reading documents..."));
+            const documents = await appContext.mongoService.getDocuments(
+              connectionNodeInfo.server,
+              databaseName!,
+              collectionName!
+            );
+            const documentsStr = JSON.stringify(documents, null, 0);
+
+            showStatusBarItem(localize("savingDocumentsToFile", "Saving documents to file..."));
+            fs.writeFile(fileUri.fsPath, documentsStr, (error) => {
+              if (error) {
+                vscode.window.showErrorMessage(localize("errorWritingToFile", "Error writing data to file"));
+                hideStatusBarItem();
+                return;
+              }
+            });
+            vscode.window.showInformationMessage(
+              localize(
+                "successfullyExportedDocuments",
+                "Successfully exported {0} documents to {1}",
+                documents.length,
+                fileUri.fsPath
+              )
+            );
+          }
+        );
+      }
+    )
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("cosmosdb-ads-extension.startProxy", async () => {
       console.log("Starting proxy");
       // Download mongosh
