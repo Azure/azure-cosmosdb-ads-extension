@@ -852,10 +852,10 @@ export function activate(context: vscode.ExtensionContext) {
             fs.writeFile(fileUri.fsPath, documentsStr, (error) => {
               if (error) {
                 vscode.window.showErrorMessage(localize("errorWritingToFile", "Error writing data to file"));
-                hideStatusBarItem();
                 return;
               }
             });
+            hideStatusBarItem();
             vscode.window.showInformationMessage(
               localize(
                 "successfullyExportedDocuments",
