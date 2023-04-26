@@ -747,7 +747,7 @@ export function activate(context: vscode.ExtensionContext) {
         fs.readFile(filePath, "utf8", async (error, rawData) => {
           if (error) {
             vscode.window.showErrorMessage(
-              localize("errorReadingDataFileToImport", "Error reading data file to import")
+              localize("errorReadingDataFileToImport", "Error reading data file to import: {0}", error.message)
             );
             return;
           }
@@ -867,7 +867,9 @@ export function activate(context: vscode.ExtensionContext) {
             showStatusBarItem(localize("savingDocumentsToFile", "Saving documents to file..."));
             fs.writeFile(fileUri.fsPath, documentsStr, (error) => {
               if (error) {
-                vscode.window.showErrorMessage(localize("errorWritingToFile", "Error writing data to file"));
+                vscode.window.showErrorMessage(
+                  localize("errorWritingToFile", "Error writing data to file: ${0}", error.message)
+                );
                 return;
               }
             });
