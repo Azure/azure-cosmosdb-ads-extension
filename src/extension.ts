@@ -712,9 +712,39 @@ export function activate(context: vscode.ExtensionContext) {
         databaseName = databaseName ?? nodeInfo?.databaseName;
         collectionName = collectionName ?? nodeInfo?.collectionName;
 
-        if (databaseName === undefined || collectionName === undefined) {
-          vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing database or collection"));
-          return Promise.reject();
+        if (databaseName === undefined) {
+          // TODO auto-connect if not connected
+          const databases = await appContext.mongoService.listDatabases(connectionNodeInfo.server);
+          const databaseNamePick = await vscode.window.showQuickPick(
+            databases.map((db) => db.name),
+            {
+              placeHolder: localize("selectDatabase", "Select database"),
+            }
+          );
+
+          if (databaseNamePick === undefined) {
+            vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing database"));
+            return Promise.reject();
+          } else {
+            databaseName = databaseNamePick;
+          }
+        }
+
+        if (collectionName === undefined) {
+          const collections = await appContext.mongoService.listCollections(connectionNodeInfo.server, databaseName);
+          const collectionNamePick = await vscode.window.showQuickPick(
+            collections.map((coll) => coll.collectionName),
+            {
+              placeHolder: localize("selectCollection", "Select collection"),
+            }
+          );
+
+          if (collectionNamePick === undefined) {
+            vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing collection"));
+            return Promise.reject();
+          } else {
+            collectionName = collectionNamePick;
+          }
         }
 
         const fileUri = await vscode.window.showOpenDialog({
