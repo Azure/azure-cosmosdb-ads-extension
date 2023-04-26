@@ -58,6 +58,16 @@
         "command": "cosmosdb-ads-extension.openMongoShell",
         "title": "Open Mongo Shell",
         "category": "Cosmos DB Mongo"
+      },
+      {
+        "command": "cosmosdb-ads-extension.importDocuments",
+        "title": "Import Documents",
+        "category": "Cosmos DB Mongo"
+      },
+      {
+        "command": "cosmosdb-ads-extension.exportContainer",
+        "title": "Export Documents",
+        "category": "Cosmos DB Mongo"
       }
     ],
     "menus": {
@@ -97,6 +107,16 @@
           "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Queue",
           "group": "cosmosdb",
           "isDefault": true
+        },
+        {
+          "command": "cosmosdb-ads-extension.importDocuments",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Queue",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.exportContainer",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Queue",
+          "group": "cosmosdb"
         }
       ]
     },

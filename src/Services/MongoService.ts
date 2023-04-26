@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { Collection, MongoClient, MongoClientOptions } from "mongodb";
+import { AnyBulkWriteOperation, Collection, MongoClient, MongoClientOptions } from "mongodb";
 import { isCosmosDBAccount } from "../MongoShell/mongoUtils";
 import { convertToConnectionOptions, IConnectionOptions, IDatabaseInfo, IMongoShellOptions } from "../models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
@@ -272,7 +272,7 @@ export class MongoService extends AbstractBackendService {
    * @param sampleData
    * @returns Promise with inserted count
    */
-  public async insertDocuments(
+  public async createCollectionWithSampleData(
     databaseDashboardInfo: IDatabaseDashboardInfo,
     sampleData: SampleData,
     collectionName: string,
@@ -315,19 +315,43 @@ export class MongoService extends AbstractBackendService {
         return;
       }
 
-      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
+      await this.insertDocuments(
+        databaseDashboardInfo.server,
+        createResult.databaseName,
+        createResult.collectionName,
+        sampleData.data
+      );
+    });
+  }
+
+  public async insertDocuments(serverName: string, databaseName: string, collectionName: string, data: unknown[]) {
+    return new Promise(async (resolve, reject) => {
+      const client = this._mongoClients.get(serverName);
+      if (!client) {
+        reject(localize("notConnected", "Not connected"));
+        return;
+      }
+
+      const collection = await client.db(databaseName).collection(collectionName);
+      if (!collection) {
+        reject(localize("failFindCollection", "Failed to find collection {0}", collectionName));
+        return;
+      }
+
+      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", data.length));
       try {
         const startMS = new Date().getTime();
         const result = await collection.bulkWrite(
-          sampleData.data.map((doc) => ({
+          data.map((doc) => ({
             insertOne: {
-              document: doc,
+              document: doc as AnyBulkWriteOperation<Document>[],
             },
           }))
         );
         const endMS = new Date().getTime();
-        if (result.insertedCount === undefined || result.insertedCount < sampleData.data.length) {
-          reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
+        if (result.insertedCount === undefined || result.insertedCount < data.length) {
+          reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
+          hideStatusBarItem();
           return;
         }
 
@@ -336,7 +360,7 @@ export class MongoService extends AbstractBackendService {
           elapsedTimeMS: endMS - startMS,
         });
       } catch (e) {
-        reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
+        reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
         return;
       } finally {
         hideStatusBarItem();
@@ -392,6 +416,25 @@ export class MongoService extends AbstractBackendService {
         offset: skip,
       },
     };
+  }
+
+  public getDocuments(serverName: string, databaseName: string, containerName: string): Promise<unknown[]> {
+    return new Promise(async (resolve, reject) => {
+      const client = this._mongoClients.get(serverName);
+      if (!client) {
+        reject(localize("notConnected", "Not connected"));
+        return;
+      }
+
+      const collection = await client.db(databaseName).collection(containerName);
+      if (!collection) {
+        reject(localize("failFindCollection", "Failed to find collection {0}", containerName));
+        return;
+      }
+
+      const documents = await collection.find({}).toArray();
+      resolve(documents);
+    });
   }
 }
 

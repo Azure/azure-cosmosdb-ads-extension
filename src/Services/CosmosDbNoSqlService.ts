@@ -402,4 +402,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
       },
     };
   }
+
+  public getDocuments(serverName: string, databaseName: string, containerName: string): Promise<unknown[]> {
+    throw new Error("Method not implemented.");
+  }
 }

@@ -22,6 +22,7 @@ export abstract class AbstractBackendService {
   public abstract connect(server: string, connectionString: string): Promise<MongoClient | CosmosClient>;
   public abstract disconnect(server: string): Promise<void> | void;
   public abstract listDatabases(server: string): Promise<IDatabaseInfo[]>;
+  public abstract getDocuments(serverName: string, databaseName: string, containerName: string): Promise<unknown[]>;
 
   public retrieveConnectionStringFromConnectionOptions = async (
     connectionOptions: IConnectionOptions,

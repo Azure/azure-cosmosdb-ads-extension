@@ -35,6 +35,7 @@ import { NativeMongoDatabaseDashboard } from "./Dashboards/NativeMongoDatabaseDa
 import { ArmServiceMongo } from "./Services/ArmServiceMongo";
 import { ArmServiceNoSql } from "./Services/ArmServiceNoSql";
 import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
+import { MAX_IMPORT_FILE_SIZE_BYTES } from "./constant";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -660,6 +661,289 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.executeCommand("workbench.action.terminal.resizePaneUp");
           }, 1000);
         }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.importDocuments",
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        connectionNodeInfo: IConnectionNodeInfo,
+        databaseName?: string,
+        collectionName?: string
+      ) => {
+        if (objectExplorerContext) {
+          // Called from tree item context menu
+          if (!objectExplorerContext.connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          if (!objectExplorerContext.nodeInfo) {
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return Promise.reject();
+          }
+
+          const connectionProfile = objectExplorerContext.connectionProfile!;
+          connectionNodeInfo = {
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: objectExplorerContext.nodeInfo?.nodePath,
+          };
+        }
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: createNodePath(connectionProfile.serverName),
+          };
+        }
+
+        const nodeInfo = getNodeInfo(connectionNodeInfo.nodePath!);
+        databaseName = databaseName ?? nodeInfo?.databaseName;
+        collectionName = collectionName ?? nodeInfo?.collectionName;
+
+        if (databaseName === undefined) {
+          // TODO auto-connect if not connected
+          const databases = await appContext.mongoService.listDatabases(connectionNodeInfo.server);
+          const databaseNamePick = await vscode.window.showQuickPick(
+            databases.map((db) => db.name),
+            {
+              placeHolder: localize("selectDatabase", "Select database"),
+            }
+          );
+
+          if (databaseNamePick === undefined) {
+            vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing database"));
+            return Promise.reject();
+          } else {
+            databaseName = databaseNamePick;
+          }
+        }
+
+        if (collectionName === undefined) {
+          const collections = await appContext.mongoService.listCollections(connectionNodeInfo.server, databaseName);
+          const collectionNamePick = await vscode.window.showQuickPick(
+            collections.map((coll) => coll.collectionName),
+            {
+              placeHolder: localize("selectCollection", "Select collection"),
+            }
+          );
+
+          if (collectionNamePick === undefined) {
+            vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing collection"));
+            return Promise.reject();
+          } else {
+            collectionName = collectionNamePick;
+          }
+        }
+
+        const fileUri = await vscode.window.showOpenDialog({
+          filters: {
+            JSON: ["json"],
+          },
+          openLabel: localize("import", "Import"),
+          title: localize("selectMongoCollectionToImport", "Select Mongo collection to import"),
+        });
+
+        if (!fileUri || fileUri.length === 0) {
+          return Promise.reject();
+        }
+
+        const filePath = fileUri[0].fsPath;
+
+        // Check if file is too large
+        const stats = fs.statSync(filePath);
+        if (stats.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+          vscode.window.showErrorMessage(
+            localize(
+              "fileTooLargeToImport",
+              "File is too large to import. Maximum file size is {0} MB",
+              MAX_IMPORT_FILE_SIZE_BYTES / 1024 / 1024
+            )
+          );
+          return Promise.reject();
+        }
+
+        fs.readFile(filePath, "utf8", async (error, rawData) => {
+          if (error) {
+            vscode.window.showErrorMessage(
+              localize("errorReadingDataFileToImport", "Error reading data file to import: {0}", error.message)
+            );
+            return;
+          }
+
+          try {
+            const data = JSON.parse(rawData);
+
+            await vscode.window.withProgress(
+              {
+                location: vscode.ProgressLocation.Notification,
+                cancellable: false,
+              },
+              async (progress) => {
+                progress.report({
+                  message: localize("importingDocuments", "Importing documents..."),
+                });
+                await appContext.mongoService.insertDocuments(
+                  connectionNodeInfo.server,
+                  databaseName!,
+                  collectionName!,
+                  data as unknown[]
+                );
+              }
+            );
+            vscode.window.showInformationMessage(
+              localize("successfullyImportedDocuments", "Successfully imported documents")
+            );
+          } catch (e) {
+            vscode.window.showErrorMessage(`${localize("errorImportingData", "Error importing data")}: ${e}`);
+          }
+        });
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.exportContainer",
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        connectionNodeInfo: IConnectionNodeInfo,
+        databaseName?: string,
+        collectionName?: string
+      ) => {
+        if (objectExplorerContext) {
+          // Called from tree item context menu
+          if (!objectExplorerContext.connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          if (!objectExplorerContext.nodeInfo) {
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return Promise.reject();
+          }
+
+          const connectionProfile = objectExplorerContext.connectionProfile!;
+          connectionNodeInfo = {
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: objectExplorerContext.nodeInfo?.nodePath,
+          };
+        }
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: createNodePath(connectionProfile.serverName),
+          };
+        }
+
+        const nodeInfo = getNodeInfo(connectionNodeInfo.nodePath!);
+        databaseName = databaseName ?? nodeInfo?.databaseName;
+        collectionName = collectionName ?? nodeInfo?.collectionName;
+
+        if (databaseName === undefined) {
+          // TODO auto-connect if not connected
+          const databases = await appContext.mongoService.listDatabases(connectionNodeInfo.server);
+          const databaseNamePick = await vscode.window.showQuickPick(
+            databases.map((db) => db.name),
+            {
+              placeHolder: localize("selectDatabase", "Select database"),
+            }
+          );
+
+          if (databaseNamePick === undefined) {
+            vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing database"));
+            return Promise.reject();
+          } else {
+            databaseName = databaseNamePick;
+          }
+        }
+
+        if (collectionName === undefined) {
+          const collections = await appContext.mongoService.listCollections(connectionNodeInfo.server, databaseName);
+          const collectionNamePick = await vscode.window.showQuickPick(
+            collections.map((coll) => coll.collectionName),
+            {
+              placeHolder: localize("selectCollection", "Select collection"),
+            }
+          );
+
+          if (collectionNamePick === undefined) {
+            vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing collection"));
+            return Promise.reject();
+          } else {
+            collectionName = collectionNamePick;
+          }
+        }
+
+        const fileUri = await vscode.window.showSaveDialog({
+          filters: {
+            JSON: ["json"],
+          },
+          saveLabel: localize("export", "Export"),
+          title: localize("saveToFile", "Save to file"),
+        });
+
+        if (!fileUri) {
+          return Promise.reject();
+        }
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async (progress) => {
+            progress.report({
+              message: localize("exportingDocuments", "Exporting documents..."),
+            });
+            showStatusBarItem(localize("readingDocuments", "Reading documents..."));
+            const documents = await appContext.mongoService.getDocuments(
+              connectionNodeInfo.server,
+              databaseName!,
+              collectionName!
+            );
+            const documentsStr = JSON.stringify(documents, null, 0);
+
+            showStatusBarItem(localize("savingDocumentsToFile", "Saving documents to file..."));
+            fs.writeFile(fileUri.fsPath, documentsStr, (error) => {
+              if (error) {
+                vscode.window.showErrorMessage(
+                  localize("errorWritingToFile", "Error writing data to file: ${0}", error.message)
+                );
+                return;
+              }
+            });
+            hideStatusBarItem();
+            vscode.window.showInformationMessage(
+              localize(
+                "successfullyExportedDocuments",
+                "Successfully exported {0} documents to {1}",
+                documents.length,
+                fileUri.fsPath
+              )
+            );
+          }
+        );
       }
     )
   );
