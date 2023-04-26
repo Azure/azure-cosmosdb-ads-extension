@@ -35,6 +35,7 @@ import { NativeMongoDatabaseDashboard } from "./Dashboards/NativeMongoDatabaseDa
 import { ArmServiceMongo } from "./Services/ArmServiceMongo";
 import { ArmServiceNoSql } from "./Services/ArmServiceNoSql";
 import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
+import { MAX_IMPORT_FILE_SIZE_BYTES } from "./constant";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -728,7 +729,22 @@ export function activate(context: vscode.ExtensionContext) {
           return Promise.reject();
         }
 
-        fs.readFile(fileUri[0].fsPath, "utf8", async (error, rawData) => {
+        const filePath = fileUri[0].fsPath;
+
+        // Check if file is too large
+        const stats = fs.statSync(filePath);
+        if (stats.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+          vscode.window.showErrorMessage(
+            localize(
+              "fileTooLargeToImport",
+              "File is too large to import. Maximum file size is {0} MB",
+              MAX_IMPORT_FILE_SIZE_BYTES / 1024 / 1024
+            )
+          );
+          return Promise.reject();
+        }
+
+        fs.readFile(filePath, "utf8", async (error, rawData) => {
           if (error) {
             vscode.window.showErrorMessage(
               localize("errorReadingDataFileToImport", "Error reading data file to import")

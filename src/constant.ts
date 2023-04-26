@@ -1,6 +1,8 @@
 export const COSMOSDB_DOC_URL = "https://docs.microsoft.com/azure/cosmos-db/introduction";
 export const LOCAL_RESOURCES_DIR = "local-resources";
 
+export const MAX_IMPORT_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+
 export const Telemetry = {
   actions: {
     click: "Click",
