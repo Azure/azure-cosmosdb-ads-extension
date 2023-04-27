@@ -64,9 +64,11 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
 
     // TODO Add more info here
     return response
-      ? response.resources.map((db) => ({
-          name: db.id,
-        }))
+      ? response.resources
+          .map((db) => ({
+            name: db.id,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }
 
@@ -75,7 +77,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
       return [];
     }
     const response = await this._cosmosClients.get(server)?.database(databaseName).containers.readAll().fetchAll();
-    return response ? response.resources : [];
+    return response ? response.resources.sort((a, b) => a.id.localeCompare(b.id)) : [];
   }
 
   public async removeDatabase(server: string, databaseName: string): Promise<boolean> {

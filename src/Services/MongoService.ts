@@ -48,14 +48,18 @@ export class MongoService extends AbstractBackendService {
       .db("test" /*testDb*/)
       .admin()
       .listDatabases();
-    return result.databases;
+    return result.databases.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   public async listCollections(server: string, databaseName: string): Promise<Collection[]> {
     if (!this._mongoClients.has(server)) {
       return [];
     }
-    return await this._mongoClients.get(server)!.db(databaseName).collections();
+    return await this._mongoClients
+      .get(server)!
+      .db(databaseName)
+      .collections()
+      .then((collections) => collections.sort((a, b) => a.collectionName.localeCompare(b.collectionName)));
   }
 
   public async removeDatabase(server: string, databaseName: string): Promise<boolean> {

@@ -157,7 +157,7 @@ export class ArmServiceNoSql extends AbstractArmService {
         )
       );
 
-    return await Promise.all(promises);
+    return await Promise.all(promises).then((colls) => colls.sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   private retrieveSqlCollectionInfoFromArm = async (
@@ -291,7 +291,7 @@ export class ArmServiceNoSql extends AbstractArmService {
         )
       );
 
-    return await Promise.all(promises);
+    return await Promise.all(promises).then((colls) => colls.sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   public changeCollectionThroughput = async (
