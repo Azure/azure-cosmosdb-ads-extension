@@ -55,6 +55,36 @@
         "category": "Cosmos DB Mongo"
       },
       {
+        "command": "cosmosdb-ads-extension.createNoSqlDatabase",
+        "title": "Open Database",
+        "category": "Cosmos DB NoSql"
+      },
+      {
+        "command": "cosmosdb-ads-extension.openNoSqlDatabaseDashboard",
+        "title": "Open Database",
+        "category": "Cosmos DB NoSql"
+      },
+      {
+        "command": "cosmosdb-ads-extension.createNoSqlContainer",
+        "title": "Open Database",
+        "category": "Cosmos DB NoSql"
+      },
+      {
+        "command": "cosmosdb-ads-extension.deleteNoSqlDatabase",
+        "title": "Open Database",
+        "category": "Cosmos DB NoSql"
+      },
+      {
+        "command": "cosmosdb-ads-extension.deleteNoSqlContainer",
+        "title": "Open Database",
+        "category": "Cosmos DB NoSql"
+      },
+      {
+        "command": "cosmosdb-ads-extension.openNoSqlContainer",
+        "title": "Open Database",
+        "category": "Cosmos DB NoSql"
+      },
+      {
         "command": "cosmosdb-ads-extension.openMongoShell",
         "title": "Open Mongo Shell",
         "category": "Cosmos DB Mongo"
@@ -116,6 +146,36 @@
         {
           "command": "cosmosdb-ads-extension.exportContainer",
           "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Queue",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.createNoSqlDatabase",
+          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Server",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.openNoSqlDatabaseDashboard",
+          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == CosmosDbDatabase",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.createNoSqlContainer",
+          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == CosmosDbDatabase",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.deleteNoSqlDatabase",
+          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == CosmosDbDatabase",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.deleteNoSqlContainer",
+          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Queue",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.openNoSqlContainer",
+          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Assembly",
           "group": "cosmosdb"
         }
       ]
