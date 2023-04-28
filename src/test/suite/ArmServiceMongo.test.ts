@@ -1,15 +1,6 @@
 import * as sinon from "sinon";
 import * as assert from "assert";
-import { after } from "mocha";
-import * as vscode from "vscode";
 import { ArmServiceMongo } from "../../Services/ArmServiceMongo";
-import {
-  CosmosDBManagementClient,
-  MongoDBCollectionCreateUpdateParameters,
-  MongoDBDatabaseCreateUpdateParameters,
-} from "@azure/arm-cosmosdb";
-
-import { Metric, MonitorClient } from "@azure/arm-monitor";
 
 suite("ArmServiceMongo", () => {
   const fakeArmClient = {

@@ -24,7 +24,7 @@ import { AbstractBackendService } from "./AbstractBackendService";
 const localize = nls.loadMessageBundle();
 
 export class CosmosDbNoSqlService extends AbstractBackendService {
-  private _cosmosClients = new Map<string, CosmosClient>();
+  public _cosmosClients = new Map<string, CosmosClient>(); // public for testing purposes (should be private)
   private _cosmosDbProxies = new Map<string, CosmosDbProxy>();
   public reporter: TelemetryReporter | undefined = undefined;
 

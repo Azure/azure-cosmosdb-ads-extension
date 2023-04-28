@@ -15,7 +15,7 @@ import { ArmServiceMongo } from "./ArmServiceMongo";
 const localize = nls.loadMessageBundle();
 
 export class MongoService extends AbstractBackendService {
-  protected _mongoClients = new Map<string, MongoClient>();
+  public _mongoClients = new Map<string, MongoClient>(); // public for testing purposes (should be protected)
 
   constructor() {
     super(new ArmServiceMongo());
