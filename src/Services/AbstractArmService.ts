@@ -106,7 +106,8 @@ export abstract class AbstractArmService {
     return azureResourceId;
   };
 
-  protected createArmClient = async (
+  // public for testing purposes (should be protected)
+  public createArmClient = async (
     azureAccountId: string,
     azureTenantId: string,
     azureResourceId: string,
@@ -136,7 +137,8 @@ export abstract class AbstractArmService {
     return new CosmosDBManagementClient(credentials, subscriptionId, { baseUri: armEndpoint });
   };
 
-  protected createArmMonitorClient = async (
+  // public for testing purposes (should be protected)
+  public createArmMonitorClient = async (
     azureAccountId: string,
     azureTenantId: string,
     azureResourceId: string,
