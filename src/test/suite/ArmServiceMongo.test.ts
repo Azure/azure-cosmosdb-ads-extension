@@ -50,8 +50,7 @@ suite("ArmServiceMongo", () => {
       "azureTenantId",
       "azureResourceId",
       "cosmosDbAccountName",
-      "databaseName",
-      true
+      "databaseName"
     );
 
     assert.strictEqual(collections.map((coll) => coll.name).join(","), "ddd,EEE,fff");
