@@ -35,7 +35,7 @@ jobs:
     displayName: 'Install Node.js'
   - script: yarn install
     displayName: 'Yarn install'
-  # DotNet Core needed for ESRP
+  # DotNet Core needed for ESRP and building proxy
   - task: UseDotNet@2
     inputs:
       version: '6.x'
@@ -44,11 +44,6 @@ jobs:
   # For some reason, azuredatastudio for linux does not execute the tests.
   - script: yarn run test
     displayName: 'Run unit tests'
-  - task: DotNetCoreCLI@2
-    displayName: 'dotnet restore CosmosDbProxy'
-    inputs:
-      command: restore
-      projects: 'CosmosDbProxy/CosmosDbProxy.csproj'
   - script: yarn run publish
     displayName: 'Yarn publish'
   - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1

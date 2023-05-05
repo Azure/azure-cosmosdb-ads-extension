@@ -507,7 +507,7 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "yarn run clean && yarn run pretest && yarn run build:queryeditor && yarn run esbuild:base --keep-names --minify",
+    "vscode:prepublish": "yarn run clean && yarn run pretest && yarn run build:queryeditor && yarn run proxy:build && yarn run esbuild:base --keep-names --minify",
     "compile": "tsc -p ./",
     "build:queryeditor": "cd query-editor && npm i && npm run build",
     "lint": "eslint src --ext ts",
