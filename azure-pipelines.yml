@@ -44,6 +44,11 @@ jobs:
   # For some reason, azuredatastudio for linux does not execute the tests.
   - script: yarn run test
     displayName: 'Run unit tests'
+  - task: DotNetCoreCLI@2
+    displayName: 'dotnet restore CosmosDbProxy'
+    inputs:
+      command: restore
+      projects: 'CosmosDbProxy/CosmosDbProxy.csproj'
   - script: yarn run publish
     displayName: 'Yarn publish'
   - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
