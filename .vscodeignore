@@ -14,3 +14,4 @@ query-editor
 online-resources/**
 local-resources/**
 node_modules
+CosmosDbProxy/**

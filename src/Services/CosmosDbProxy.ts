@@ -30,8 +30,9 @@ interface CosmosDbProxyResponse {
 }
 
 export class CosmosDbProxy {
-  private static readonly EXECUTABLE_PATH =
-    "C:\\CosmosDB\\ADS\\CosmosDbProxy\\CosmosDbProxy\\bin\\Debug\\net6.0\\CosmosDbProxy.exe";
+  private static readonly EXECUTABLE_PATH = "dotnet";
+  // dirname is the "dist/" folder
+  private static readonly DOTNET_DLL_PATH = `${__dirname}/../CosmosDbProxy/CosmosDbProxy/bin/Debug/net6.0/CosmosDbProxy.dll`;
 
   private _childProcess: cp.ChildProcess | undefined;
   private _requestIdCounter = 0;
@@ -43,17 +44,9 @@ export class CosmosDbProxy {
    * Launch proxy if not running already
    */
   private bringUpProxy(): cp.ChildProcess | undefined {
-    this._childProcess = cp.spawn(
-      CosmosDbProxy.EXECUTABLE_PATH /* (err, stdout, stderr) => {
-			console.log("Callback called");
-			console.log("stdout: " + stdout);
-			console.log("stderr: " + stderr);
-			if (err) {
-				console.log("error: " + err);
-				return false;
-			}
-		}*/
-    );
+    this._childProcess = cp.spawn(CosmosDbProxy.EXECUTABLE_PATH, ["exec", CosmosDbProxy.DOTNET_DLL_PATH], {
+      shell: true,
+    });
 
     if (!this._childProcess || !this._childProcess.stdout || !this._childProcess.stderr || !this._childProcess.stdin) {
       console.error("Error executing", CosmosDbProxy.EXECUTABLE_PATH);
@@ -84,6 +77,11 @@ export class CosmosDbProxy {
 
     this._childProcess.on("close", (code) => {
       console.log("ADS: closing code: " + code);
+      this._childProcess = undefined;
+    });
+
+    this._childProcess.on("exit", (code) => {
+      console.log("ADS: exiting code: " + code);
       this._childProcess = undefined;
     });
 

@@ -503,10 +503,49 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openNoSqlQuery",
-      async (connectionOptions?: IConnectionOptions, databaseName?: string, collectionName?: string) => {
-        if (!connectionOptions || !databaseName || !collectionName) {
-          // TODO FIX
-          return;
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        connectionOptions?: IConnectionOptions,
+        databaseName?: string,
+        collectionName?: string
+      ) => {
+        if (objectExplorerContext) {
+          // Opened from tree item context menu
+          if (!objectExplorerContext.connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          if (!objectExplorerContext.nodeInfo) {
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return Promise.reject();
+          }
+
+          connectionOptions = convertToConnectionOptions(objectExplorerContext.connectionProfile!);
+          const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
+          databaseName = nodeInfo.databaseName;
+          collectionName = nodeInfo.collectionName;
+        }
+
+        if (!connectionOptions) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          connectionOptions = convertToConnectionOptions(connectionProfile);
+
+          if (!connectionOptions) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+        }
+
+        if (!databaseName || !collectionName) {
+          // TODO ask user for database and collection
+          vscode.window.showErrorMessage(localize("missingDatabaseName", "Database not specified"));
+          return Promise.reject();
         }
 
         // TODO Check if one already exists before opening a new one
@@ -518,9 +557,9 @@ export function activate(context: vscode.ExtensionContext) {
             view.sendCommand({
               type: "initialize",
               data: {
-                connectionId: connectionOptions.server,
-                databaseName,
-                containerName: collectionName,
+                connectionId: connectionOptions!.server,
+                databaseName: databaseName!,
+                containerName: collectionName!,
                 pagingType: "infinite",
                 defaultQueryText: "select * from c",
               },
@@ -530,9 +569,9 @@ export function activate(context: vscode.ExtensionContext) {
             console.log("submitquery", query);
             try {
               const queryResult = await appContext.cosmosDbNoSqlService.submitQuery(
-                connectionOptions,
-                databaseName,
-                collectionName,
+                connectionOptions!,
+                databaseName!,
+                collectionName!,
                 query
               );
               console.log("query # results:", queryResult.documents.length, queryResult.pagingInfo);

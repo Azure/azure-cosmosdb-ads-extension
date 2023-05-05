@@ -232,6 +232,7 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
         if (arg.name === "collection") {
           vscode.commands.executeCommand(
             "cosmosdb-ads-extension.openNoSqlQuery",
+            undefined,
             { ...databaseDashboardInfo },
             databaseDashboardInfo.databaseName,
             collections[arg.row].name
