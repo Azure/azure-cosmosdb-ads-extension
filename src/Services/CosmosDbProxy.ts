@@ -32,7 +32,7 @@ interface CosmosDbProxyResponse {
 export class CosmosDbProxy {
   private static readonly EXECUTABLE_PATH = "dotnet";
   // dirname is the "dist/" folder
-  private static readonly DOTNET_DLL_PATH = `${__dirname}/../CosmosDbProxy/CosmosDbProxy/bin/Debug/net6.0/CosmosDbProxy.dll`;
+  private static readonly DOTNET_DLL_PATH = `${__dirname}/../CosmosDbProxy/CosmosDbProxy/bin/Release/net6.0/CosmosDbProxy.dll`;
 
   private _childProcess: cp.ChildProcess | undefined;
   private _requestIdCounter = 0;

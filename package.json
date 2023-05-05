@@ -523,7 +523,7 @@
     "esbuild": "yarn run esbuild:base --sourcemap",
     "esbuild:watch": "yarn run esbuild:base --sourcemap --watch",
     "proxy:clean": "rimraf --glob ./CosmosDbProxy/CosmosDbProxy/bin ./CosmosDbProxy/CosmosDbProxy/obj",
-    "proxy:build": "cd CosmosDbProxy/CosmosDbProxy && dotnet restore && dotnet build"
+    "proxy:build": "cd CosmosDbProxy/CosmosDbProxy && dotnet restore && dotnet build --configuration Release"
   },
   "dependencies": {
     "@azure/arm-cosmosdb": "15.0.0",
