@@ -9,17 +9,17 @@
   dependencies:
     tslib "^2.2.0"
 
-"@azure/arm-cosmosdb@15.0.0":
-  version "15.0.0"
-  resolved "https://registry.yarnpkg.com/@azure/arm-cosmosdb/-/arm-cosmosdb-15.0.0.tgz#5195b1b301d8c489df35805cc24934fd2ea77f79"
-  integrity sha512-F0lrY+11XRBwMZgXUkGMh8EaSmeHCWjRgblRp+PKlce3UUmC4lgbrZYrJdhE2rxDkOS4sz+zL1lnN2qMuejSNg==
+"@azure/arm-cosmosdb@15.4.0-beta.2":
+  version "15.4.0-beta.2"
+  resolved "https://registry.yarnpkg.com/@azure/arm-cosmosdb/-/arm-cosmosdb-15.4.0-beta.2.tgz#de14cd514642ed9d3f3fd79b79466756a657cd79"
+  integrity sha512-BphEKsl9Q07Eom2+qDx84p/wJChjz2geEctuUDThPBTG4NQRELB6973K9zVLm4MT9lO9Vl9n3kNAGS+zdGu2oQ==
   dependencies:
     "@azure/abort-controller" "^1.0.0"
     "@azure/core-auth" "^1.3.0"
-    "@azure/core-client" "^1.0.0"
-    "@azure/core-lro" "^2.2.0"
+    "@azure/core-client" "^1.7.0"
+    "@azure/core-lro" "^2.5.0"
     "@azure/core-paging" "^1.2.0"
-    "@azure/core-rest-pipeline" "^1.1.0"
+    "@azure/core-rest-pipeline" "^1.8.0"
     tslib "^2.2.0"
 
 "@azure/arm-monitor@7.0.0":
@@ -53,7 +53,7 @@
     "@azure/abort-controller" "^1.0.0"
     tslib "^2.2.0"
 
-"@azure/core-client@^1.0.0":
+"@azure/core-client@^1.0.0", "@azure/core-client@^1.7.0":
   version "1.7.2"
   resolved "https://registry.yarnpkg.com/@azure/core-client/-/core-client-1.7.2.tgz#e1e0670c9a5086dd62fd0080d2fd8b426babad9e"
   integrity sha512-ye5554gnVnXdfZ64hptUtETgacXoRWxYv1JF5MctoAzTSH5dXhDPZd9gOjDPyWMcLIk58pnP5+p5vGX6PYn1ag==
@@ -72,6 +72,16 @@
   integrity sha512-JHQy/bA3NOz2WuzOi5zEk6n/TJdAropupxUT521JIJvW7EXV2YN2SFYZrf/2RHeD28QAClGdynYadZsbmP+nyQ==
   dependencies:
     "@azure/abort-controller" "^1.0.0"
+    "@azure/logger" "^1.0.0"
+    tslib "^2.2.0"
+
+"@azure/core-lro@^2.5.0":
+  version "2.5.3"
+  resolved "https://registry.yarnpkg.com/@azure/core-lro/-/core-lro-2.5.3.tgz#6bb74e76dd84071d319abf7025e8abffef091f91"
+  integrity sha512-ubkOf2YCnVtq7KqEJQqAI8dDD5rH1M6OP5kW0KO/JQyTaxLA0N0pjFWvvaysCj9eHMNBcuuoZXhhl0ypjod2DA==
+  dependencies:
+    "@azure/abort-controller" "^1.0.0"
+    "@azure/core-util" "^1.2.0"
     "@azure/logger" "^1.0.0"
     tslib "^2.2.0"
 
@@ -98,6 +108,21 @@
     tslib "^2.2.0"
     uuid "^8.3.0"
 
+"@azure/core-rest-pipeline@^1.8.0":
+  version "1.10.3"
+  resolved "https://registry.yarnpkg.com/@azure/core-rest-pipeline/-/core-rest-pipeline-1.10.3.tgz#7603afd71ff3c290351dbeeab2c814832e47b8ef"
+  integrity sha512-AMQb0ttiGJ0MIV/r+4TVra6U4+90mPeOveehFnrqKlo7dknPJYdJ61wOzYJXJjDxF8LcCtSogfRelkq+fCGFTw==
+  dependencies:
+    "@azure/abort-controller" "^1.0.0"
+    "@azure/core-auth" "^1.4.0"
+    "@azure/core-tracing" "^1.0.1"
+    "@azure/core-util" "^1.3.0"
+    "@azure/logger" "^1.0.0"
+    form-data "^4.0.0"
+    http-proxy-agent "^5.0.0"
+    https-proxy-agent "^5.0.0"
+    tslib "^2.2.0"
+
 "@azure/core-tracing@^1.0.0", "@azure/core-tracing@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@azure/core-tracing/-/core-tracing-1.0.1.tgz#352a38cbea438c4a83c86b314f48017d70ba9503"
@@ -109,6 +134,14 @@
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.2.0.tgz#3499deba1fc36dda6f1912b791809b6f15d4a392"
   integrity sha512-ffGIw+Qs8bNKNLxz5UPkz4/VBM/EZY07mPve1ZYFqYUdPwFqRj0RPk0U7LZMOfT7GCck9YjuT1Rfp1PApNl1ng==
+  dependencies:
+    "@azure/abort-controller" "^1.0.0"
+    tslib "^2.2.0"
+
+"@azure/core-util@^1.2.0", "@azure/core-util@^1.3.0":
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.3.2.tgz#3f8cfda1e87fac0ce84f8c1a42fcd6d2a986632d"
+  integrity sha512-2bECOUh88RvL1pMZTcc6OzfobBeWDBf5oBbhjIhT1MV9otMVWCzpOJkkiKtrnO88y5GGBelgY8At73KGAdbkeQ==
   dependencies:
     "@azure/abort-controller" "^1.0.0"
     tslib "^2.2.0"

@@ -16,6 +16,13 @@ export interface ICosmosDbDatabaseAccountInfo {
   documentEndpoint: string | undefined;
 }
 
+export interface ICosmosDbClusterInfo {
+  provisioningStatus: string;
+  location: string;
+  serverVersion: string;
+  clusterStatus: string;
+}
+
 export interface ICosmosDbDatabaseInfo {
   name: string;
   nbCollections: number | undefined;
