@@ -126,9 +126,7 @@ export class ArmServiceMongo extends AbstractArmService {
 
     showStatusBarItem(localize("retrievingMongoDbDatabases", "Retrieving mongodb databases..."));
     const mongoDBResources = [];
-    for await (let page of client.mongoDBResources
-      .listMongoDBDatabases(resourceGroup, cosmosDbAccountName)
-      .byPage()) {
+    for await (let page of client.mongoDBResources.listMongoDBDatabases(resourceGroup, cosmosDbAccountName).byPage()) {
       for (const sqlDatabaseGetResult of page) {
         mongoDBResources.push(sqlDatabaseGetResult);
       }

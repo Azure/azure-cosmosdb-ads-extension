@@ -126,9 +126,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
     showStatusBarItem(localize("retrievingSqlDatabases", "Retrieving sql databases..."));
     const sqlResources = [];
-    for await (let page of client.sqlResources
-      .listSqlDatabases(resourceGroup, cosmosDbAccountName)
-      .byPage()) {
+    for await (let page of client.sqlResources.listSqlDatabases(resourceGroup, cosmosDbAccountName).byPage()) {
       for (const sqlDatabaseGetResult of page) {
         sqlResources.push(sqlDatabaseGetResult);
       }
