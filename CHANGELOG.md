@@ -58,7 +58,7 @@
 ### Bug fixes
 * Fix getConnectionString in connection provider for multiple connections
 
-## [0.3.2] - 5/9/2023
+## [0.3.3] - 5/9/2023
 
 ### New changes
 * Double-clicking on collection node opens dashboard
