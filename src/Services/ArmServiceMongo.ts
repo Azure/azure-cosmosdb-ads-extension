@@ -78,7 +78,7 @@ export class ArmServiceMongo extends AbstractArmService {
     let nbCollections = 0;
     for await (let page of client.mongoDBResources
       .listMongoDBCollections(resourceGroupName, accountName, databaseName)
-      .byPage({ maxPageSize: 20 })) {
+      .byPage()) {
       for (const resource of page) {
         nbCollections++;
       }
@@ -126,9 +126,7 @@ export class ArmServiceMongo extends AbstractArmService {
 
     showStatusBarItem(localize("retrievingMongoDbDatabases", "Retrieving mongodb databases..."));
     const mongoDBResources = [];
-    for await (let page of client.mongoDBResources
-      .listMongoDBDatabases(resourceGroup, cosmosDbAccountName)
-      .byPage({ maxPageSize: 20 })) {
+    for await (let page of client.mongoDBResources.listMongoDBDatabases(resourceGroup, cosmosDbAccountName).byPage()) {
       for (const sqlDatabaseGetResult of page) {
         mongoDBResources.push(sqlDatabaseGetResult);
       }
@@ -261,7 +259,7 @@ export class ArmServiceMongo extends AbstractArmService {
     const mongoDBResources = [];
     for await (let page of client.mongoDBResources
       .listMongoDBCollections(resourceGroup, cosmosDbAccountName, databaseName)
-      .byPage({ maxPageSize: 20 })) {
+      .byPage()) {
       for (const sqlDatabaseGetResult of page) {
         mongoDBResources.push(sqlDatabaseGetResult);
       }

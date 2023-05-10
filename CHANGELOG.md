@@ -56,5 +56,17 @@
 
 ## [0.3.1] - 3/27/2023
 ### Bug fixes
-* Fix ggetConnectionString in connection provider for multiple connections
+* Fix getConnectionString in connection provider for multiple connections
 
+## [0.3.3] - 5/9/2023
+
+### New changes
+* Double-clicking on collection node opens dashboard
+* Add esbuild bundler
+* Display connection error to user
+* Alpha sort databases and collections when displayed in tree or dashboards
+* Add License section to README
+* Improve vCore auth handling and dashboards
+### Bug fixes
+* Fix Mongo Shell executable flag on *NIX
+* Fix issue with Mongo Shell called from tree ([#71](https://github.com/Azure/azure-cosmosdb-ads-extension/issues))

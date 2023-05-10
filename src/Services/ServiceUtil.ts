@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as azdata from "azdata";
 import { MongoProviderId } from "../Providers/connectionProvider";
+import { convertToConnectionOptions, IConnectionOptions } from "../models";
 
 const localize = nls.loadMessageBundle();
 
@@ -35,7 +36,23 @@ export interface SampleData {
   };
 }
 
-export const isAzureConnection = (connectionInfo: azdata.ConnectionInfo): boolean =>
-  isAzureAuthType(connectionInfo.options["authenticationType"]);
+export const isAzureConnection = (connectionInfo: azdata.ConnectionInfo | IConnectionOptions): boolean => {
+  const info = "options" in connectionInfo ? convertToConnectionOptions(connectionInfo) : connectionInfo;
+  if (isAzureAuthType(info.authenticationType)) {
+    return true;
+  }
+  if (info.azureAccount !== undefined && info.azureResourceId !== undefined && info.azureTenantId !== undefined) {
+    return true;
+  }
+  /*
+    const server: string = connectionInfo.options["server"];//
+    let startDomain: number;
+    const clusterDomain = ".mongocluster.cosmos.azure.com";
+    if ((startDomain = server.indexOf(clusterDomain)) > 0 && server.length === startDomain + clusterDomain.length) {
+      return true;
+    }
+    */
+  return false;
+};
 
 export const isAzureAuthType = (authenticationType: string | undefined): boolean => authenticationType === "AzureMFA";

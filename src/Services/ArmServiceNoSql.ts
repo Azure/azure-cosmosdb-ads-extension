@@ -78,7 +78,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     let nbCollections = 0;
     for await (let page of client.sqlResources
       .listSqlContainers(resourceGroupName, accountName, databaseName)
-      .byPage({ maxPageSize: 20 })) {
+      .byPage()) {
       for (const resource of page) {
         nbCollections++;
       }
@@ -126,9 +126,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
     showStatusBarItem(localize("retrievingSqlDatabases", "Retrieving sql databases..."));
     const sqlResources = [];
-    for await (let page of client.sqlResources
-      .listSqlDatabases(resourceGroup, cosmosDbAccountName)
-      .byPage({ maxPageSize: 20 })) {
+    for await (let page of client.sqlResources.listSqlDatabases(resourceGroup, cosmosDbAccountName).byPage()) {
       for (const sqlDatabaseGetResult of page) {
         sqlResources.push(sqlDatabaseGetResult);
       }
@@ -262,7 +260,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     const sqlResources = [];
     for await (let page of client.sqlResources
       .listSqlContainers(resourceGroup, cosmosDbAccountName, databaseName)
-      .byPage({ maxPageSize: 20 })) {
+      .byPage()) {
       for (const sqlDatabaseGetResult of page) {
         sqlResources.push(sqlDatabaseGetResult);
       }
