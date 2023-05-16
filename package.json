@@ -301,13 +301,14 @@
             "isIdentity": false,
             "name": "isServer",
             "displayName": "Cluster Server",
-            "description": "true if Mongo Atlas Cluster; false otherwise",
+            "description": "true for Mongo Cluster; false otherwise",
             "groupName": "Connection",
             "valueType": "boolean",
-            "defaultValue": false,
+            "defaultValue": "false",
             "objectType": null,
             "isRequired": false,
-            "isArray": false
+            "isArray": false,
+            "showOnConnectionDialog": true
           }
         ]
       },
