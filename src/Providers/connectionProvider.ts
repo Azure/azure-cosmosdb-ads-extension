@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as semver from "semver";
 import { v4 as uuid } from "uuid";
-import { AppContext } from "../appContext";
+import { AppContext, hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
 import { convertToConnectionOptions } from "../models";
 import { AbstractBackendService } from "../Services/AbstractBackendService";
@@ -66,11 +66,14 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
       }
 
       try {
+        showStatusBarItem(localize("connecting", "Connecting to {0}...", server));
         await this.backendService.connect(server, connectionString);
       } catch (e) {
         const errorMessage = `${localize("failConnect", "Failed to connect")}: ${(e as Error).message}`;
         showErrorMessage(errorMessage);
         return reject(errorMessage);
+      } finally {
+        hideStatusBarItem();
       }
 
       this.onConnectionCompleteEmitter.fire({
