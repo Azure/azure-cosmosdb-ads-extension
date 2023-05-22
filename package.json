@@ -3,7 +3,7 @@
   "displayName": "Cosmos DB ADS Extension",
   "description": "Cosmos DB Azure Data Studio extension",
   "publisher": "Microsoft",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "icon": "resources/catalog/CosmosDBExtension.png",
   "aiKey": "29a207bb14f84905966a8f22524cb730-25407f35-11b6-4d4e-8114-ab9e843cb52f-7380",
   "preview": true,
@@ -301,136 +301,14 @@
             "isIdentity": false,
             "name": "isServer",
             "displayName": "Cluster Server",
-            "description": "true if Mongo Atlas Cluster; false otherwise",
+            "description": "true for Mongo Cluster; false otherwise",
             "groupName": "Connection",
             "valueType": "boolean",
-            "defaultValue": false,
+            "defaultValue": "false",
             "objectType": null,
             "isRequired": false,
-            "isArray": false
-          }
-        ]
-      },
-      {
-        "providerId": "COSMOSDB_NOSQL",
-        "languageMode": "cosmosdb",
-        "displayName": "Cosmos DB NoSql",
-        "isQueryProvider": false,
-        "connectionStringOptions": {
-          "isEnabled": true,
-          "isDefault": true
-        },
-        "iconPath": [
-          {
-            "id": "cosmosdb",
-            "path": {
-              "light": "resources/light/cosmosdb.svg",
-              "dark": "resources/dark/cosmosdb-inverse.svg"
-            },
-            "default": true
-          }
-        ],
-        "connectionOptions": [
-          {
-            "specialValueType": "connectionName",
-            "isIdentity": true,
-            "name": "connectionName",
-            "displayName": "",
-            "description": "",
-            "groupName": "Source",
-            "valueType": "string",
-            "defaultValue": null,
-            "objectType": null,
-            "categoryValues": null,
-            "isRequired": false,
-            "isArray": false
-          },
-          {
-            "specialValueType": "serverName",
-            "isIdentity": true,
-            "name": "server",
-            "displayName": "Cosmos DB host:port",
-            "description": "Cosmos DB hostname and port",
-            "groupName": "Source",
-            "valueType": "string",
-            "defaultValue": null,
-            "objectType": null,
-            "categoryValues": null,
-            "isRequired": true,
-            "isArray": false
-          },
-          {
-            "specialValueType": "authType",
-            "isIdentity": true,
-            "name": "authenticationType",
-            "displayName": "Authentication type",
-            "description": "",
-            "groupName": "Security",
-            "valueType": "category",
-            "defaultValue": "SqlLogin",
-            "objectType": null,
-            "categoryValues": [
-              {
-                "displayName": "Azure Active Directory - Universal with MFA support",
-                "name": "AzureMFA"
-              }
-            ],
-            "isRequired": true,
-            "isArray": false
-          },
-          {
-            "specialValueType": "userName",
-            "isIdentity": true,
-            "name": "user",
-            "displayName": "Username",
-            "description": "",
-            "groupName": "Security",
-            "valueType": "string",
-            "defaultValue": null,
-            "objectType": null,
-            "categoryValues": null,
-            "isRequired": true,
-            "isArray": false
-          },
-          {
-            "specialValueType": "password",
-            "isIdentity": true,
-            "name": "password",
-            "displayName": "Password",
-            "description": "",
-            "groupName": "Security",
-            "valueType": "password",
-            "defaultValue": null,
-            "objectType": null,
-            "categoryValues": null,
-            "isRequired": true,
-            "isArray": false
-          },
-          {
-            "specialValueType": null,
-            "isIdentity": false,
-            "name": "pathname",
-            "displayName": "Database",
-            "description": "Database name to connect to (optional)",
-            "groupName": "Connection",
-            "valueType": "string",
-            "defaultValue": null,
-            "objectType": null,
-            "isRequired": false,
-            "isArray": false
-          },
-          {
-            "specialValueType": null,
-            "isIdentity": false,
-            "name": "search",
-            "displayName": "Options",
-            "description": "Connection string parameters. E.g. key1=value1&key2=value2",
-            "groupName": "Connection",
-            "valueType": "string",
-            "defaultValue": null,
-            "objectType": null,
-            "isRequired": false,
-            "isArray": false
+            "isArray": false,
+            "showOnConnectionDialog": true
           }
         ]
       }
