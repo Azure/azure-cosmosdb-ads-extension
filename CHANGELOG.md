@@ -70,3 +70,9 @@
 ### Bug fixes
 * Fix Mongo Shell executable flag on *NIX
 * Fix issue with Mongo Shell called from tree ([#71](https://github.com/Azure/azure-cosmosdb-ads-extension/issues))
+
+## [0.3.4] - 5/22/2023
+### New changes
+* Move "Mongo Cluster" checkbox to main connection dialog (out of "Advanced") in "Parameters" view of new connection dialog
+* Improve connection logic and error messages in new connection flow to handle opening with URI
+
