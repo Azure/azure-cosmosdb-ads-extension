@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import * as semver from "semver";
 import { v4 as uuid } from "uuid";
-import { AppContext } from "../appContext";
+import { AppContext, hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { parseMongoConnectionString } from "./connectionString";
 import { convertToConnectionOptions } from "../models";
 import { AbstractBackendService } from "../Services/AbstractBackendService";
@@ -32,67 +32,76 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   onConnectionChanged: vscode.Event<azdata.ChangedConnectionInfo> = this.onConnectionChangedEmitter.event;
 
   async connect(connectionUri: string, connectionInfo: azdata.ConnectionInfo): Promise<boolean> {
-    const showErrorMessage = (errorMessage: string) => {
+    return new Promise<boolean>(async (resolve, reject) => {
+      const showErrorMessage = (errorMessage: string) => {
+        this.onConnectionCompleteEmitter.fire({
+          ownerUri: connectionUri,
+          errorMessage,
+        } as any);
+      };
+
+      console.log(`ConnectionProvider.connect ${connectionUri}`);
+
+      const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
+      const connectionOptions = convertToConnectionOptions(connectionInfo);
+      this.connectionUriToServerMap.set(connectionUri, server);
+
+      let connectionString;
+      try {
+        connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(
+          connectionOptions,
+          true
+        );
+        this.connectionUriToConnectionStringMap.set(connectionUri, connectionString);
+      } catch (e) {
+        const errorMessage = (e as Error).message;
+        showErrorMessage(errorMessage);
+        return reject(errorMessage);
+      }
+
+      if (!connectionString) {
+        const errorMessage = localize("failRetrieveCredentials", "Unable to retrieve credentials");
+        showErrorMessage(errorMessage);
+        return reject(errorMessage);
+      }
+
+      try {
+        showStatusBarItem(localize("connecting", "Connecting to {0}...", server));
+        await this.backendService.connect(server, connectionString);
+      } catch (e) {
+        const errorMessage = `${localize("failConnect", "Failed to connect")}: ${(e as Error).message}`;
+        showErrorMessage(errorMessage);
+        return reject(errorMessage);
+      } finally {
+        hideStatusBarItem();
+      }
+
       this.onConnectionCompleteEmitter.fire({
+        connectionId: uuid(),
         ownerUri: connectionUri,
-        errorMessage,
-      } as any);
-    };
-
-    console.log(`ConnectionProvider.connect ${connectionUri}`);
-
-    const server = connectionInfo.options[AppContext.CONNECTION_INFO_KEY_PROP];
-    const connectionOptions = convertToConnectionOptions(connectionInfo);
-    this.connectionUriToServerMap.set(connectionUri, server);
-
-    let connectionString;
-    try {
-      connectionString = await this.backendService.retrieveConnectionStringFromConnectionOptions(
-        connectionOptions,
-        true
-      );
-      this.connectionUriToConnectionStringMap.set(connectionUri, connectionString);
-    } catch (e) {
-      showErrorMessage((e as { message: string }).message);
-      return false;
-    }
-
-    if (!connectionString) {
-      showErrorMessage(localize("failRetrieveCredentials", "Unable to retrieve credentials"));
-      return false;
-    }
-
-    try {
-      await this.backendService.connect(server, connectionString);
-    } catch (e) {
-      showErrorMessage(`${localize("failConnect", "Failed to connect")}: ${(e as { message: string }).message}`);
-      return false;
-    }
-
-    this.onConnectionCompleteEmitter.fire({
-      connectionId: uuid(),
-      ownerUri: connectionUri,
-      messages: "",
-      errorMessage: "",
-      errorNumber: 0,
-      connectionSummary: {
-        serverName: "",
-        userName: "",
-      },
-      serverInfo: {
-        serverReleaseVersion: 1,
-        engineEditionId: 1,
-        serverVersion: "1.0",
-        serverLevel: "",
-        serverEdition: "",
-        isCloud: true,
-        azureVersion: 1,
-        osVersion: "",
-        options: {},
-      },
+        messages: "",
+        errorMessage: "",
+        errorNumber: 0,
+        connectionSummary: {
+          serverName: "",
+          userName: "",
+        },
+        serverInfo: {
+          serverReleaseVersion: 1,
+          engineEditionId: 1,
+          serverVersion: "1.0",
+          serverLevel: "",
+          serverEdition: "",
+          isCloud: true,
+          azureVersion: 1,
+          osVersion: "",
+          options: {},
+        },
+      });
+      return resolve(true);
     });
-    return Promise.resolve(true);
   }
+
   disconnect(connectionUri: string): Promise<boolean> {
     console.log("ConnectionProvider.disconnect");
     if (!this.connectionUriToServerMap.has(connectionUri)) {
