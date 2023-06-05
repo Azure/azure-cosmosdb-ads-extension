@@ -538,6 +538,7 @@
     "semver": "^7.3.2",
     "tar": "6.1.11",
     "vscode-nls": "5.0.0",
+    "vscode-jsonrpc": "8.1.0",
     "yauzl": "2.10.0"
   },
   "devDependencies": {
