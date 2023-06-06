@@ -14,9 +14,7 @@ import { CosmosDbMongoHomeDashboard } from "./CosmosDbMongoHomeDashboard";
 import { CosmosDbNoSqlHomeDashboard } from "./CosmosDbNoSqlHomeDashboard";
 import { CosmosDbMongoClusterHomeDashboard } from "./CosmosDbMongoClusterHomeDashboard";
 
-const dashboards = [];
-
-export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
+export const registerHomeDashboardTabs = (context: vscode.ExtensionContext, appContext: AppContext): void => {
   const cosmosDbMongoHomeDashboard = new CosmosDbMongoHomeDashboard(appContext.reporter, new ArmServiceMongo());
   const cosmosDbNoSqlHomeDashboard = new CosmosDbNoSqlHomeDashboard(appContext.reporter, new ArmServiceNoSql());
   const cosmosDbMongoClusterHomeDashboard = new CosmosDbMongoClusterHomeDashboard(
@@ -25,9 +23,6 @@ export const registerMongoHomeDashboardTabs = (context: vscode.ExtensionContext,
     new ArmServiceMongo()
   );
   const nativeMongoDashboard = new NativeMongoHomeDashboard(appContext.reporter, appContext.mongoService);
-  dashboards.push(cosmosDbMongoHomeDashboard);
-  dashboards.push(cosmosDbNoSqlHomeDashboard);
-  dashboards.push(nativeMongoDashboard);
 
   azdata.ui.registerModelViewProvider("mongo-account-home", async (view) => {
     await view.initializeModel(

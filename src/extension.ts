@@ -20,7 +20,7 @@ import {
   getNodeInfo,
 } from "./Providers/objectExplorerNodeProvider";
 import { AppContext, createStatusBarItem, hideStatusBarItem, showStatusBarItem } from "./appContext";
-import { registerMongoHomeDashboardTabs } from "./Dashboards/homeDashboard";
+import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
 import ViewLoader from "./QueryClient/ViewLoader";
 import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
@@ -1073,7 +1073,7 @@ export function activate(context: vscode.ExtensionContext) {
   azdata.dataprotocol.registerObjectExplorerProvider(mongoObjectExplorer);
   azdata.dataprotocol.registerObjectExplorerProvider(noSqlObjectExplorer);
 
-  registerMongoHomeDashboardTabs(context, appContext);
+  registerHomeDashboardTabs(context, appContext);
 
   // ensure it gets property disposed
   context.subscriptions.push(reporter);
