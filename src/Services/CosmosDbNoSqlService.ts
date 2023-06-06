@@ -48,10 +48,6 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     return client;
   }
 
-  public hasConnection(server: string): boolean {
-    return this._cosmosClients.has(server);
-  }
-
   public async listDatabases(server: string): Promise<IDatabaseInfo[]> {
     if (!this._cosmosClients.has(server)) {
       return [];

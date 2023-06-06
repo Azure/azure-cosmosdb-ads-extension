@@ -34,10 +34,6 @@ export class MongoService extends AbstractBackendService {
     return mongoClient;
   }
 
-  public hasConnection(server: string): boolean {
-    return this._mongoClients.has(server);
-  }
-
   public async listDatabases(server: string): Promise<IDatabaseInfo[]> {
     if (!this._mongoClients.has(server)) {
       return [];
