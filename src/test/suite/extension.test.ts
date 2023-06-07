@@ -5,8 +5,9 @@ import { after } from "mocha";
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
 import * as vscode from "vscode";
-import { buildMongoConnectionString, parseMongoConnectionString } from "../../Providers/connectionString";
+import { buildMongoConnectionString, parseMongoConnectionString } from "../../Providers/mongoConnectionString";
 import { convertToConnectionOptions } from "../../models";
+import { buildCosmosDbNoSqlConnectionString, parseCosmosDbNoSqlConnectionString } from "../../Providers/cosmosDbNoSqlConnectionString";
 // import * as myExtension from '../../extension';
 
 suite("Extension Test Suite", () => {
@@ -18,7 +19,7 @@ suite("Extension Test Suite", () => {
   });
 });
 
-suite("Connection String Test Suite", () => {
+suite("Mongo connection String Test Suite", () => {
   const csTestInfos: {
     cs: string;
     server: string;
@@ -135,7 +136,7 @@ suite("Connection String Test Suite", () => {
       const parsedUrl = parseMongoConnectionString(csTestInfo.cs);
 
       ["server", "user", "password", "authenticationType", "pathname", "search", "isServer"].forEach((field) =>
-        assert.strictEqual(parsedUrl?.options[field], (csTestInfo as any)[field])
+        assert.strictEqual((csTestInfo as any)[field], parsedUrl?.options[field])
       );
     });
   });
@@ -287,6 +288,118 @@ const areUrlEquivalent = (urlString1: string, urlString2: string): boolean => {
 
   for (const [key2, value2] of url2.searchParams) {
     if (!url1.searchParams.has(key2) || url1.searchParams.get(key2) !== value2) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+suite("CosmosDb NoSql connection String Test Suite", () => {
+  const csTestInfos: {
+    cs: string;
+    server: string;
+    user: string;
+    password: string;
+    authenticationType: string;
+  }[] = [
+    {
+      cs: "AccountEndpoint=https://cdbaccount.documents.azure.com:443/;AccountKey=password==;",
+      server: "cdbaccount.documents.azure.com",
+      user: "https://cdbaccount.documents.azure.com:443/",
+      password: "password==",
+      authenticationType: "SqlLogin",
+    },
+    {
+      cs: "AccountKey=password==;AccountEndpoint=https://cdbaccount.documents.azure.com:443/;",
+      server: "cdbaccount.documents.azure.com",
+      user: "https://cdbaccount.documents.azure.com:443/",
+      password: "password==",
+      authenticationType: "SqlLogin",
+    },
+  ];
+
+  test("Parse and build connection string yields same string 2", () => {
+    csTestInfos.forEach((csTestInfo) => {
+      const parsedUrl = parseCosmosDbNoSqlConnectionString(csTestInfo.cs);
+
+      if (!parsedUrl) {
+        assert.fail(`Failed to parse ${csTestInfo.cs}`);
+      }
+
+      const options = convertToConnectionOptions(parsedUrl);
+      const reconstructedUrl = buildCosmosDbNoSqlConnectionString(options);
+
+      if (!reconstructedUrl) {
+        assert.fail(`Failed to build nosql connection string: ${JSON.stringify(parsedUrl)}`);
+      }
+
+      assert(areCosmosDbNoSqlConnectionStringsEquivalent(reconstructedUrl, csTestInfo.cs));
+    });
+  });
+
+  test("Parse connection string extracts information", () => {
+    csTestInfos.forEach((csTestInfo) => {
+      const parsedUrl = parseCosmosDbNoSqlConnectionString(csTestInfo.cs);
+
+      ["server", "user", "password==", "authenticationType"].forEach((field) =>
+        assert.strictEqual((csTestInfo as any)[field], parsedUrl?.options[field])
+      );
+    });
+  });
+
+  test("Build connection string doesn't work for AzureMFA", () => {
+    const options = {
+      authenticationType: "AzureMFA",
+      user: "user",
+      password: "password",
+    };
+    assert.strictEqual(buildCosmosDbNoSqlConnectionString(options as any), undefined);
+  });
+
+  // test("Build connection string with username/password", () => {
+  //   const options = {
+  //     authenticationType: "SqlLogin",
+  //     user: "username",
+  //     password: "password",
+  //     server: "server",
+  //     pathname: "/pathname",
+  //     search: "?search=blah",
+  //     isServer: false,
+  //   };
+  //   assert.strictEqual(buildMongoConnectionString(options), "mongodb://username:password@server/pathname?search=blah");
+  // });
+});
+
+const areCosmosDbNoSqlConnectionStringsEquivalent = (c1: string, c2: string): boolean => {
+  const components1 = c1.split(";");
+  const components2 = c2.split(";");
+
+  if (components1.length !== components2.length) {
+    return false;
+  }
+
+  const map1 = new Map<string, string>();
+  const map2 = new Map<string, string>();
+
+  components1.forEach((component) => {
+    const [key, value] = component.split("=");
+    map1.set(key, value);
+  });
+
+  components2.forEach((component) => {
+    const [key, value] = component.split("=");
+    map2.set(key, value);
+  });
+
+  for (const [key1, value1] of map1) {
+    if (!map2.has(key1) || map2.get(key1) !== value1) {
+      return false;
+    }
+  }
+
+  for (const [key2, value2] of map2) {
+    if (!map1.has(key2) || map1.get(key2) !== value2) {
       return false;
     }
   }

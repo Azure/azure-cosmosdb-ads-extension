@@ -8,7 +8,7 @@ import { convertToConnectionOptions } from "../models";
 const localize = nls.loadMessageBundle();
 
 export abstract class AbstractDatabaseDashboard {
-  protected refreshCollections?: () => void = undefined;
+  protected refreshContainers?: () => void = undefined;
 
   constructor(protected providerId: string) {}
 
@@ -74,7 +74,7 @@ export abstract class AbstractDatabaseDashboard {
       .component();
   }
 
-  protected abstract buildCollectionsArea(
+  protected abstract buildContainersArea(
     databaseName: string,
     view: azdata.ModelView,
     context: vscode.ExtensionContext,
@@ -91,7 +91,7 @@ export abstract class AbstractDatabaseDashboard {
     const dashboard = azdata.window.createModelViewDashboard(databaseName);
     dashboard.registerTabs(async (view: azdata.ModelView) => {
       const input1 = view.modelBuilder.inputBox().withProps({ value: databaseDashboardInfo.databaseName }).component();
-      const viewItem = await this.buildCollectionsArea(databaseName, view, context, appContext, databaseDashboardInfo);
+      const viewItem = await this.buildContainersArea(databaseName, view, context, appContext, databaseDashboardInfo);
 
       const homeTabContainer = view.modelBuilder
         .flexContainer()

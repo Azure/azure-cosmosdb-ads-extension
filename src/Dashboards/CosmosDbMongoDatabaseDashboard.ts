@@ -20,7 +20,7 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
     super(providerId);
   }
 
-  protected async buildCollectionsArea(
+  protected async buildContainersArea(
     databaseName: string,
     view: azdata.ModelView,
     context: vscode.ExtensionContext,
@@ -29,7 +29,7 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
   ): Promise<azdata.Component> {
     let collections: ICosmosDbCollectionInfo[];
 
-    this.refreshCollections = () => {
+    this.refreshContainers = () => {
       this.armService
         .retrieveCollectionsInfo(
           databaseDashboardInfo.azureAccount,
@@ -56,7 +56,7 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
           tableLoadingComponent.loading = false;
         });
     };
-    this.refreshCollections();
+    this.refreshContainers();
 
     const tableComponent = view.modelBuilder
       .table()
@@ -127,7 +127,7 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
               collections[arg.row]
             );
             if (result) {
-              this.refreshCollections && this.refreshCollections();
+              this.refreshContainers && this.refreshContainers();
             }
             appContext.reporter?.sendActionEvent(
               Telemetry.sources.databaseDashboard,

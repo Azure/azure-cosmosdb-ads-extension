@@ -4,9 +4,10 @@ import * as nls from "vscode-nls";
 import * as semver from "semver";
 import { v4 as uuid } from "uuid";
 import { AppContext, hideStatusBarItem, showStatusBarItem } from "../appContext";
-import { parseMongoConnectionString } from "./connectionString";
+import { parseMongoConnectionString } from "./mongoConnectionString";
 import { convertToConnectionOptions } from "../models";
 import { AbstractBackendService } from "../Services/AbstractBackendService";
+import { parseCosmosDbNoSqlConnectionString } from "./cosmosDbNoSqlConnectionString";
 
 const localize = nls.loadMessageBundle();
 
@@ -146,7 +147,13 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
   buildConnectionInfo?(connectionString: string): Promise<azdata.ConnectionInfo> {
     console.log("ConnectionProvider.buildConnectionInfo");
     try {
-      const info = parseMongoConnectionString(connectionString);
+      let info;
+      if (this.providerId === MongoProviderId) {
+        info = parseMongoConnectionString(connectionString);
+      } else if (this.providerId === NoSqlProviderId) {
+        info = parseCosmosDbNoSqlConnectionString(connectionString);
+      }
+
       if (info) {
         return Promise.resolve(info);
       }

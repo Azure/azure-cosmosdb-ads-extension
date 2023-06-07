@@ -9,7 +9,7 @@ import {
 } from "@azure/cosmos";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { IConnectionOptions, IDatabaseInfo } from "../models";
+import { IConnectionOptions, ICosmosDbContainersInfo, IDatabaseInfo } from "../models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
@@ -20,6 +20,7 @@ import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { SampleData, isAzureAuthType } from "./ServiceUtil";
 import { ArmServiceNoSql } from "./ArmServiceNoSql";
 import { AbstractBackendService } from "./AbstractBackendService";
+import { buildCosmosDbNoSqlConnectionString } from "../Providers/cosmosDbNoSqlConnectionString";
 
 const localize = nls.loadMessageBundle();
 
@@ -403,5 +404,53 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
 
   public getDocuments(serverName: string, databaseName: string, containerName: string): Promise<unknown[]> {
     throw new Error("Method not implemented.");
+  }
+
+  public buildConnectionString(connectionOptions: IConnectionOptions): string | undefined {
+    if (!connectionOptions.server) {
+      return undefined;
+    }
+
+    return buildCosmosDbNoSqlConnectionString(connectionOptions);
+  }
+
+  // Extra methods specific to Cosmos DB NoSQL
+
+  public async retrieveContainersInfo(
+    databaseDashboardInfo: IDatabaseDashboardInfo,
+    databaseName: string
+  ): Promise<ICosmosDbContainersInfo[]> {
+    return new Promise(async (resolve, reject) => {
+      const client = this._cosmosClients.get(databaseDashboardInfo.server);
+      if (!client) {
+        reject(localize("notConnected", "Not connected"));
+        return;
+      }
+
+      const database = client.database(databaseName);
+      if (!database) {
+        reject(localize("failFindDatabase", "Failed to find database {0}", databaseName));
+        return;
+      }
+
+      try {
+        const containers = await database.containers.readAll().fetchAll();
+        const result: ICosmosDbContainersInfo[] = await Promise.all(
+          containers.resources.map(async (container) => {
+            const offer = await database.container(container.id).readOffer();
+            offer.resource?.content?.offerThroughput;
+            return {
+              name: container.id,
+              partitionKey: container.partitionKey?.paths.join(",") ?? "",
+              currentThroughput: offer?.resource?.content?.offerThroughput ?? 0,
+            };
+          })
+        );
+        return resolve(result);
+      } catch (e) {
+        reject(localize("failRetrieveContainers", "Failed to retrieve containers for database {0}", databaseName));
+        return;
+      }
+    });
   }
 }

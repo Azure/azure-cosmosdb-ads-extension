@@ -12,14 +12,14 @@ import { convertToConnectionOptions } from "../models";
 import { buildHeroCard } from "../util";
 import { AbstractArmService } from "../Services/AbstractArmService";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { AbstractCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
-import { systemDefaultPlatform } from "azdata-test/out/util";
+import { AbstractAzureCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
+import { CosmosDbNoSqlService } from "../Services/CosmosDbNoSqlService";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbMongoHomeDashboard extends AbstractCosmosDbHomeDashboard {
+export class AzureCosmosDbNoSqlHomeDashboard extends AbstractAzureCosmosDbHomeDashboard {
   constructor(reporter: TelemetryReporter, armService: AbstractArmService) {
-    super(reporter, armService, "cosmosdb-ads-extension.openMongoDatabaseDashboard");
+    super(reporter, armService, "cosmosdb-ads-extension.openNoSqlDatabaseDashboard");
   }
 
   protected buildToolbar(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer {
@@ -42,26 +42,6 @@ export class CosmosDbMongoHomeDashboard extends AbstractCosmosDbHomeDashboard {
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.toolbarNewDatabase
-          );
-        },
-      },
-      {
-        label: localize("openMongoShell", "Open Mongo Shell"),
-        iconPath: {
-          light: context.asAbsolutePath("resources/light/mongo-shell.svg"),
-          dark: context.asAbsolutePath("resources/dark/mongo-shell-inverse.svg"),
-        },
-        onDidClick: () => {
-          const connectionOptions = convertToConnectionOptions(view.connection);
-          vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", undefined, {
-            ...connectionOptions,
-            databaseName: undefined,
-            serverName: connectionOptions.server,
-          });
-          this.reporter.sendActionEvent(
-            Telemetry.sources.homeDashboard,
-            Telemetry.actions.click,
-            Telemetry.targets.homeDashboard.toolbarOpenMongoShell
           );
         },
       },
@@ -125,28 +105,12 @@ export class CosmosDbMongoHomeDashboard extends AbstractCosmosDbHomeDashboard {
             ...convertToConnectionOptions(view.connection),
           };
           vscode.commands
-            .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
+            .executeCommand("cosmosdb-ads-extension.createNoSqlDatabase", undefined, param)
             .then(() => this.refreshDatabases && this.refreshDatabases());
           this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
             Telemetry.actions.click,
             Telemetry.targets.homeDashboard.gettingStartedNewDatabase
-          );
-        }
-      ),
-      buildHeroCard(
-        view,
-        context.asAbsolutePath("resources/fluent/mongo-shell.svg"),
-        localize("openMongoShell", "Query Data with Mongo Shell"),
-        localize("mongoShellDescription", "Interact with data using Mongo shell"),
-        () => {
-          vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", {
-            connectionProfile: view.connection,
-          });
-          this.reporter.sendActionEvent(
-            Telemetry.sources.homeDashboard,
-            Telemetry.actions.click,
-            Telemetry.targets.homeDashboard.gettingStartedOpenMongoShell
           );
         }
       ),

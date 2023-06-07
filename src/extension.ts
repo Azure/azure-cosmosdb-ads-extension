@@ -34,8 +34,9 @@ import { CosmosDbMongoDatabaseDashboard } from "./Dashboards/CosmosDbMongoDataba
 import { NativeMongoDatabaseDashboard } from "./Dashboards/NativeMongoDatabaseDashboard";
 import { ArmServiceMongo } from "./Services/ArmServiceMongo";
 import { ArmServiceNoSql } from "./Services/ArmServiceNoSql";
-import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
+import { AzureCosmosDbNoSqlDatabaseDashboard } from "./Dashboards/AzureCosmosDbNoSqlDatabaseDashboard";
 import { MAX_IMPORT_FILE_SIZE_BYTES } from "./constant";
+import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -399,7 +400,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const databaseDashboard =
           isAzureConnection(databaseDashboardInfo) && !databaseDashboardInfo.isServer
-            ? new CosmosDbMongoDatabaseDashboard(MongoProviderId, new ArmServiceMongo())
+            ? new CosmosDbMongoDatabaseDashboard(MongoProviderId, appContext.armServiceMongo)
             : new NativeMongoDatabaseDashboard(MongoProviderId);
         databaseDashboard.openDatabaseDashboard(databaseDashboardInfo, appContext, context);
       }
@@ -443,11 +444,17 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        new CosmosDbNoSqlDatabaseDashboard(NoSqlProviderId, new ArmServiceNoSql()).openDatabaseDashboard(
-          databaseDashboardInfo,
-          appContext,
-          context
-        );
+        isAzureConnection(databaseDashboardInfo)
+          ? new AzureCosmosDbNoSqlDatabaseDashboard(NoSqlProviderId, appContext.armServiceNoSql).openDatabaseDashboard(
+              databaseDashboardInfo,
+              appContext,
+              context
+            )
+          : new CosmosDbNoSqlDatabaseDashboard(NoSqlProviderId, appContext.cosmosDbNoSqlService).openDatabaseDashboard(
+              databaseDashboardInfo,
+              appContext,
+              context
+            );
       }
     )
   );

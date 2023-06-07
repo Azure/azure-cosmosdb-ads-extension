@@ -10,7 +10,7 @@ import { MongoService } from "../Services/MongoService";
 import { AbstractArmService } from "../Services/AbstractArmService";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { NativeMongoHomeDashboard } from "./NativeMongoHomeDashboard";
-import { AbstractCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
+import { AbstractAzureCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
 
 const localize = nls.loadMessageBundle();
 
@@ -87,7 +87,7 @@ export class CosmosDbMongoClusterHomeDashboard extends NativeMongoHomeDashboard 
   ): azdata.ButtonComponent[] {
     let heroCardsContainer = super.createGettingStartedDefaultButtons(view, context);
     heroCardsContainer.push(
-      AbstractCosmosDbHomeDashboard.createOpenInPortalButton(view, context, this.reporter, this.armService)
+      AbstractAzureCosmosDbHomeDashboard.createOpenInPortalButton(view, context, this.reporter, this.armService)
     );
     return heroCardsContainer;
   }

@@ -444,6 +444,10 @@
               {
                 "displayName": "Azure Active Directory - Universal with MFA support",
                 "name": "AzureMFA"
+              },
+              {
+                "displayName": "Basic",
+                "name": "SqlLogin"
               }
             ],
             "isRequired": true,

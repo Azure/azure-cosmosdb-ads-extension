@@ -42,6 +42,12 @@ export interface ICosmosDbCollectionInfo {
   shardKey: { [propertyName: string]: string } | undefined;
 }
 
+export interface ICosmosDbContainersInfo {
+  name: string;
+  currentThroughput: number | undefined;
+  partitionKey: string | undefined;
+}
+
 export interface IMongoShellOptions {
   isCosmosDB: boolean;
   connectionString: string | undefined;

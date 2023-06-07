@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { MongoService } from "./Services/MongoService";
 import { CosmosDbNoSqlService } from "./Services/CosmosDbNoSqlService";
+import { ArmServiceMongo } from "./Services/ArmServiceMongo";
+import { ArmServiceNoSql } from "./Services/ArmServiceNoSql";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 
@@ -27,9 +29,13 @@ export class AppContext {
 
   public mongoService: MongoService;
   public cosmosDbNoSqlService: CosmosDbNoSqlService;
+  public armServiceMongo: ArmServiceMongo;
+  public armServiceNoSql: ArmServiceNoSql;
 
   constructor(public reporter: TelemetryReporter) {
     this.mongoService = new MongoService();
     this.cosmosDbNoSqlService = new CosmosDbNoSqlService();
+    this.armServiceMongo = new ArmServiceMongo();
+    this.armServiceNoSql = new ArmServiceNoSql();
   }
 }

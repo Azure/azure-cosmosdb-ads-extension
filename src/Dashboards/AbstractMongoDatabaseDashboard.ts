@@ -12,7 +12,7 @@ import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
 const localize = nls.loadMessageBundle();
 
 export abstract class AbstractMongoDatabaseDashboard extends AbstractDatabaseDashboard {
-  protected refreshCollections?: () => void = undefined;
+  protected refreshContainers?: () => void = undefined;
 
   protected buildToolbar(
     view: azdata.ModelView,
@@ -34,7 +34,7 @@ export abstract class AbstractMongoDatabaseDashboard extends AbstractDatabaseDas
           };
           vscode.commands
             .executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param)
-            .then(() => this.refreshCollections && this.refreshCollections());
+            .then(() => this.refreshContainers && this.refreshContainers());
           appContext.reporter?.sendActionEvent(
             Telemetry.sources.databaseDashboard,
             Telemetry.actions.click,
@@ -67,7 +67,7 @@ export abstract class AbstractMongoDatabaseDashboard extends AbstractDatabaseDas
           dark: context.asAbsolutePath("resources/dark/refresh-inverse.svg"),
         },
         onDidClick: () => {
-          this.refreshCollections && this.refreshCollections();
+          this.refreshContainers && this.refreshContainers();
           appContext.reporter?.sendActionEvent(
             Telemetry.sources.databaseDashboard,
             Telemetry.actions.click,
@@ -107,7 +107,7 @@ export abstract class AbstractMongoDatabaseDashboard extends AbstractDatabaseDas
           };
           vscode.commands
             .executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param)
-            .then(() => this.refreshCollections && this.refreshCollections());
+            .then(() => this.refreshContainers && this.refreshContainers());
           appContext.reporter?.sendActionEvent(
             Telemetry.sources.databaseDashboard,
             Telemetry.actions.click,
@@ -122,7 +122,7 @@ export abstract class AbstractMongoDatabaseDashboard extends AbstractDatabaseDas
         localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
         () => {
           ingestSampleMongoData(appContext, context, databaseDashboardInfo).then(
-            () => this.refreshCollections && this.refreshCollections()
+            () => this.refreshContainers && this.refreshContainers()
           );
           appContext.reporter?.sendActionEvent(
             Telemetry.sources.databaseDashboard,

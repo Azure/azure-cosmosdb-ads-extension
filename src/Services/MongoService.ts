@@ -11,6 +11,7 @@ import { SampleData, askUserForConnectionProfile, isAzureConnection } from "./Se
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { AbstractBackendService } from "./AbstractBackendService";
 import { ArmServiceMongo } from "./ArmServiceMongo";
+import { buildMongoConnectionString } from "../Providers/mongoConnectionString";
 
 const localize = nls.loadMessageBundle();
 
@@ -435,6 +436,10 @@ export class MongoService extends AbstractBackendService {
       const documents = await collection.find({}).toArray();
       resolve(documents);
     });
+  }
+
+  protected buildConnectionString(connectionOptions: IConnectionOptions): string | undefined {
+    return buildMongoConnectionString(connectionOptions);
   }
 }
 
