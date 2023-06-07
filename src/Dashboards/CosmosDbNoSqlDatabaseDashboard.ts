@@ -9,7 +9,7 @@ import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
-import { ICosmosDbCollectionInfo, ICosmosDbContainersInfo } from "../models";
+import { ICosmosDbContainersInfo } from "../models";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { buildHeroCard } from "../util";
@@ -211,7 +211,7 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
 
     tableComponent.onCellAction &&
       tableComponent.onCellAction(async (arg: any /* Bug with definition: ICellActionEventArgs */) => {
-        if (arg.name === "container") {
+        if (arg.name === "Container") {
           vscode.commands.executeCommand(
             "cosmosdb-ads-extension.openNoSqlQuery",
             undefined,

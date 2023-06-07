@@ -7,7 +7,10 @@ import { after } from "mocha";
 import * as vscode from "vscode";
 import { buildMongoConnectionString, parseMongoConnectionString } from "../../Providers/mongoConnectionString";
 import { convertToConnectionOptions } from "../../models";
-import { buildCosmosDbNoSqlConnectionString, parseCosmosDbNoSqlConnectionString } from "../../Providers/cosmosDbNoSqlConnectionString";
+import {
+  buildCosmosDbNoSqlConnectionString,
+  parseCosmosDbNoSqlConnectionString,
+} from "../../Providers/cosmosDbNoSqlConnectionString";
 // import * as myExtension from '../../extension';
 
 suite("Extension Test Suite", () => {
