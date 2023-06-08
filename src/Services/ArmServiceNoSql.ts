@@ -405,8 +405,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
       return !!rpResponse;
     } catch (e) {
-      Promise.reject(e);
-      return false;
+      return Promise.reject(e);
     } finally {
       hideStatusBarItem();
     }
@@ -602,8 +601,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
       return !!rpResponse;
     } catch (e) {
-      Promise.reject(e);
-      return false;
+      return Promise.reject(e);
     } finally {
       hideStatusBarItem();
     }

@@ -41,7 +41,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
    */
   public async connect(server: string, connectionString: string): Promise<CosmosClient> {
     if (!this._cosmosDbProxies.has(server)) {
-      this._cosmosDbProxies.set(server, new CosmosDbProxy(connectionString));
+      this._cosmosDbProxies.set(server, new CosmosDbProxy(server, connectionString));
     }
 
     const client = new CosmosClient(connectionString);

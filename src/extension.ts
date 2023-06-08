@@ -446,15 +446,15 @@ export function activate(context: vscode.ExtensionContext) {
 
         isAzureConnection(databaseDashboardInfo)
           ? new AzureCosmosDbNoSqlDatabaseDashboard(NoSqlProviderId, appContext.armServiceNoSql).openDatabaseDashboard(
-              databaseDashboardInfo,
-              appContext,
-              context
-            )
+            databaseDashboardInfo,
+            appContext,
+            context
+          )
           : new CosmosDbNoSqlDatabaseDashboard(NoSqlProviderId, appContext.cosmosDbNoSqlService).openDatabaseDashboard(
-              databaseDashboardInfo,
-              appContext,
-              context
-            );
+            databaseDashboardInfo,
+            appContext,
+            context
+          );
       }
     )
   );
@@ -582,6 +582,12 @@ export function activate(context: vscode.ExtensionContext) {
                 collectionName!,
                 query
               );
+
+              if (queryResult.documents === undefined) {
+                vscode.window.showErrorMessage(localize("queryFailed", "Query failed"));
+                return;
+              }
+
               console.log("query # results:", queryResult.documents.length, queryResult.pagingInfo);
               view.sendCommand({
                 type: "queryResult",
@@ -622,9 +628,8 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
 
-        const terminalName = `${mongoShellInfo.serverName}${
-          mongoShellInfo.databaseName ? "/" + mongoShellInfo.databaseName : ""
-        }`;
+        const terminalName = `${mongoShellInfo.serverName}${mongoShellInfo.databaseName ? "/" + mongoShellInfo.databaseName : ""
+          }`;
 
         let counter = terminalMap.get(terminalName) ?? -1;
         const isTerminalOpen = terminalMap.size > 0;
@@ -1089,4 +1094,4 @@ export function activate(context: vscode.ExtensionContext) {
 // export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
