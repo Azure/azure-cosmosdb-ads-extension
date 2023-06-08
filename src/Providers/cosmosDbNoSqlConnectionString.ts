@@ -20,11 +20,15 @@ export const parseCosmosDbNoSqlConnectionString = (connectionString: string): az
   let accountEndpoint, accountKey;
 
   if (connectionString.indexOf("AccountEndpoint") < connectionString.indexOf("AccountKey")) {
-    accountEndpoint = components[0].split("=")[1];
-    accountKey = components[1].split("=")[1];
+    accountEndpoint = splitStringOnFirstOccurrence(components[0], "=")[1];
+    accountKey = splitStringOnFirstOccurrence(components[1], "=")[1];
   } else {
-    accountEndpoint = components[1].split("=")[1];
-    accountKey = components[0].split("=")[1];
+    accountEndpoint = splitStringOnFirstOccurrence(components[1], "=")[1];
+    accountKey = splitStringOnFirstOccurrence(components[0], "=")[1];
+  }
+
+  if (!accountEndpoint || !accountKey) {
+    return undefined;
   }
 
   // Extract server from url
@@ -53,4 +57,19 @@ export const buildCosmosDbNoSqlConnectionString = (options: {
   }
 
   return `AccountEndpoint=${options.user};AccountKey=${options.password};`;
+};
+
+/**
+ * The 'AccountKey=key==' field contains the separator as part of the key
+ * @param str
+ * @param separator
+ * @returns
+ */
+export const splitStringOnFirstOccurrence = (str: string, separator: string): [string, string | undefined] => {
+  const index = str.indexOf(separator);
+  if (index === -1) {
+    return [str, undefined];
+  }
+
+  return [str.substring(0, index), str.substring(index + 1)];
 };

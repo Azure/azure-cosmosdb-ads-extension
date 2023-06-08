@@ -446,15 +446,15 @@ export function activate(context: vscode.ExtensionContext) {
 
         isAzureConnection(databaseDashboardInfo)
           ? new AzureCosmosDbNoSqlDatabaseDashboard(NoSqlProviderId, appContext.armServiceNoSql).openDatabaseDashboard(
-            databaseDashboardInfo,
-            appContext,
-            context
-          )
+              databaseDashboardInfo,
+              appContext,
+              context
+            )
           : new CosmosDbNoSqlDatabaseDashboard(NoSqlProviderId, appContext.cosmosDbNoSqlService).openDatabaseDashboard(
-            databaseDashboardInfo,
-            appContext,
-            context
-          );
+              databaseDashboardInfo,
+              appContext,
+              context
+            );
       }
     )
   );
@@ -574,6 +574,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
           },
           onQuerySubmit: async (query: EditorUserQuery) => {
+            showStatusBarItem(localize("runningQuery", "Running query..."));
             console.log("submitquery", query);
             try {
               const queryResult = await appContext.cosmosDbNoSqlService.submitQuery(
@@ -595,6 +596,8 @@ export function activate(context: vscode.ExtensionContext) {
               });
             } catch (e) {
               vscode.window.showErrorMessage(getErrorMessage(e));
+            } finally {
+              hideStatusBarItem();
             }
           },
         });
@@ -628,8 +631,9 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
 
-        const terminalName = `${mongoShellInfo.serverName}${mongoShellInfo.databaseName ? "/" + mongoShellInfo.databaseName : ""
-          }`;
+        const terminalName = `${mongoShellInfo.serverName}${
+          mongoShellInfo.databaseName ? "/" + mongoShellInfo.databaseName : ""
+        }`;
 
         let counter = terminalMap.get(terminalName) ?? -1;
         const isTerminalOpen = terminalMap.size > 0;
@@ -980,7 +984,7 @@ export function activate(context: vscode.ExtensionContext) {
             fs.writeFile(fileUri.fsPath, documentsStr, (error) => {
               if (error) {
                 vscode.window.showErrorMessage(
-                  localize("errorWritingToFile", "Error writing data to file: ${0}", error.message)
+                  localize("errorWritingToFile", "Error writing data to file: {0}", error.message)
                 );
                 return;
               }
@@ -1094,4 +1098,4 @@ export function activate(context: vscode.ExtensionContext) {
 // export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?
 
 // this method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {}

@@ -1,6 +1,5 @@
 import * as assert from "assert";
 import ConnectionString from "mongodb-connection-string-url";
-import { after } from "mocha";
 
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
@@ -10,6 +9,7 @@ import { convertToConnectionOptions } from "../../models";
 import {
   buildCosmosDbNoSqlConnectionString,
   parseCosmosDbNoSqlConnectionString,
+  splitStringOnFirstOccurrence,
 } from "../../Providers/cosmosDbNoSqlConnectionString";
 // import * as myExtension from '../../extension';
 
@@ -307,17 +307,17 @@ suite("CosmosDb NoSql connection String Test Suite", () => {
     authenticationType: string;
   }[] = [
     {
-      cs: "AccountEndpoint=https://cdbaccount.documents.azure.com:443/;AccountKey=password==;",
+      cs: "AccountEndpoint=https://cdbaccount.documents.azure.com:443/;AccountKey=password123==;",
       server: "cdbaccount.documents.azure.com",
       user: "https://cdbaccount.documents.azure.com:443/",
-      password: "password==",
+      password: "password123==",
       authenticationType: "SqlLogin",
     },
     {
-      cs: "AccountKey=password==;AccountEndpoint=https://cdbaccount.documents.azure.com:443/;",
+      cs: "AccountKey=password123==;AccountEndpoint=https://cdbaccount.documents.azure.com:443/;",
       server: "cdbaccount.documents.azure.com",
       user: "https://cdbaccount.documents.azure.com:443/",
-      password: "password==",
+      password: "password123==",
       authenticationType: "SqlLogin",
     },
   ];
@@ -345,7 +345,7 @@ suite("CosmosDb NoSql connection String Test Suite", () => {
     csTestInfos.forEach((csTestInfo) => {
       const parsedUrl = parseCosmosDbNoSqlConnectionString(csTestInfo.cs);
 
-      ["server", "user", "password==", "authenticationType"].forEach((field) =>
+      ["server", "user", "password", "authenticationType"].forEach((field) =>
         assert.strictEqual((csTestInfo as any)[field], parsedUrl?.options[field])
       );
     });
@@ -358,6 +358,14 @@ suite("CosmosDb NoSql connection String Test Suite", () => {
       password: "password",
     };
     assert.strictEqual(buildCosmosDbNoSqlConnectionString(options as any), undefined);
+  });
+
+  test("Split string first occurrence", () => {
+    assert.deepStrictEqual(splitStringOnFirstOccurrence("a=bc", "="), ["a", "bc"]);
+    assert.deepStrictEqual(splitStringOnFirstOccurrence("a=bc=", "="), ["a", "bc="]);
+    assert.deepStrictEqual(splitStringOnFirstOccurrence("a=b=c", "="), ["a", "b=c"]);
+    assert.deepStrictEqual(splitStringOnFirstOccurrence("=b=c", "="), ["", "b=c"]);
+    assert.deepStrictEqual(splitStringOnFirstOccurrence("abc", "="), ["abc", undefined]);
   });
 
   // test("Build connection string with username/password", () => {
@@ -386,12 +394,18 @@ const areCosmosDbNoSqlConnectionStringsEquivalent = (c1: string, c2: string): bo
   const map2 = new Map<string, string>();
 
   components1.forEach((component) => {
-    const [key, value] = component.split("=");
+    const [key, value] = splitStringOnFirstOccurrence(component, "=");
+    if (key === undefined || value === undefined) {
+      return false;
+    }
     map1.set(key, value);
   });
 
   components2.forEach((component) => {
-    const [key, value] = component.split("=");
+    const [key, value] = splitStringOnFirstOccurrence(component, "=");
+    if (key === undefined || value === undefined) {
+      return false;
+    }
     map2.set(key, value);
   });
 
