@@ -8,12 +8,9 @@ namespace Microsoft.Azure.Cosmos.AdsExtensionProxy.DataModel
     public sealed class RequestMessage
     {
         [JsonProperty("command")]
-        public string Command { get; set; }
-
-        [JsonProperty("requestId")]
-        public string RequestId { get; set; }
+        public string? Command { get; set; }
 
         [JsonProperty("payload")]
-        public JObject Payload { get; set; }
+        public JObject? Payload { get; set; }
     }
 }

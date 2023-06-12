@@ -1,4 +1,3 @@
-import ConnectionString from "mongodb-connection-string-url";
 import * as azdata from "azdata";
 
 /**

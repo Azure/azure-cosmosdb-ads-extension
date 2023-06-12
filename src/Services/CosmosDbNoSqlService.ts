@@ -394,6 +394,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
       );
     return {
       documents: result.documents,
+      requestCharge: result.requestCharge,
       pagingInfo: {
         kind: "infinite",
         continuationToken: result.continuationToken,

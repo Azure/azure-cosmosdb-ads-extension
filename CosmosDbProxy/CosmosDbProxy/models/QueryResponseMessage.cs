@@ -1,24 +1,23 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.ObjectModel;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 
 namespace Microsoft.Azure.Cosmos.AdsExtensionProxy.DataModel
 {
-    public sealed class QueryResponseMessage : ResponseMessage
+    public sealed class QueryResponseMessage
     {
-        public QueryResponseMessage()
-        {
-            Command = "queryResult";
-        }
-
         [JsonProperty("documents")]
-        public Collection<dynamic> Documents { get; set; }
+        public Collection<dynamic>? Documents { get; set; }
 
         [JsonProperty("continuationToken")]
-        public string ContinuationToken { get; set; }
+        public string? ContinuationToken { get; set; }
 
         [JsonProperty("maxCount")]
         public int MaxCount { get; set; }
+
+        [JsonProperty("requestCharge")]
+        public double RequestCharge { get; set; }
+
+        [JsonProperty("count")]
+        public int Count { get; set; }
     }
 }

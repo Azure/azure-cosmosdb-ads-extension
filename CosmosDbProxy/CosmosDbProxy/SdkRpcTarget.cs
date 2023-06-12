@@ -182,6 +182,8 @@
       );
       QueryResponseMessage responseMessage = new QueryResponseMessage();
       responseMessage.Documents = new Collection<dynamic>();
+      responseMessage.RequestCharge = 0;
+      responseMessage.Count = 0;
 
       // Iterate query result pages
       while (feed.HasMoreResults)
@@ -195,6 +197,9 @@
           //WriteToStdErr($"Found item:\t{item.ToString()}");
           responseMessage.Documents.Add(item);
         }
+
+        responseMessage.RequestCharge += response.RequestCharge;
+        responseMessage.Count += response.Count;
 
         // Get continuation token once we've gotten > 0 results.
         //if (response.Count > 0)

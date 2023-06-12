@@ -27,6 +27,17 @@ export type CosmosDbProxyRequest =
       payload?: undefined;
     };
 
+/**
+ * Response from Cosmos DB noSQL proxy
+ */
+interface QueryResponseMessage {
+  documents: unknown[];
+  continuationToken: string | undefined;
+  maxCount: number | undefined;
+  requestCharge: number | undefined;
+  count: number | undefined;
+}
+
 export class CosmosDbProxy {
   private static readonly EXECUTABLE_PATH = "dotnet";
   // dirname is the "dist/" folder
@@ -158,7 +169,7 @@ export class CosmosDbProxy {
     queryText: string,
     continuationToken: string | undefined,
     maxCount: number
-  ): Promise<any> {
+  ): Promise<QueryResponseMessage> {
     return await this.sendRequest({
       command: "ExecuteQuery",
       payload: {

@@ -6,6 +6,6 @@ namespace Microsoft.Azure.Cosmos.AdsExtensionProxy.DataModel
     public sealed class ConnectPayload
     {
         [JsonProperty("connectionString")]
-        public string ConnectionString { get; set; }
+        public string? ConnectionString { get; set; }
     }
 }
