@@ -33,8 +33,10 @@ export class AppContext {
   public armServiceMongo: ArmServiceMongo;
   public armServiceNoSql: ArmServiceNoSql;
 
-  // Cache view loader per server
+  // Cache view loader per container
   private _viewLoaders: Map<string, ViewLoader> = new Map<string, ViewLoader>();
+  // Cache query results for infinite paging
+  private _cachedQueryResultDocuments: Map<string, any> = new Map<string, any>();
 
   constructor(public reporter: TelemetryReporter) {
     this.mongoService = new MongoService();
@@ -49,17 +51,38 @@ export class AppContext {
     this._viewLoaders.forEach((viewLoader) => viewLoader.dispose());
   }
 
-  public getViewLoader(server: string, options: ViewLoaderOptions): ViewLoader {
-    if (!this._viewLoaders.has(server)) {
-      this._viewLoaders.set(server, new ViewLoader(options));
-    }
-
-    return this._viewLoaders.get(server)!;
+  private static buildCacheKey(server: string, databaseName: string, containerName: string): string {
+    return `${server}_${databaseName}_${containerName}`;
   }
 
-  public removeViewLoader(server: string): void {
-    if (this._viewLoaders.has(server)) {
-      this._viewLoaders.delete(server);
+  public getCachedQueryResultDocuments(server: string, databaseName: string, containerName: string): any {
+    const key = AppContext.buildCacheKey(server, databaseName, containerName);
+    return this._cachedQueryResultDocuments.get(key);
+  }
+
+  public setCachedQueryResultDocuments(server: string, databaseName: string, containerName: string, value: any) {
+    const key = AppContext.buildCacheKey(server, databaseName, containerName);
+    return this._cachedQueryResultDocuments.set(key, value);
+  }
+
+  public getViewLoader(
+    server: string,
+    databaseName: string,
+    containerName: string,
+    options: ViewLoaderOptions
+  ): ViewLoader {
+    const key = AppContext.buildCacheKey(server, databaseName, containerName);
+    if (!this._viewLoaders.has(key)) {
+      this._viewLoaders.set(key, new ViewLoader(options));
+    }
+
+    return this._viewLoaders.get(key)!;
+  }
+
+  public removeViewLoader(server: string, databaseName: string, containerName: string): void {
+    const key = AppContext.buildCacheKey(server, databaseName, containerName);
+    if (this._viewLoaders.has(key)) {
+      this._viewLoaders.delete(key);
     }
   }
 }

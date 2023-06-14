@@ -469,7 +469,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const server = connectionOptions.server;
-        const view = appContext.getViewLoader(server, {
+        const view = appContext.getViewLoader(server, databaseName, collectionName, {
           extensionPath: context.extensionPath,
           title: collectionName,
           onReady: () => {
@@ -503,7 +503,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
           },
           onDidDispose: () => {
-            appContext.removeViewLoader(server);
+            appContext.removeViewLoader(server, databaseName, collectionName);
           },
         });
         view.reveal();
@@ -518,7 +518,7 @@ export function activate(context: vscode.ExtensionContext) {
         objectExplorerContext: azdata.ObjectExplorerContext,
         connectionOptions?: IConnectionOptions,
         databaseName?: string,
-        collectionName?: string
+        containerName?: string
       ) => {
         if (objectExplorerContext) {
           // Opened from tree item context menu
@@ -535,7 +535,7 @@ export function activate(context: vscode.ExtensionContext) {
           connectionOptions = convertToConnectionOptions(objectExplorerContext.connectionProfile!);
           const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
           databaseName = nodeInfo.databaseName;
-          collectionName = nodeInfo.collectionName;
+          containerName = nodeInfo.collectionName;
         }
 
         if (!connectionOptions) {
@@ -553,23 +553,25 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
 
-        if (!databaseName || !collectionName) {
+        if (!databaseName || !containerName) {
           // TODO ask user for database and collection
           vscode.window.showErrorMessage(localize("missingDatabaseName", "Database not specified"));
           return Promise.reject();
         }
 
+        // Cache
         const server = connectionOptions.server;
-        const view = appContext.getViewLoader(server, {
+
+        const view = appContext.getViewLoader(server, databaseName, containerName, {
           extensionPath: context.extensionPath,
-          title: collectionName,
+          title: containerName,
           onReady: () => {
             view.sendCommand({
               type: "initialize",
               data: {
                 connectionId: connectionOptions!.server,
                 databaseName: databaseName!,
-                containerName: collectionName!,
+                containerName: containerName!,
                 pagingType: "infinite",
                 defaultQueryText: "select * from c",
               },
@@ -582,7 +584,7 @@ export function activate(context: vscode.ExtensionContext) {
               const queryResult = await appContext.cosmosDbNoSqlService.submitQuery(
                 connectionOptions!,
                 databaseName!,
-                collectionName!,
+                containerName!,
                 query
               );
 
@@ -591,7 +593,17 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
               }
 
-              // FIX THIS PLACE: CACHE RESULT TO ADD MORE RESULTS
+              if (query.pagingInfo.kind === "infinite" && query.pagingInfo.continuationToken) {
+                const cachedResultDocuments = appContext.getCachedQueryResultDocuments(
+                  server,
+                  databaseName!,
+                  containerName!
+                );
+                if (cachedResultDocuments) {
+                  queryResult.documents = cachedResultDocuments!.concat(queryResult.documents);
+                }
+              }
+              appContext.setCachedQueryResultDocuments(server, databaseName!, containerName!, queryResult.documents);
 
               console.log("query # results:", queryResult.documents.length, queryResult.pagingInfo);
               view.sendCommand({
@@ -605,7 +617,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
           },
           onDidDispose: () => {
-            appContext.removeViewLoader(server);
+            appContext.removeViewLoader(server, databaseName!, containerName!);
           },
         });
         view.reveal();
