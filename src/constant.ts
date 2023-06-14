@@ -3,6 +3,8 @@ export const LOCAL_RESOURCES_DIR = "local-resources";
 
 export const MAX_IMPORT_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
+export const NOSQL_QUERY_RESULT_MAX_COUNT = 100;
+
 export const Telemetry = {
   actions: {
     click: "Click",

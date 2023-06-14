@@ -468,9 +468,8 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        // TODO Check if one already exists before opening a new one
-
-        const view = new ViewLoader({
+        const server = connectionOptions.server;
+        const view = appContext.getViewLoader(server, {
           extensionPath: context.extensionPath,
           title: collectionName,
           onReady: () => {
@@ -503,7 +502,11 @@ export function activate(context: vscode.ExtensionContext) {
               vscode.window.showErrorMessage(getErrorMessage(e));
             }
           },
+          onDidDispose: () => {
+            appContext.removeViewLoader(server);
+          },
         });
+        view.reveal();
       }
     )
   );
@@ -556,9 +559,8 @@ export function activate(context: vscode.ExtensionContext) {
           return Promise.reject();
         }
 
-        // TODO Check if one already exists before opening a new one
-
-        const view = new ViewLoader({
+        const server = connectionOptions.server;
+        const view = appContext.getViewLoader(server, {
           extensionPath: context.extensionPath,
           title: collectionName,
           onReady: () => {
@@ -589,6 +591,8 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
               }
 
+              // FIX THIS PLACE: CACHE RESULT TO ADD MORE RESULTS
+
               console.log("query # results:", queryResult.documents.length, queryResult.pagingInfo);
               view.sendCommand({
                 type: "queryResult",
@@ -600,7 +604,11 @@ export function activate(context: vscode.ExtensionContext) {
               hideStatusBarItem();
             }
           },
+          onDidDispose: () => {
+            appContext.removeViewLoader(server);
+          },
         });
+        view.reveal();
       }
     )
   );
@@ -1093,6 +1101,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // ensure it gets property disposed
   context.subscriptions.push(reporter);
+  context.subscriptions.push(appContext);
 }
 
 // export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?

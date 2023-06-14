@@ -21,6 +21,7 @@ import { SampleData, isAzureAuthType } from "./ServiceUtil";
 import { ArmServiceNoSql } from "./ArmServiceNoSql";
 import { AbstractBackendService } from "./AbstractBackendService";
 import { buildCosmosDbNoSqlConnectionString } from "../Providers/cosmosDbNoSqlConnectionString";
+import { NOSQL_QUERY_RESULT_MAX_COUNT } from "../constant";
 
 const localize = nls.loadMessageBundle();
 
@@ -283,13 +284,23 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   }
 
   public disconnect(server: string): void {
-    if (!this._cosmosClients.has(server)) {
-      return;
+    const client = this._cosmosClients.get(server);
+    if (client) {
+      this._cosmosClients.delete(server);
+      client.dispose();
     }
 
-    const client = this._cosmosClients.get(server);
-    this._cosmosClients.delete(server);
-    return client!.dispose();
+    const proxy = this._cosmosDbProxies.get(server);
+    if (proxy) {
+      this._cosmosDbProxies.delete(server);
+      proxy.dispose();
+    }
+  }
+
+  protected disconnectAll(): void {
+    this._cosmosClients.forEach((_, server) => this.disconnect(server));
+    this._cosmosDbProxies.forEach((proxy) => proxy.dispose());
+    this._cosmosDbProxies.clear();
   }
 
   /**
@@ -390,7 +401,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         containerName,
         query.query,
         (query.pagingInfo as QueryInfinitePaginInfo)?.continuationToken,
-        (query.pagingInfo as QueryInfinitePaginInfo)?.maxCount ?? 20 /* TODO MOVE TO CONSTANT */
+        (query.pagingInfo as QueryInfinitePaginInfo)?.maxCount ?? NOSQL_QUERY_RESULT_MAX_COUNT
       );
     return {
       documents: result.documents,

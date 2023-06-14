@@ -203,7 +203,7 @@
 
         // Get continuation token once we've gotten > 0 results.
         //if (response.Count > 0)
-        if (responseMessage.Documents.Count > queryPayload.MaxCount)
+        if (responseMessage.Documents.Count >= queryPayload.MaxCount)
         {
           responseMessage.ContinuationToken = response.ContinuationToken;
           break;

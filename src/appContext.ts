@@ -4,6 +4,7 @@ import { MongoService } from "./Services/MongoService";
 import { CosmosDbNoSqlService } from "./Services/CosmosDbNoSqlService";
 import { ArmServiceMongo } from "./Services/ArmServiceMongo";
 import { ArmServiceNoSql } from "./Services/ArmServiceNoSql";
+import ViewLoader, { ViewLoaderOptions } from "./QueryClient/ViewLoader";
 
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 
@@ -32,10 +33,33 @@ export class AppContext {
   public armServiceMongo: ArmServiceMongo;
   public armServiceNoSql: ArmServiceNoSql;
 
+  // Cache view loader per server
+  private _viewLoaders: Map<string, ViewLoader> = new Map<string, ViewLoader>();
+
   constructor(public reporter: TelemetryReporter) {
     this.mongoService = new MongoService();
     this.cosmosDbNoSqlService = new CosmosDbNoSqlService();
     this.armServiceMongo = new ArmServiceMongo();
     this.armServiceNoSql = new ArmServiceNoSql();
+  }
+
+  public dispose() {
+    this.mongoService.dispose();
+    this.cosmosDbNoSqlService.dispose();
+    this._viewLoaders.forEach((viewLoader) => viewLoader.dispose());
+  }
+
+  public getViewLoader(server: string, options: ViewLoaderOptions): ViewLoader {
+    if (!this._viewLoaders.has(server)) {
+      this._viewLoaders.set(server, new ViewLoader(options));
+    }
+
+    return this._viewLoaders.get(server)!;
+  }
+
+  public removeViewLoader(server: string): void {
+    if (this._viewLoaders.has(server)) {
+      this._viewLoaders.delete(server);
+    }
   }
 }

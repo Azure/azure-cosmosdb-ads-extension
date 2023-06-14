@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import * as nls from "vscode-nls";
 import { QueryEditorCommand, QueryEditorMessage, EditorUserQuery } from "./messageContract";
 
 export interface ViewLoaderOptions {
@@ -8,14 +7,15 @@ export interface ViewLoaderOptions {
   title: string;
   onReady: () => void;
   onQuerySubmit: (query: EditorUserQuery) => void;
+  onDidDispose: () => void;
 }
 
 export default class ViewLoader {
   private readonly _panel: vscode.WebviewPanel | undefined;
   private _disposables: vscode.Disposable[] = [];
 
-  constructor(private readonly _options: ViewLoaderOptions) {
-    this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", this._options.title, vscode.ViewColumn.One, {
+  constructor(public readonly options: ViewLoaderOptions) {
+    this._panel = vscode.window.createWebviewPanel("cosmosDbQuery", this.options.title, vscode.ViewColumn.One, {
       enableScripts: true,
       retainContextWhenHidden: true, // TODO use vscode getState, setState to save/restore react state
       // localResourceRoots: [
@@ -30,10 +30,10 @@ export default class ViewLoader {
         console.log("onDidReceiveMessage", msg);
         switch (msg.action) {
           case "ready":
-            this._options.onReady();
+            this.options.onReady();
             return;
           case "submitQuery":
-            this._options.onQuerySubmit(msg.query);
+            this.options.onQuerySubmit(msg.query);
             return;
           default:
             console.error("Unrecognized message", JSON.stringify(msg));
@@ -42,6 +42,18 @@ export default class ViewLoader {
       undefined,
       this._disposables
     );
+
+    this._panel.onDidDispose(options.onDidDispose);
+  }
+
+  public dispose() {
+    this._panel?.dispose();
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   public sendCommand(command: QueryEditorMessage) {
@@ -51,6 +63,10 @@ export default class ViewLoader {
     }
 
     this._panel!.webview.postMessage(command);
+  }
+
+  public reveal() {
+    this._panel?.reveal();
   }
 
   private getWebviewContent() {
@@ -65,10 +81,10 @@ export default class ViewLoader {
 
     if (isProduction) {
       scriptUrl = this._panel?.webview
-        .asWebviewUri(vscode.Uri.file(path.join(this._options.extensionPath, "query-editor", "build", jsFile)))
+        .asWebviewUri(vscode.Uri.file(path.join(this.options.extensionPath, "query-editor", "build", jsFile)))
         .toString();
       cssUrl = this._panel?.webview
-        .asWebviewUri(vscode.Uri.file(path.join(this._options.extensionPath, "query-editor", "build", cssFile)))
+        .asWebviewUri(vscode.Uri.file(path.join(this.options.extensionPath, "query-editor", "build", cssFile)))
         .toString();
     } else {
       scriptUrl = `${localServerUrl}/${jsFile}`;
@@ -83,7 +99,6 @@ export default class ViewLoader {
     </head>
     <body>
       <div id="root"></div>
-
       <script src="${scriptUrl}" />
     </body>
     </html>`;

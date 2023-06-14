@@ -267,6 +267,10 @@ export class MongoService extends AbstractBackendService {
     return client!.close();
   }
 
+  protected disconnectAll(): void {
+    this._mongoClients.forEach((_, server) => this.disconnect(server));
+  }
+
   /**
    * Insert collection using mongo client
    * @param server
