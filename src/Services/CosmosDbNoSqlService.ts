@@ -14,7 +14,7 @@ import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
-import { EditorUserQuery, EditorQueryResult, QueryInfinitePaginInfo } from "../QueryClient/messageContract";
+import { EditorUserQuery, EditorQueryResult, QueryInfinitePagingInfo } from "../QueryClient/messageContract";
 import { CosmosDbProxy } from "./CosmosDbProxy";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { SampleData, isAzureAuthType } from "./ServiceUtil";
@@ -400,8 +400,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         databaseName,
         containerName,
         query.query,
-        (query.pagingInfo as QueryInfinitePaginInfo)?.continuationToken,
-        (query.pagingInfo as QueryInfinitePaginInfo)?.maxCount ?? NOSQL_QUERY_RESULT_MAX_COUNT
+        (query.pagingInfo as QueryInfinitePagingInfo)?.continuationToken,
+        (query.pagingInfo as QueryInfinitePagingInfo)?.maxCount ?? NOSQL_QUERY_RESULT_MAX_COUNT
       );
     return {
       documents: result.documents,

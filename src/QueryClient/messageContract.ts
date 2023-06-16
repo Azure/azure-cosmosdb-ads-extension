@@ -5,7 +5,7 @@ export type ResultOffsetPagingInfo = {
   limit: number;
 };
 
-export type ResultInfinitePaginInfo = {
+export type ResultInfinitePagingInfo = {
   kind: "infinite";
   continuationToken?: string;
   maxCount?: number;
@@ -17,7 +17,7 @@ export type QueryOffsetPagingInfo = {
   offset?: number;
 };
 
-export type QueryInfinitePaginInfo = {
+export type QueryInfinitePagingInfo = {
   kind: "infinite";
   continuationToken?: string;
   maxCount?: number;
@@ -25,12 +25,12 @@ export type QueryInfinitePaginInfo = {
 
 export interface EditorUserQuery {
   query: string;
-  pagingInfo: QueryOffsetPagingInfo | QueryInfinitePaginInfo;
+  pagingInfo: QueryOffsetPagingInfo | QueryInfinitePagingInfo;
 }
 
 export interface EditorQueryResult {
   documents: unknown[];
-  pagingInfo?: ResultOffsetPagingInfo | ResultInfinitePaginInfo;
+  pagingInfo?: ResultOffsetPagingInfo | ResultInfinitePagingInfo;
   requestCharge?: number;
 }
 
