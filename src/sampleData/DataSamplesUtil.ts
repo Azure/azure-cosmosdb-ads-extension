@@ -14,11 +14,6 @@ import { Events } from "../constant";
 
 const localize = nls.loadMessageBundle();
 
-export interface CdbCollectionCreateInfo {
-  requiredThroughputRUPS: number;
-  shardKey: string;
-}
-
 let outputChannel: vscode.OutputChannel;
 
 const downloadSampleData = async (extensionPath: string): Promise<string> => {

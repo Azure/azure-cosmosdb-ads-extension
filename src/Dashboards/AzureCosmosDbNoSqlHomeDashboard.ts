@@ -36,7 +36,7 @@ export class AzureCosmosDbNoSqlHomeDashboard extends AbstractAzureCosmosDbHomeDa
             ...convertToConnectionOptions(view.connection),
           };
           vscode.commands
-            .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
+            .executeCommand("cosmosdb-ads-extension.createNoSqlDatabase", undefined, param)
             .then(() => this.refreshDatabases && this.refreshDatabases());
           this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,

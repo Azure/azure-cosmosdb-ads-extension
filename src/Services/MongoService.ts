@@ -5,13 +5,13 @@ import { isCosmosDBAccount } from "../MongoShell/mongoUtils";
 import { convertToConnectionOptions, IConnectionOptions, IDatabaseInfo, IMongoShellOptions } from "../models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
-import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { EditorUserQuery, EditorQueryResult, QueryOffsetPagingInfo } from "../QueryClient/messageContract";
 import { SampleData, askUserForConnectionProfile, isAzureConnection } from "./ServiceUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { AbstractBackendService } from "./AbstractBackendService";
 import { ArmServiceMongo } from "./ArmServiceMongo";
 import { buildMongoConnectionString } from "../Providers/mongoConnectionString";
+import { CdbCollectionCreateInfo } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
@@ -170,15 +170,17 @@ export class MongoService extends AbstractBackendService {
     collectionName?: string,
     cdbCreateInfo?: CdbCollectionCreateInfo
   ): Promise<{ databaseName: string; collectionName: string | undefined }> {
-    return this.armService.createDatabaseAndCollection(
-      connectionOptions.azureAccount,
-      connectionOptions.azureTenantId,
-      connectionOptions.azureResourceId,
-      this.armService.getAccountNameFromOptions(connectionOptions),
-      databaseName,
-      collectionName,
-      cdbCreateInfo
-    );
+    return this.armService
+      .createDatabaseAndContainer(
+        connectionOptions.azureAccount,
+        connectionOptions.azureTenantId,
+        connectionOptions.azureResourceId,
+        this.armService.getAccountNameFromOptions(connectionOptions),
+        databaseName,
+        collectionName,
+        cdbCreateInfo
+      )
+      .then((result) => ({ databaseName: result.databaseName, collectionName: result.containerName }));
   }
 
   /**

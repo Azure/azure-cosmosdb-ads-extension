@@ -3,20 +3,29 @@ import * as nls from "vscode-nls";
 
 const localize = nls.loadMessageBundle();
 
-export interface NewCollectionFormData {
+interface NewContainerFormDataBase {
   isCreateNewDatabase: boolean;
   existingDatabaseId: string;
   newDatabaseInfo: {
     newDatabaseName: string;
     isShareDatabaseThroughput: boolean;
   };
-  newCollectionName: string;
-  isSharded: boolean;
-  shardKey: string | undefined;
-  isProvisionCollectionThroughput: boolean;
+  isProvisionContainerThroughput: boolean;
   isAutoScale: boolean;
   maxThroughputRUPS: number;
   requiredThroughputRUPS: number;
+}
+
+// For mongo only
+export interface NewCollectionFormData extends NewContainerFormDataBase {
+  newCollectionName: string;
+  isSharded: boolean;
+  shardKey: string | undefined;
+}
+
+export interface NewContainerFormData extends NewContainerFormDataBase {
+  newContainerName: string;
+  partitionKey?: string; // TODO Make this required
 }
 
 export interface NewDatabaseFormData {
@@ -32,10 +41,11 @@ const DEFAULT_IS_SHARED_DATABASE_THROUGHPUT = true;
 const DEFAULT_IS_AUTOSCALE = true;
 const DEFAULT_MAX_THROUGHPUT_RUPS = 4000;
 const MIN_REQUIRED_RUPS = 400;
-const DEFAULT_NEW_COLLECTION_NAME = "";
+const DEFAULT_NEW_CONTAINER_NAME = "";
 const DEFAULT_IS_SHARDED = false;
 const DEFAULT_SHARD_KEY = "";
 const DEFAULT_IS_PROVISION_COLL_THROUGHPUT = false;
+const DEFAULT_PARTITION_KEY = "/partitionKey";
 
 /**
  * From https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Cosmos.AccountName/
@@ -361,10 +371,10 @@ export const createNewCollectionDialog = async (
       newDatabaseName: DEFAULT_NEW_DATABASE_NAME,
       isShareDatabaseThroughput: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
     },
-    newCollectionName: collectionName ?? DEFAULT_NEW_COLLECTION_NAME,
+    newCollectionName: collectionName ?? DEFAULT_NEW_CONTAINER_NAME,
     isSharded: DEFAULT_IS_SHARDED,
     shardKey: DEFAULT_SHARD_KEY,
-    isProvisionCollectionThroughput: DEFAULT_IS_PROVISION_COLL_THROUGHPUT,
+    isProvisionContainerThroughput: DEFAULT_IS_PROVISION_COLL_THROUGHPUT,
     isAutoScale: DEFAULT_IS_AUTOSCALE,
     maxThroughputRUPS: DEFAULT_MAX_THROUGHPUT_RUPS,
     requiredThroughputRUPS: MIN_REQUIRED_RUPS,
@@ -531,7 +541,7 @@ export const createNewCollectionDialog = async (
           addThroughputInputsToForm();
         }
       } else {
-        if (model.isProvisionCollectionThroughput) {
+        if (model.isProvisionContainerThroughput) {
           addThroughputInputsToForm();
         }
       }
@@ -563,7 +573,7 @@ export const createNewCollectionDialog = async (
       }
 
       model.newDatabaseInfo.isShareDatabaseThroughput = isSharedThroughput;
-      model.isProvisionCollectionThroughput = !model.newDatabaseInfo.isShareDatabaseThroughput;
+      model.isProvisionContainerThroughput = !model.newDatabaseInfo.isShareDatabaseThroughput;
       renderModel();
     });
 
@@ -585,7 +595,7 @@ export const createNewCollectionDialog = async (
 
       model.existingDatabaseId = databaseId.selected;
       const dbInfo = existingDatabaseIds.find((d) => d.id === model.existingDatabaseId);
-      model.isProvisionCollectionThroughput = dbInfo === undefined || !dbInfo.isSharedThroughput;
+      model.isProvisionContainerThroughput = dbInfo === undefined || !dbInfo.isSharedThroughput;
 
       renderModel();
     });
@@ -688,7 +698,7 @@ export const createNewCollectionDialog = async (
       .withProps({
         required: true,
         multiline: false,
-        value: collectionName ?? DEFAULT_NEW_COLLECTION_NAME,
+        value: collectionName ?? DEFAULT_NEW_CONTAINER_NAME,
         placeHolder: localize("enterNewCollectionName", "Enter new collection name"),
       })
       .withValidation((component) => validateCosmosDbCollectionName(component))
@@ -732,6 +742,375 @@ export const createNewCollectionDialog = async (
     };
 
     let collectionShardingRadioButtonsFormItem: azdata.FormComponent;
+
+    const formBuilder = view.modelBuilder.formContainer();
+    renderModel();
+    const formModel = formBuilder.withLayout({ width: "100%" }).component();
+
+    // Initialization
+    updateNewDatabaseFormItem(databaseSectionContainer, model.isCreateNewDatabase);
+    await view.initializeModel(formModel);
+  });
+
+  return dialog;
+};
+
+export const createNewContainerDialog = async (
+  onCreateClick: (data: NewContainerFormData) => void,
+  existingDatabaseIds: { id: string; isSharedThroughput: boolean }[],
+  databaseName?: string,
+  containerName?: string
+): Promise<azdata.window.Dialog> => {
+  const dialog = azdata.window.createModelViewDialog(localize("newCollection", "New Collection"));
+
+  const model: NewContainerFormData = {
+    isCreateNewDatabase: true,
+    existingDatabaseId: "",
+    newDatabaseInfo: {
+      newDatabaseName: DEFAULT_NEW_DATABASE_NAME,
+      isShareDatabaseThroughput: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
+    },
+    newContainerName: containerName ?? DEFAULT_NEW_CONTAINER_NAME,
+    partitionKey: DEFAULT_PARTITION_KEY,
+    isProvisionContainerThroughput: DEFAULT_IS_PROVISION_COLL_THROUGHPUT,
+    isAutoScale: DEFAULT_IS_AUTOSCALE,
+    maxThroughputRUPS: DEFAULT_MAX_THROUGHPUT_RUPS,
+    requiredThroughputRUPS: MIN_REQUIRED_RUPS,
+  };
+
+  // If the provided databaseName exists already, we're not creating a new database
+  if (databaseName) {
+    model.isCreateNewDatabase = existingDatabaseIds.find((d) => d.id === databaseName) === undefined;
+    if (model.isCreateNewDatabase) {
+      model.newDatabaseInfo.newDatabaseName;
+    } else {
+      model.existingDatabaseId = databaseName;
+    }
+  }
+
+  dialog.okButton.onClick(() => onCreateClick(model));
+  dialog.cancelButton.onClick(() => {});
+  dialog.okButton.label = localize("create", "Create");
+  dialog.cancelButton.label = localize("cancel", "Cancel");
+
+  dialog.registerContent(async (view) => {
+    /**
+     *
+     * @param view
+     * @param isCreateNew true: create new database, false: use existing database
+     */
+    const updateNewDatabaseFormItem = (existingContainer: azdata.DivContainer, isCreateNew: boolean) => {
+      existingContainer.clearItems();
+
+      if (isCreateNew) {
+        existingContainer.addItem(newDatabaseNameInput);
+      } else {
+        existingContainer.addItem(existingDatabaseIdsDropdown);
+      }
+    };
+
+    const renderModel = () => {
+      const addThroughputInputsToForm = () => {
+        throughputRadioButtonsFormItem = createRadioButtonsFormItem(
+          view,
+          "databaseThroughput",
+          localize("autoscale", "Autoscale"),
+          localize("manual400toUnlimited", "Manual (400 - unlimited RU/s)"),
+          model.isAutoScale,
+          (isAutoScale: boolean) => {
+            if (!model.newDatabaseInfo || model.isAutoScale === isAutoScale) {
+              return;
+            }
+
+            model.isAutoScale = isAutoScale;
+            renderModel();
+          },
+          localize("databaseThroughput", "Database Throughput"),
+          createTextToCalculatorContainer(view)
+        );
+
+        formBuilder.addFormItem(throughputRadioButtonsFormItem, {
+          titleFontSize: 14,
+          info: localize(
+            "througphputRequestHelperInfo",
+            "Set the throughput — Request Units per second (RU/s) — required for the workload. A read of a 1 KB document uses 1 RU. Select manual if you plan to scale RU/s yourself. Select autoscale to allow the system to scale RU/s based on usage."
+          ),
+        });
+
+        if (model.isAutoScale) {
+          formBuilder.addFormItem(autoscaleMaxThroughputFormItem, {
+            titleFontSize: 14,
+            componentHeight: 80,
+          });
+        } else {
+          formBuilder.addFormItem(manualThroughputFormItem, {
+            titleFontSize: 14,
+            componentHeight: 80,
+          });
+        }
+      };
+
+      // Clear form
+      try {
+        formBuilder.removeFormItem(databaseNameFormItem);
+        formBuilder.removeFormItem(isSharedThroughputFormItem);
+        formBuilder.removeFormItem(throughputRadioButtonsFormItem);
+        formBuilder.removeFormItem(autoscaleMaxThroughputFormItem);
+        formBuilder.removeFormItem(manualThroughputFormItem);
+        formBuilder.removeFormItem(separatorFormItem);
+        formBuilder.removeFormItem(containerNameInputFormItem);
+        formBuilder.removeFormItem(partitionKeyInputFormItem);
+      } catch (e) {
+        // Ignore errors. We might remove an item that wasn't added
+      }
+
+      formBuilder.addFormItem(databaseNameFormItem, {
+        titleFontSize: 14,
+        info: localize(
+          "databaseHelperInfo",
+          "A database is analogous to a namespace. It is the unit of management for a set of containers."
+        ),
+      });
+
+      if (model.isCreateNewDatabase) {
+        formBuilder.addFormItem(isSharedThroughputFormItem, {
+          titleFontSize: 14,
+          info: localize(
+            "throughputHelperInfo",
+            "Throughput configured at the database level will be shared across all containers within the database."
+          ),
+        });
+
+        if (model.newDatabaseInfo.isShareDatabaseThroughput) {
+          addThroughputInputsToForm();
+        }
+      }
+
+      formBuilder.addFormItem(separatorFormItem, {
+        titleFontSize: 14,
+        componentHeight: 40,
+      });
+
+      formBuilder.addFormItem(containerNameInputFormItem, {
+        titleFontSize: 14,
+        info: localize(
+          "containerHelperInfo",
+          "Unique identifier for the container and used for id-based routing through REST and all SDKs."
+        ),
+      });
+
+      formBuilder.addFormItem(partitionKeyInputFormItem, {
+        titleFontSize: 14,
+        info: localize(
+          "partitionKeyInputInfoHelper",
+          "The partition key is used to automatically distribute data across partitions for scalability. Choose a property in your JSON document that has a wide range of values and evenly distributes request volume. For small read-heavy workloads or write-heavy workloads of any size, id is often a good choice."
+        ),
+      });
+
+      if (model.isCreateNewDatabase) {
+        if (!model.newDatabaseInfo.isShareDatabaseThroughput) {
+          addThroughputInputsToForm();
+        }
+      } else {
+        if (model.isProvisionContainerThroughput) {
+          addThroughputInputsToForm();
+        }
+      }
+    };
+
+    // Create new database
+    const newDatabaseNameInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: databaseName ?? DEFAULT_NEW_DATABASE_NAME,
+        placeHolder: localize("enterNewDatabaseName", "Enter new database name"),
+      })
+      .withValidation((component) => validateCosmosDbDatabaseName(component))
+      .component();
+    newDatabaseNameInput.onTextChanged((text) => (model.newDatabaseInfo.newDatabaseName = text));
+
+    const isSharedThroughput = view.modelBuilder
+      .checkBox()
+      .withProps({
+        checked: DEFAULT_IS_SHARED_DATABASE_THROUGHPUT,
+        label: localize("shareThroughputAcrossContainers", "Share throughput across containers"),
+      })
+      .component();
+    isSharedThroughput.onChanged((isSharedThroughput) => {
+      if (model.newDatabaseInfo.isShareDatabaseThroughput === isSharedThroughput) {
+        return;
+      }
+
+      model.newDatabaseInfo.isShareDatabaseThroughput = isSharedThroughput;
+      model.isProvisionContainerThroughput = !model.newDatabaseInfo.isShareDatabaseThroughput;
+      renderModel();
+    });
+
+    const isSharedThroughputFormItem = {
+      component: isSharedThroughput,
+      title: localize("provisionThroughput", "Provision throughput"),
+    };
+
+    const existingDatabaseIdsDropdown = view.modelBuilder
+      .dropDown()
+      .withProps({
+        values: existingDatabaseIds.map((d) => d.id),
+      })
+      .component();
+    existingDatabaseIdsDropdown.onValueChanged((databaseId) => {
+      if (model.existingDatabaseId === databaseId.selected) {
+        return;
+      }
+
+      model.existingDatabaseId = databaseId.selected;
+      const dbInfo = existingDatabaseIds.find((d) => d.id === model.existingDatabaseId);
+      model.isProvisionContainerThroughput = dbInfo === undefined || !dbInfo.isSharedThroughput;
+
+      renderModel();
+    });
+    if (!model.isCreateNewDatabase) {
+      existingDatabaseIdsDropdown.value = model.existingDatabaseId;
+    }
+
+    let throughputRadioButtonsFormItem: azdata.FormComponent; // Assigned by render
+
+    const autoscaleMaxThroughputInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        inputType: "number",
+        value: model.maxThroughputRUPS.toString(),
+        placeHolder: localize("databaseMaxThroughput", "Database Max throughput"),
+      })
+      .component();
+    autoscaleMaxThroughputInput.onTextChanged(
+      (text) => !isNaN(text) && (model.maxThroughputRUPS = Number.parseInt(text))
+    );
+
+    const autoscaleMaxThroughputFormItem: azdata.FormComponent = {
+      component: autoscaleMaxThroughputInput,
+      title: localize("databaseMaxRu", "Database Max RU/s"),
+      required: true,
+    };
+
+    const manualThroughputInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        inputType: "number",
+        min: MIN_REQUIRED_RUPS,
+        value: model.requiredThroughputRUPS.toString(),
+        placeHolder: localize("databaseRequiredThroughput", "Database required throughput"),
+      })
+      .component();
+    manualThroughputInput.onTextChanged(
+      (text) => !isNaN(text) && (model.requiredThroughputRUPS = Number.parseInt(text))
+    );
+
+    const manualThroughputFormItem: azdata.FormComponent = {
+      component: manualThroughputInput,
+      title: localize("databaseRequiredRu", "Database Required RU/s"),
+      required: true,
+    };
+
+    // Selection between create new or use existing database
+    const createNewRadioButton = view.modelBuilder
+      .radioButton()
+      .withProps({
+        name: "createNewOrExisting",
+        label: localize("createNew", "Create New"),
+        value: "new",
+        checked: model.isCreateNewDatabase,
+      })
+      .component();
+
+    const useExistingRadioButton = view.modelBuilder
+      .radioButton()
+      .withProps({
+        name: "createNewOrExisting",
+        label: localize("useExisting", "Use existing"),
+        value: "existing",
+        checked: !model.isCreateNewDatabase,
+      })
+      .component();
+
+    const createDatabaseRadioButtonsModel: azdata.FlexContainer = view.modelBuilder
+      .flexContainer()
+      .withLayout({ flexFlow: "row", height: 30 })
+      .withItems([createNewRadioButton, useExistingRadioButton])
+      .withProps({ ariaRole: "radiogroup" })
+      .component();
+
+    useExistingRadioButton.onDidChangeCheckedState(async (state) => {
+      if (model.isCreateNewDatabase === !state) {
+        return;
+      }
+
+      model.isCreateNewDatabase = !state;
+      updateNewDatabaseFormItem(databaseSectionContainer, !state);
+      renderModel();
+    });
+
+    const databaseSectionContainer = view.modelBuilder
+      .divContainer()
+      .withProps({
+        CSSStyles: {
+          padding: "0px",
+        },
+      })
+      .component();
+
+    const containerNameInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: containerName ?? DEFAULT_NEW_CONTAINER_NAME,
+        placeHolder: localize("enterNewContainerName", "Enter new container name"),
+      })
+      .withValidation((component) => validateCosmosDbCollectionName(component))
+      .component();
+    containerNameInput.onTextChanged((text) => (model.newContainerName = text));
+
+    const partitionKeyInput = view.modelBuilder
+      .inputBox()
+      .withProps({
+        required: true,
+        multiline: false,
+        value: "",
+        placeHolder: "e.g. /myPartitionKey",
+      })
+      .component();
+    partitionKeyInput.onTextChanged((text) => (model.partitionKey = text));
+
+    const partitionKeyInputFormItem: azdata.FormComponent = {
+      component: partitionKeyInput,
+      title: localize("partitionKey", "Partition key"),
+    };
+
+    const databaseNameFormItem: azdata.FormComponent = {
+      component: view.modelBuilder
+        .divContainer()
+        .withItems([createDatabaseRadioButtonsModel, databaseSectionContainer])
+        .component(),
+      title: localize("databaseName", "Database Name"),
+      required: true,
+    };
+
+    const separatorFormItem = {
+      component: view.modelBuilder.separator().component(),
+      title: undefined,
+    };
+
+    const containerNameInputFormItem = {
+      component: containerNameInput,
+      title: localize("enterContainerName", "Enter Container name"),
+      required: true,
+    };
 
     const formBuilder = view.modelBuilder.formContainer();
     renderModel();

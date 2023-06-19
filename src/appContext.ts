@@ -39,10 +39,10 @@ export class AppContext {
   private _cachedQueryResultDocuments: Map<string, any> = new Map<string, any>();
 
   constructor(public reporter: TelemetryReporter) {
-    this.mongoService = new MongoService();
-    this.cosmosDbNoSqlService = new CosmosDbNoSqlService();
     this.armServiceMongo = new ArmServiceMongo();
     this.armServiceNoSql = new ArmServiceNoSql();
+    this.mongoService = new MongoService();
+    this.cosmosDbNoSqlService = new CosmosDbNoSqlService(this.armServiceNoSql);
   }
 
   public dispose() {

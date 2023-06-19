@@ -13,7 +13,6 @@ import { IConnectionOptions, ICosmosDbContainersInfo, IDatabaseInfo } from "../m
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { EditorUserQuery, EditorQueryResult, QueryInfinitePagingInfo } from "../QueryClient/messageContract";
 import { CosmosDbProxy } from "./CosmosDbProxy";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
@@ -22,6 +21,7 @@ import { ArmServiceNoSql } from "./ArmServiceNoSql";
 import { AbstractBackendService } from "./AbstractBackendService";
 import { buildCosmosDbNoSqlConnectionString } from "../Providers/cosmosDbNoSqlConnectionString";
 import { NOSQL_QUERY_RESULT_MAX_COUNT } from "../constant";
+import { CdbContainerCreateInfo } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
@@ -30,8 +30,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   private _cosmosDbProxies = new Map<string, CosmosDbProxy>();
   public reporter: TelemetryReporter | undefined = undefined;
 
-  constructor() {
-    super(new ArmServiceNoSql());
+  constructor(armService: ArmServiceNoSql) {
+    super(armService);
   }
 
   /**
@@ -129,11 +129,12 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     connectionOptions: IConnectionOptions,
     databaseName?: string,
     containerName?: string,
-    cdbCreateInfo?: CdbCollectionCreateInfo
+    cdbCreateInfo?: CdbContainerCreateInfo
   ): Promise<{ databaseName: string; containerName: string | undefined }> {
+    // TODO We can do everthing with the client
     if (isAzureAuthType(connectionOptions.authenticationType)) {
       return this.armService
-        .createDatabaseAndCollection(
+        .createDatabaseAndContainer(
           connectionOptions.azureAccount,
           connectionOptions.azureTenantId,
           connectionOptions.azureResourceId,
@@ -142,7 +143,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
           containerName,
           cdbCreateInfo
         )
-        .then((result) => ({ ...result, containerName: result.collectionName })); // FIX THIS
+        .then((result) => ({ ...result, containerName: result.containerName }));
     } else {
       return this.createContainerWithCosmosClient(connectionOptions, databaseName, containerName);
     }
@@ -313,7 +314,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     databaseDashboardInfo: IDatabaseDashboardInfo,
     sampleData: SampleData,
     containerName: string,
-    cdbCreateInfo: CdbCollectionCreateInfo
+    cdbCreateInfo: CdbContainerCreateInfo
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected

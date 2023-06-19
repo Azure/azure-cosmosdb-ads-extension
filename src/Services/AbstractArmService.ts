@@ -12,12 +12,21 @@ import {
   ICosmosDbDatabaseInfo,
   ICosmosDbClusterInfo,
 } from "../models";
-import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 
 const localize = nls.loadMessageBundle();
 
 const TOKEN_EXPIRATION_TIMESTAMP = Date.now() + 10_000; // ms since epoch. 10 seconds from now
+
+export interface CdbContainerCreateInfo {
+  requiredThroughputRUPS: number;
+  partitionKey: string;
+}
+
+export interface CdbCollectionCreateInfo {
+  requiredThroughputRUPS: number;
+  shardKey: string;
+}
 
 export const azDataTokenToCoreAuthCredential = (azureToken: azdata.accounts.AccountSecurityToken) => ({
   getToken: () =>
@@ -330,15 +339,16 @@ export abstract class AbstractArmService {
     databaseName?: string
   ): Promise<{ databaseName: string }>;
 
-  public abstract createDatabaseAndCollection(
+  // Same API for container and mongo collection
+  public abstract createDatabaseAndContainer(
     azureAccountId: string,
     azureTenantId: string,
     azureResourceId: string,
     cosmosDbAccountName: string,
     databaseName?: string,
-    collectionName?: string,
-    cdbCreateInfo?: CdbCollectionCreateInfo
-  ): Promise<{ databaseName: string; collectionName: string | undefined }>;
+    containerName?: string,
+    cdbCreateInfo?: CdbContainerCreateInfo | CdbCollectionCreateInfo
+  ): Promise<{ databaseName: string; containerName: string | undefined }>;
 
   public abstract retrieveCollectionsInfo(
     azureAccountId: string,

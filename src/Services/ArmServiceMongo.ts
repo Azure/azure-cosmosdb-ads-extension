@@ -15,9 +15,8 @@ import {
   NewCollectionFormData,
   NewDatabaseFormData,
 } from "../dialogUtil";
-import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
-import { AbstractArmService, azDataTokenToCoreAuthCredential } from "./AbstractArmService";
+import { AbstractArmService, CdbCollectionCreateInfo, azDataTokenToCoreAuthCredential } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
@@ -759,18 +758,18 @@ export class ArmServiceMongo extends AbstractArmService {
    * @param azureResourceId
    * @param cosmosDbAccountName
    * @param databaseName
-   * @param collectionName
+   * @param containerName
    * @returns
    */
-  public createDatabaseAndCollection = async (
+  public createDatabaseAndContainer = async (
     azureAccountId: string,
     azureTenantId: string,
     azureResourceId: string,
     cosmosDbAccountName: string,
     databaseName?: string,
-    collectionName?: string,
+    containerName?: string,
     cdbCreateInfo?: CdbCollectionCreateInfo
-  ): Promise<{ databaseName: string; collectionName: string | undefined }> => {
+  ): Promise<{ databaseName: string; containerName: string | undefined }> => {
     const client = await this.createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
     azureResourceId = await this.retrieveResourceId(
       azureAccountId,
@@ -854,7 +853,7 @@ export class ArmServiceMongo extends AbstractArmService {
               };
             }
 
-            if (inputData.isProvisionCollectionThroughput) {
+            if (inputData.isProvisionContainerThroughput) {
               if (inputData.isAutoScale) {
                 createCollParams.options = {
                   autoscaleSettings: {
@@ -883,8 +882,8 @@ export class ArmServiceMongo extends AbstractArmService {
               reject(localize("failedCreatingCollection", "Failed creating collection"));
               return;
             }
-            collectionName = collResult.resource.id;
-            resolve({ databaseName: newDatabaseName, collectionName });
+            containerName = collResult.resource.id;
+            resolve({ databaseName: newDatabaseName, containerName });
           }
           reject(localize("collectionOrDatabaseNotSpecified", "Collection or database not specified"));
         } catch (e) {
@@ -894,7 +893,7 @@ export class ArmServiceMongo extends AbstractArmService {
         }
       };
 
-      if (databaseName !== undefined && collectionName !== undefined) {
+      if (databaseName !== undefined && containerName !== undefined) {
         // If database and collection are specified, do not bring up UI
         // Assumption is database already exists
         createDatabaseCollectioNCB({
@@ -904,10 +903,10 @@ export class ArmServiceMongo extends AbstractArmService {
             newDatabaseName: "",
             isShareDatabaseThroughput: false,
           },
-          newCollectionName: collectionName,
+          newCollectionName: containerName,
           isSharded: true,
           shardKey: cdbCreateInfo?.shardKey,
-          isProvisionCollectionThroughput: true,
+          isProvisionContainerThroughput: true,
           isAutoScale: false,
           maxThroughputRUPS: 0,
           requiredThroughputRUPS: cdbCreateInfo?.requiredThroughputRUPS ?? COLLECTION_DEFAULT_THROUGHPUT_RUPS,
@@ -919,7 +918,7 @@ export class ArmServiceMongo extends AbstractArmService {
         createDatabaseCollectioNCB,
         existingDatabases,
         databaseName,
-        collectionName
+        containerName
       );
       azdata.window.openDialog(dialog);
     });

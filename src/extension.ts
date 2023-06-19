@@ -3,7 +3,6 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import * as cp from "child_process";
 import * as fs from "fs";
 
 // The module 'azdata' contains the Azure Data Studio extensibility API
@@ -22,21 +21,18 @@ import {
 import { AppContext, createStatusBarItem, hideStatusBarItem, showStatusBarItem } from "./appContext";
 import { registerHomeDashboardTabs } from "./Dashboards/homeDashboard";
 import { UriHandler } from "./protocol/UriHandler";
-import ViewLoader from "./QueryClient/ViewLoader";
 import { downloadMongoShell } from "./MongoShell/MongoShellUtil";
 import { convertToConnectionOptions, IConnectionOptions } from "./models";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { getErrorMessage, getPackageInfo } from "./util";
-import { CdbCollectionCreateInfo } from "./sampleData/DataSamplesUtil";
 import { EditorUserQuery } from "./QueryClient/messageContract";
 import { askUserForConnectionProfile, isAzureConnection } from "./Services/ServiceUtil";
 import { CosmosDbMongoDatabaseDashboard } from "./Dashboards/CosmosDbMongoDatabaseDashboard";
 import { NativeMongoDatabaseDashboard } from "./Dashboards/NativeMongoDatabaseDashboard";
-import { ArmServiceMongo } from "./Services/ArmServiceMongo";
-import { ArmServiceNoSql } from "./Services/ArmServiceNoSql";
 import { AzureCosmosDbNoSqlDatabaseDashboard } from "./Dashboards/AzureCosmosDbNoSqlDatabaseDashboard";
 import { MAX_IMPORT_FILE_SIZE_BYTES } from "./constant";
 import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
+import { CdbCollectionCreateInfo, CdbContainerCreateInfo } from "./Services/AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -243,6 +239,74 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.createNoSqlContainer",
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        connectionNodeInfo: IConnectionNodeInfo,
+        containerName?: string,
+        cdbCreateInfo?: CdbContainerCreateInfo
+      ): Promise<{ databaseName: string; containerName: string }> => {
+        if (objectExplorerContext && !objectExplorerContext.connectionProfile) {
+          vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+          return Promise.reject();
+        }
+
+        if (objectExplorerContext && !objectExplorerContext.nodeInfo) {
+          vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+          return Promise.reject();
+        }
+
+        if (objectExplorerContext) {
+          const connectionProfile = objectExplorerContext.connectionProfile!;
+          connectionNodeInfo = {
+            connectionId: connectionProfile.id,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: objectExplorerContext.nodeInfo?.nodePath,
+          };
+        }
+
+        if (!connectionNodeInfo) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          connectionNodeInfo = {
+            connectionId: connectionProfile.connectionId,
+            ...convertToConnectionOptions(connectionProfile),
+            nodePath: createNodePath(connectionProfile.serverName),
+          };
+        }
+
+        const { databaseName } = getNodeInfo(connectionNodeInfo.nodePath!);
+
+        try {
+          const createResult = await appContext.cosmosDbNoSqlService.createCosmosDatabaseAndContainer(
+            connectionNodeInfo,
+            databaseName,
+            containerName,
+            cdbCreateInfo
+          );
+          if (createResult.containerName) {
+            vscode.window.showInformationMessage(
+              localize("successCreateCollection", "Successfully created: {0}", createResult.containerName)
+            );
+            mongoObjectExplorer.updateNode(connectionNodeInfo.connectionId, connectionNodeInfo.nodePath);
+            return Promise.resolve({ ...createResult, containerName: createResult.containerName! });
+          }
+        } catch (e) {
+          vscode.window.showErrorMessage(`${localize("failedCreateCollection", "Failed to create collection")}: ${e}`);
+          return Promise.reject();
+        }
+        vscode.window.showErrorMessage(localize("failedCreateCollection", "Failed to create collection"));
+        return Promise.reject();
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
       "cosmosdb-ads-extension.deleteMongoDatabase",
       async (objectExplorerContext: azdata.ObjectExplorerContext) => {
         if (!objectExplorerContext.connectionProfile) {
@@ -299,6 +363,58 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.deleteNoSqlDatabase",
+      async (objectExplorerContext: azdata.ObjectExplorerContext) => {
+        if (!objectExplorerContext.connectionProfile) {
+          vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+          return;
+        }
+
+        const { serverName } = objectExplorerContext.connectionProfile;
+        if (!objectExplorerContext.nodeInfo) {
+          vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+          return;
+        }
+        const { nodePath } = objectExplorerContext.nodeInfo;
+        const nodeInfo = getNodeInfo(nodePath);
+
+        const response = await vscode.window.showInputBox({
+          placeHolder: localize("removeDatabaseConfirm", "Please enter the name of the database to delete"),
+        });
+
+        if (response !== nodeInfo.databaseName) {
+          vscode.window.showErrorMessage(
+            localize("incorrectDeleteDatabase", "Incorrect name supplied to delete database {0}", nodeInfo.databaseName)
+          );
+          return;
+        }
+
+        try {
+          if (await appContext.cosmosDbNoSqlService.removeDatabase(serverName, nodeInfo.databaseName!)) {
+            // update parent node
+            await noSqlObjectExplorer.updateNode(
+              objectExplorerContext.connectionProfile.id,
+              objectExplorerContext.connectionProfile.serverName
+            );
+            vscode.window.showInformationMessage(
+              localize("successDeleteDatabase", "Successfully deleted database {0}", nodeInfo.databaseName)
+            );
+          } else {
+            vscode.window.showErrorMessage(
+              localize("failedDeleteDatabase", "Failed to delete database {0}", nodeInfo.databaseName)
+            );
+          }
+        } catch (e) {
+          vscode.window.showErrorMessage(
+            `${localize("failedDeleteDatabase", "Failed to delete database {0}", nodeInfo.databaseName)}: ${e}`
+          );
+        }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
       "cosmosdb-ads-extension.deleteMongoCollection",
       async (objectExplorerContext: azdata.ObjectExplorerContext) => {
         if (!objectExplorerContext.connectionProfile) {
@@ -321,12 +437,12 @@ export function activate(context: vscode.ExtensionContext) {
           placeHolder: localize("removeCollectionConfirm", "Please enter the name of the collection to delete"),
         });
 
-        if (response !== mongoInfo.collectionName) {
+        if (response !== mongoInfo.containerName) {
           vscode.window.showErrorMessage(
             localize(
               "incorrectDeleteCollection",
               "Incorrect name supplied to delete collection {0}",
-              mongoInfo.collectionName
+              mongoInfo.containerName
             )
           );
           return;
@@ -337,7 +453,7 @@ export function activate(context: vscode.ExtensionContext) {
             await appContext.mongoService.removeCollection(
               serverName,
               mongoInfo.databaseName!,
-              mongoInfo.collectionName!
+              mongoInfo.containerName!
             )
           ) {
             // Find parent node to update
@@ -345,16 +461,80 @@ export function activate(context: vscode.ExtensionContext) {
             const newNodePath = createNodePath(serverName, databaseName);
             await mongoObjectExplorer.updateNode(objectExplorerContext.connectionProfile.id, newNodePath);
             vscode.window.showInformationMessage(
-              localize("successDeleteCollection", "Successfully deleted collection {0}", mongoInfo.collectionName)
+              localize("successDeleteCollection", "Successfully deleted collection {0}", mongoInfo.containerName)
             );
           } else {
             vscode.window.showErrorMessage(
-              localize("failDeleteCollection", "Failed to delete collection {0}", mongoInfo.collectionName)
+              localize("failDeleteCollection", "Failed to delete collection {0}", mongoInfo.containerName)
             );
           }
         } catch (e) {
           vscode.window.showErrorMessage(
-            `${localize("failDeleteCollection", "Failed to delete collection {0}:", mongoInfo.collectionName)}: ${e}`
+            `${localize("failDeleteCollection", "Failed to delete collection {0}:", mongoInfo.containerName)}: ${e}`
+          );
+        }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cosmosdb-ads-extension.deleteNoSqlContainer",
+      async (objectExplorerContext: azdata.ObjectExplorerContext) => {
+        if (!objectExplorerContext.connectionProfile) {
+          // TODO handle error;
+          vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+          return;
+        }
+        const { id: connectionId, serverName } = objectExplorerContext.connectionProfile;
+
+        // TODO FIX THIS
+        if (!objectExplorerContext.nodeInfo) {
+          // TODO handle error;
+          vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+          return;
+        }
+        const { nodePath } = objectExplorerContext.nodeInfo;
+        const nodeInfo = getNodeInfo(nodePath);
+
+        const response = await vscode.window.showInputBox({
+          placeHolder: localize("removeContainerConfirm", "Please enter the name of the container to delete"),
+        });
+
+        if (response !== nodeInfo.containerName) {
+          vscode.window.showErrorMessage(
+            localize(
+              "incorrectDeleteContainer",
+              "Incorrect name supplied to delete container {0}",
+              nodeInfo.containerName
+            )
+          );
+          return;
+        }
+
+        try {
+          if (
+            await appContext.cosmosDbNoSqlService.removeContainer(
+              serverName,
+              nodeInfo.databaseName!,
+              nodeInfo.containerName!
+            )
+          ) {
+            // Find parent node to update
+            const { serverName, databaseName } = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
+            const newNodePath = createNodePath(serverName, databaseName);
+            await mongoObjectExplorer.updateNode(objectExplorerContext.connectionProfile.id, newNodePath);
+            vscode.window.showInformationMessage(
+              localize("successDeleteCollection", "Successfully deleted collection {0}", nodeInfo.containerName)
+            );
+          } else {
+            vscode.window.showErrorMessage(
+              localize("failDeleteCollection", "Failed to delete collection {0}", nodeInfo.containerName)
+            );
+          }
+        } catch (e) {
+          vscode.window.showErrorMessage(
+            `${localize("failDeleteCollection", "Failed to delete collection {0}:", nodeInfo.containerName)}: ${e}`
           );
         }
       }
@@ -535,7 +715,7 @@ export function activate(context: vscode.ExtensionContext) {
           connectionOptions = convertToConnectionOptions(objectExplorerContext.connectionProfile!);
           const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
           databaseName = nodeInfo.databaseName;
-          containerName = nodeInfo.collectionName;
+          containerName = nodeInfo.containerName;
         }
 
         if (!connectionOptions) {
@@ -786,7 +966,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const nodeInfo = getNodeInfo(connectionNodeInfo.nodePath!);
         databaseName = databaseName ?? nodeInfo?.databaseName;
-        collectionName = collectionName ?? nodeInfo?.collectionName;
+        collectionName = collectionName ?? nodeInfo?.containerName;
 
         if (databaseName === undefined) {
           // TODO auto-connect if not connected
@@ -934,7 +1114,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const nodeInfo = getNodeInfo(connectionNodeInfo.nodePath!);
         databaseName = databaseName ?? nodeInfo?.databaseName;
-        collectionName = collectionName ?? nodeInfo?.collectionName;
+        collectionName = collectionName ?? nodeInfo?.containerName;
 
         if (databaseName === undefined) {
           // TODO auto-connect if not connected
@@ -1022,65 +1202,6 @@ export function activate(context: vscode.ExtensionContext) {
         );
       }
     )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("cosmosdb-ads-extension.startProxy", async () => {
-      console.log("Starting proxy");
-      // Download mongosh
-      const executablePath = "C:\\CosmosDB\\ADS\\CosmosDbProxy\\CosmosDbProxy\\bin\\Debug\\net6.0\\CosmosDbProxy.exe";
-      const childProcess = cp.exec(executablePath, (err, stdout, stderr) => {
-        console.log("stdout: " + stdout);
-        console.log("stderr: " + stderr);
-        if (err) {
-          console.log("error: " + err);
-        }
-      });
-      console.log("proxy was started", childProcess);
-
-      // childProcess.stdin.setEncoding("utf8");
-      // childProcess.stdin.on("data",)
-
-      if (!childProcess || !childProcess.stdout || !childProcess.stderr || !childProcess.stdin) {
-        console.error("Error executing", executablePath);
-        return;
-      }
-
-      console.log("Listening to stdout and stderr");
-
-      childProcess.stdout.setEncoding("utf8");
-      childProcess.stdout.on("data", function (data) {
-        //Here is where the output goes
-
-        console.log("New data on stdout: " + data);
-
-        data = data.toString();
-      });
-
-      childProcess.stderr.setEncoding("utf8");
-      childProcess.stderr.on("data", function (data) {
-        //Here is where the error output goes
-
-        console.log("New data on stderr: " + data);
-
-        data = data.toString();
-      });
-
-      childProcess.on("close", function (code) {
-        //Here you can get the exit code of the script
-
-        console.log("closing code: " + code);
-      });
-
-      console.log("Sending messages");
-
-      childProcess.stdin.write("BLAH");
-      setTimeout(() => {
-        childProcess && childProcess.stdin?.write("query");
-      }, 5000);
-
-      console.log("Done");
-    })
   );
 
   context.subscriptions.push(vscode.window.registerUriHandler(new UriHandler()));

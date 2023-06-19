@@ -1,5 +1,6 @@
 import * as assert from "assert";
 import { CosmosDbNoSqlService } from "../../Services/CosmosDbNoSqlService";
+import { ArmServiceNoSql } from "../../Services/ArmServiceNoSql";
 
 suite("CosmosDbNoSqlService", () => {
   const fakeNoSqlClient = {
@@ -21,7 +22,7 @@ suite("CosmosDbNoSqlService", () => {
   fakeClientMap.set(SERVER, fakeNoSqlClient);
 
   test("Sort databases", async () => {
-    const service = new CosmosDbNoSqlService();
+    const service = new CosmosDbNoSqlService(new ArmServiceNoSql());
     service._cosmosClients = fakeClientMap;
 
     const databases = await service.listDatabases(SERVER);
@@ -29,7 +30,7 @@ suite("CosmosDbNoSqlService", () => {
   });
 
   test("Sort collections", async () => {
-    const service = new CosmosDbNoSqlService();
+    const service = new CosmosDbNoSqlService(new ArmServiceNoSql());
     service._cosmosClients = fakeClientMap;
 
     const containers = await service.listContainers(SERVER, "databaseName");
