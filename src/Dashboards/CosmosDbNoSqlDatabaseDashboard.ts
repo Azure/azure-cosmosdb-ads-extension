@@ -14,6 +14,7 @@ import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { buildHeroCard } from "../util";
 import { CosmosDbNoSqlService } from "../Services/CosmosDbNoSqlService";
+import { ingestSampleNoSqlData } from "../sampleData/DataSamplesUtil";
 
 const localize = nls.loadMessageBundle();
 
@@ -111,10 +112,9 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
         localize("importSampleData", "Import Sample Data"),
         localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
         () => {
-          // TODO FIX!
-          // ingestSampleMongoData(appContext, context, databaseDashboardInfo).then(
-          //   () => this.refreshCollections && this.refreshCollections()
-          // );
+          ingestSampleNoSqlData(appContext, context, databaseDashboardInfo).then(
+            () => this.refreshContainers && this.refreshContainers()
+          );
           appContext.reporter?.sendActionEvent(
             Telemetry.sources.databaseDashboard,
             Telemetry.actions.click,

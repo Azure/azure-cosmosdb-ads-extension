@@ -4,6 +4,7 @@ import {
   CosmosClient,
   DatabaseDefinition,
   FeedResponse,
+  JSONObject,
   OperationInput,
   Resource,
 } from "@azure/cosmos";
@@ -305,12 +306,12 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   }
 
   /**
-   * Insert container
+   * Insert collection using mongo client
    * @param server
    * @param sampleData
    * @returns Promise with inserted count
    */
-  public async insertDocuments(
+  public async createContainerWithSampleData(
     databaseDashboardInfo: IDatabaseDashboardInfo,
     sampleData: SampleData,
     containerName: string,
@@ -329,7 +330,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
       };
       const createResult = await vscode.commands.executeCommand<{ databaseName: string; containerName: string }>(
-        "cosmosdb-ads-extension-nosql.createNoSqlContainer",
+        "cosmosdb-ads-extension.createNoSqlContainer",
         undefined,
         param,
         containerName,
@@ -337,7 +338,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
       );
 
       if (!createResult.containerName) {
-        reject(localize("failCreateCollection", "Failed to create collection {0}", containerName));
+        reject(localize("failCreateContainer", "Failed to create container {0}", containerName));
         return;
       }
 
@@ -346,38 +347,66 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         return;
       }
 
-      const container = client.database(databaseDashboardInfo.databaseName!).container(containerName);
+      const container = await client.database(createResult.databaseName).container(createResult.containerName);
       if (!container) {
         reject(localize("failFindCollection", "Failed to find collection {0}", createResult.containerName));
         return;
       }
 
-      // Bulk import
-      const operations: OperationInput[] = sampleData.data.map((doc) => ({
-        operationType: BulkOperationType.Create,
-        resourceBody: doc,
-      }));
+      const result = await this.insertDocuments(
+        databaseDashboardInfo.server,
+        createResult.databaseName,
+        createResult.containerName,
+        sampleData.data
+      );
+      resolve(result);
+    });
+  }
 
-      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
+  public async insertDocuments(
+    serverName: string,
+    databaseName: string,
+    containerName: string,
+    data: unknown[]
+  ): Promise<{ count: number; elapsedTimeMS: number }> {
+    return new Promise(async (resolve, reject) => {
+      const client = this._cosmosClients.get(serverName);
+      if (!client) {
+        reject(localize("notConnected", "Not connected"));
+        return;
+      }
 
+      const container = await client.database(databaseName).container(containerName);
+      if (!container) {
+        reject(localize("failFindContainer", "Failed to find container {0}", containerName));
+        return;
+      }
+
+      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", data.length));
       try {
         const startMS = new Date().getTime();
-        const response = await container.items.bulk(operations);
+        const result = await container.items.bulk(
+          data.map(
+            (doc): OperationInput => ({
+              operationType: BulkOperationType.Create,
+              resourceBody: doc as JSONObject,
+            })
+          )
+        );
         const endMS = new Date().getTime();
 
-        // TODO Check individual response for status code
-        // Example: https://github.com/Azure-Samples/cosmos-typescript-bulk-import-throughput-optimizer/blob/master/src/importers/bulk-importer-bulk-operations.ts
-        if (response === undefined || response.length < sampleData.data.length) {
-          reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
+        if (result === undefined || result.length < data.length) {
+          reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
+          hideStatusBarItem();
           return;
         }
 
         return resolve({
-          count: response.length,
+          count: result.length,
           elapsedTimeMS: endMS - startMS,
         });
       } catch (e) {
-        reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
+        reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
         return;
       } finally {
         hideStatusBarItem();

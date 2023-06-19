@@ -322,16 +322,23 @@ export class MongoService extends AbstractBackendService {
         return;
       }
 
-      await this.insertDocuments(
+      const result = await this.insertDocuments(
         databaseDashboardInfo.server,
         createResult.databaseName,
         createResult.collectionName,
         sampleData.data
       );
+
+      resolve(result);
     });
   }
 
-  public async insertDocuments(serverName: string, databaseName: string, collectionName: string, data: unknown[]) {
+  public async insertDocuments(
+    serverName: string,
+    databaseName: string,
+    collectionName: string,
+    data: unknown[]
+  ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       const client = this._mongoClients.get(serverName);
       if (!client) {
