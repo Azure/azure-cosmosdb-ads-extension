@@ -26,6 +26,8 @@ import { CdbContainerCreateInfo } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
+const MAX_BULK_OPERATION_COUNT = 100;
+
 export class CosmosDbNoSqlService extends AbstractBackendService {
   public _cosmosClients = new Map<string, CosmosClient>(); // public for testing purposes (should be private)
   private _cosmosDbProxies = new Map<string, CosmosDbProxy>();
@@ -315,7 +317,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     databaseDashboardInfo: IDatabaseDashboardInfo,
     sampleData: SampleData,
     containerName: string,
-    cdbCreateInfo: CdbContainerCreateInfo
+    cdbCreateInfo: CdbContainerCreateInfo,
+    onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected
@@ -357,7 +360,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         databaseDashboardInfo.server,
         createResult.databaseName,
         createResult.containerName,
-        sampleData.data
+        sampleData.data,
+        onProgress
       );
       resolve(result);
     });
@@ -367,7 +371,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     serverName: string,
     databaseName: string,
     containerName: string,
-    data: unknown[]
+    data: unknown[],
+    onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       const client = this._cosmosClients.get(serverName);
@@ -382,27 +387,49 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         return;
       }
 
-      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", data.length));
+      const count = data.length;
+
+      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", count));
       try {
         const startMS = new Date().getTime();
-        const result = await container.items.bulk(
-          data.map(
-            (doc): OperationInput => ({
-              operationType: BulkOperationType.Create,
-              resourceBody: doc as JSONObject,
-            })
-          )
-        );
-        const endMS = new Date().getTime();
+        while (data.length > 0) {
+          const countToInsert = Math.min(data.length, MAX_BULK_OPERATION_COUNT);
+          console.log(`${data.length} documents left to insert...`);
+          try {
+            const result = await container.items.bulk(
+              data.splice(0, MAX_BULK_OPERATION_COUNT).map(
+                (doc): OperationInput => ({
+                  operationType: BulkOperationType.Create,
+                  resourceBody: doc as JSONObject,
+                })
+              ),
+              { continueOnError: true }
+            );
 
-        if (result === undefined || result.length < data.length) {
-          reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
-          hideStatusBarItem();
-          return;
+            if (result === undefined || result.length < countToInsert) {
+              vscode.window.showErrorMessage(
+                localize("failInsertDocs", "Failed to insert all documents {0}", data.length)
+              );
+              reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
+              hideStatusBarItem();
+              return;
+            }
+
+            if (onProgress) {
+              onProgress((countToInsert * 100) / count);
+            }
+          } catch (e: any) {
+            vscode.window.showErrorMessage("Error inserting documents: " + e.message + " " + e);
+            reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
+            hideStatusBarItem();
+            return;
+          }
         }
 
+        const endMS = new Date().getTime();
+
         return resolve({
-          count: result.length,
+          count,
           elapsedTimeMS: endMS - startMS,
         });
       } catch (e) {

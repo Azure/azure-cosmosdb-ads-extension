@@ -201,17 +201,25 @@ export const ingestSampleNoSqlData = async (
             progress.report({
               message: localize("importingSampleData", "Importing sample data..."),
             });
-            const { count, elapsedTimeMS } = await appContext.cosmosDbNoSqlService.createContainerWithSampleData(
-              databaseDashboardInfo,
-              sampleData,
-              containerIdToCreate,
-              {
-                requiredThroughputRUPS: sampleData.offerThroughput,
-                partitionKey: sampleData.shardKey,
-              }
-            );
-            _count = count;
-            _elapsedTimeMS = elapsedTimeMS;
+            try {
+              const { count, elapsedTimeMS } = await appContext.cosmosDbNoSqlService.createContainerWithSampleData(
+                databaseDashboardInfo,
+                sampleData,
+                containerIdToCreate,
+                {
+                  requiredThroughputRUPS: sampleData.offerThroughput,
+                  partitionKey: sampleData.shardKey,
+                },
+                (increment) => progress.report({ increment })
+              );
+              _count = count;
+              _elapsedTimeMS = elapsedTimeMS;
+              Promise.resolve();
+            } catch (e: any) {
+              vscode.window.showErrorMessage(e.message);
+              Promise.reject();
+              return;
+            }
           }
         );
       } catch (e: any) {
