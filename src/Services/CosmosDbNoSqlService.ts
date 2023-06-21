@@ -461,7 +461,22 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   }
 
   public getDocuments(serverName: string, databaseName: string, containerName: string): Promise<unknown[]> {
-    throw new Error("Method not implemented.");
+    return new Promise(async (resolve, reject) => {
+      if (!this._cosmosClients.has(serverName)) {
+        return reject(new Error(`Unknown server: ${serverName}`)); // Should we connect?
+      }
+
+      resolve(
+        (
+          await this._cosmosClients
+            .get(serverName)!
+            .database(databaseName)
+            .container(containerName)
+            .items.readAll()
+            .fetchAll()
+        ).resources
+      );
+    });
   }
 
   public buildConnectionString(connectionOptions: IConnectionOptions): string | undefined {

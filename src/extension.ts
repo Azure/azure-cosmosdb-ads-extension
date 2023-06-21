@@ -33,6 +33,7 @@ import { AzureCosmosDbNoSqlDatabaseDashboard } from "./Dashboards/AzureCosmosDbN
 import { MAX_IMPORT_FILE_SIZE_BYTES } from "./constant";
 import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
 import { CdbCollectionCreateInfo, CdbContainerCreateInfo } from "./Services/AbstractArmService";
+import { AbstractBackendService } from "./Services/AbstractBackendService";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -1118,7 +1119,7 @@ export function activate(context: vscode.ExtensionContext) {
         objectExplorerContext: azdata.ObjectExplorerContext,
         connectionNodeInfo: IConnectionNodeInfo,
         databaseName?: string,
-        collectionName?: string
+        containerName?: string // collection name for mongo
       ) => {
         if (objectExplorerContext) {
           // Called from tree item context menu
@@ -1154,13 +1155,24 @@ export function activate(context: vscode.ExtensionContext) {
           };
         }
 
+        let backendService: AbstractBackendService;
+        if (objectExplorerContext.connectionProfile?.providerName === MongoProviderId) {
+          backendService = appContext.mongoService;
+        } else if (objectExplorerContext.connectionProfile?.providerName === NoSqlProviderId) {
+          backendService = appContext.cosmosDbNoSqlService;
+        } else {
+          // Provider not supported
+          Promise.reject("Provider not supported");
+          return;
+        }
+
         const nodeInfo = getNodeInfo(connectionNodeInfo.nodePath!);
         databaseName = databaseName ?? nodeInfo?.databaseName;
-        collectionName = collectionName ?? nodeInfo?.containerName;
+        containerName = containerName ?? nodeInfo?.containerName;
 
         if (databaseName === undefined) {
           // TODO auto-connect if not connected
-          const databases = await appContext.mongoService.listDatabases(connectionNodeInfo.server);
+          const databases = await backendService.listDatabases(connectionNodeInfo.server);
           const databaseNamePick = await vscode.window.showQuickPick(
             databases.map((db) => db.name),
             {
@@ -1176,20 +1188,38 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
 
-        if (collectionName === undefined) {
-          const collections = await appContext.mongoService.listCollections(connectionNodeInfo.server, databaseName);
-          const collectionNamePick = await vscode.window.showQuickPick(
-            collections.map((coll) => coll.collectionName),
-            {
-              placeHolder: localize("selectCollection", "Select collection"),
-            }
-          );
+        if (containerName === undefined) {
+          let choices, missingCollectionError;
+          if (objectExplorerContext.connectionProfile?.providerName === MongoProviderId) {
+            const collections = await appContext.mongoService.listCollections(connectionNodeInfo.server, databaseName);
+            (choices = collections.map((collection) => collection.collectionName)),
+              {
+                placeHolder: localize("selectCollection", "Select collection"),
+              };
+            missingCollectionError = localize("missingCollection", "Missing collection");
+          } else if (objectExplorerContext.connectionProfile?.providerName === NoSqlProviderId) {
+            const containers = await appContext.cosmosDbNoSqlService.listContainers(
+              connectionNodeInfo.server,
+              databaseName
+            );
+            (choices = containers.map((container) => container.id)),
+              {
+                placeHolder: localize("selectContainer", "Select container"),
+              };
+            missingCollectionError = localize("missingContainer", "Missing container");
+          } else {
+            // Provider not supported
+            Promise.reject("Provider not supported");
+            return;
+          }
 
-          if (collectionNamePick === undefined) {
-            vscode.window.showErrorMessage(localize("missingDatabaseOrCollection", "Missing collection"));
+          const containerNamePick = await vscode.window.showQuickPick(choices);
+
+          if (containerNamePick === undefined) {
+            vscode.window.showErrorMessage(missingCollectionError);
             return Promise.reject();
           } else {
-            collectionName = collectionNamePick;
+            containerName = containerNamePick;
           }
         }
 
@@ -1215,10 +1245,10 @@ export function activate(context: vscode.ExtensionContext) {
               message: localize("exportingDocuments", "Exporting documents..."),
             });
             showStatusBarItem(localize("readingDocuments", "Reading documents..."));
-            const documents = await appContext.mongoService.getDocuments(
+            const documents = await backendService.getDocuments(
               connectionNodeInfo.server,
               databaseName!,
-              collectionName!
+              containerName!
             );
             const documentsStr = JSON.stringify(documents, null, 0);
 

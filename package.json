@@ -80,11 +80,6 @@
         "category": "Cosmos DB NoSql"
       },
       {
-        "command": "cosmosdb-ads-extension.openNoSqlContainer",
-        "title": "Open Container",
-        "category": "Cosmos DB NoSql"
-      },
-      {
         "command": "cosmosdb-ads-extension.openMongoShell",
         "title": "Open Mongo Shell",
         "category": "Cosmos DB Mongo"
@@ -102,6 +97,16 @@
       {
         "command": "cosmosdb-ads-extension.openNoSqlQuery",
         "title": "Open Query",
+        "category": "Cosmos DB NoSql"
+      },
+      {
+        "command": "cosmosdb-ads-extension.importDocuments",
+        "title": "Import Documents",
+        "category": "Cosmos DB NoSql"
+      },
+      {
+        "command": "cosmosdb-ads-extension.exportContainer",
+        "title": "Export Documents",
         "category": "Cosmos DB NoSql"
       }
     ],
@@ -184,8 +189,13 @@
           "group": "cosmosdb"
         },
         {
-          "command": "cosmosdb-ads-extension.openNoSqlContainer",
-          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Assembly",
+          "command": "cosmosdb-ads-extension.importDocuments",
+          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Queue",
+          "group": "cosmosdb"
+        },
+        {
+          "command": "cosmosdb-ads-extension.exportContainer",
+          "when": "connectionProvider == COSMOSDB_NOSQL && nodeType == Queue",
           "group": "cosmosdb"
         }
       ]
