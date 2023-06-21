@@ -15,6 +15,8 @@ import { CdbCollectionCreateInfo } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
+const MAX_BULK_OPERATION_COUNT = 100;
+
 export class MongoService extends AbstractBackendService {
   public _mongoClients = new Map<string, MongoClient>(); // public for testing purposes (should be protected)
 
@@ -133,7 +135,7 @@ export class MongoService extends AbstractBackendService {
     cdbCreateInfo?: CdbCollectionCreateInfo
   ): Promise<{ databaseName: string; collectionName: string | undefined }> {
     return isAzureConnection(connectionOptions) && !connectionOptions.isServer
-      ? this.createMongoDatabaseAndCollectionWithArm(connectionOptions, databaseName, collectionName)
+      ? this.createMongoDatabaseAndCollectionWithArm(connectionOptions, databaseName, collectionName, cdbCreateInfo)
       : this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, collectionName);
   }
 
@@ -283,7 +285,8 @@ export class MongoService extends AbstractBackendService {
     databaseDashboardInfo: IDatabaseDashboardInfo,
     sampleData: SampleData,
     collectionName: string,
-    cdbCreateInfo: CdbCollectionCreateInfo
+    cdbCreateInfo: CdbCollectionCreateInfo,
+    onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected
@@ -322,14 +325,20 @@ export class MongoService extends AbstractBackendService {
         return;
       }
 
-      const result = await this.insertDocuments(
-        databaseDashboardInfo.server,
-        createResult.databaseName,
-        createResult.collectionName,
-        sampleData.data
-      );
+      try {
+        const result = await this.insertDocuments(
+          databaseDashboardInfo.server,
+          createResult.databaseName,
+          createResult.collectionName,
+          sampleData.data,
+          onProgress
+        );
 
-      resolve(result);
+        resolve(result);
+      } catch (e) {
+        // For some reason, when insertDocument() reject, this won't reject unless we do this
+        reject(e);
+      }
     });
   }
 
@@ -337,7 +346,8 @@ export class MongoService extends AbstractBackendService {
     serverName: string,
     databaseName: string,
     collectionName: string,
-    data: unknown[]
+    data: unknown[],
+    onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       const client = this._mongoClients.get(serverName);
@@ -352,30 +362,41 @@ export class MongoService extends AbstractBackendService {
         return;
       }
 
+      const count = data.length;
+
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", data.length));
       try {
         const startMS = new Date().getTime();
-        const result = await collection.bulkWrite(
-          data.map((doc) => ({
-            insertOne: {
-              document: doc as AnyBulkWriteOperation<Document>[],
-            },
-          }))
-        );
-        const endMS = new Date().getTime();
-        if (result.insertedCount === undefined || result.insertedCount < data.length) {
-          reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
-          hideStatusBarItem();
-          return;
+        while (data.length > 0) {
+          const countToInsert = Math.min(data.length, MAX_BULK_OPERATION_COUNT);
+          console.log(`${data.length} documents left to insert...`);
+
+          const result = await collection.bulkWrite(
+            data.splice(0, MAX_BULK_OPERATION_COUNT).map((doc) => ({
+              insertOne: {
+                document: doc as AnyBulkWriteOperation<Document>,
+              },
+            }))
+          );
+
+          if (result.insertedCount === undefined || result.insertedCount < countToInsert) {
+            reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
+            hideStatusBarItem();
+            return;
+          }
+          if (onProgress) {
+            onProgress((countToInsert * 100) / count);
+          }
         }
 
+        const endMS = new Date().getTime();
+
         return resolve({
-          count: result.insertedCount,
+          count,
           elapsedTimeMS: endMS - startMS,
         });
-      } catch (e) {
-        reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
-        return;
+      } catch (e: any) {
+        return reject(localize("failInsertDocs", "Failed to insert all documents {0}", e.message));
       } finally {
         hideStatusBarItem();
       }

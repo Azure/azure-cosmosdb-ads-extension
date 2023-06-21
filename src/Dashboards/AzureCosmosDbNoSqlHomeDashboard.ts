@@ -13,7 +13,6 @@ import { buildHeroCard } from "../util";
 import { AbstractArmService } from "../Services/AbstractArmService";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 import { AbstractAzureCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
-import { CosmosDbNoSqlService } from "../Services/CosmosDbNoSqlService";
 
 const localize = nls.loadMessageBundle();
 

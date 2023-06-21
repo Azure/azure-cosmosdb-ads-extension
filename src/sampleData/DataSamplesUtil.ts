@@ -98,21 +98,29 @@ export const ingestSampleMongoData = async (
             progress.report({
               message: localize("importingSampleData", "Importing sample data..."),
             });
-            const { count, elapsedTimeMS } = await appContext.mongoService.createCollectionWithSampleData(
-              databaseDashboardInfo,
-              sampleData,
-              collectionIdToCreate,
-              {
-                requiredThroughputRUPS: sampleData.offerThroughput,
-                shardKey: sampleData.shardKey,
-              }
-            );
-            _count = count;
-            _elapsedTimeMS = elapsedTimeMS;
+            try {
+              const { count, elapsedTimeMS } = await appContext.mongoService.createCollectionWithSampleData(
+                databaseDashboardInfo,
+                sampleData,
+                collectionIdToCreate,
+                {
+                  requiredThroughputRUPS: sampleData.offerThroughput,
+                  shardKey: sampleData.shardKey,
+                },
+                (increment) => progress.report({ increment })
+              );
+              _count = count;
+              _elapsedTimeMS = elapsedTimeMS;
+              Promise.resolve();
+            } catch (e: any) {
+              vscode.window.showErrorMessage(e);
+              Promise.reject();
+              return;
+            }
           }
         );
       } catch (e: any) {
-        vscode.window.showErrorMessage(e.message);
+        vscode.window.showErrorMessage(e);
         return;
       }
 
@@ -208,7 +216,7 @@ export const ingestSampleNoSqlData = async (
                 containerIdToCreate,
                 {
                   requiredThroughputRUPS: sampleData.offerThroughput,
-                  partitionKey: sampleData.shardKey,
+                  partitionKey: `/${sampleData.shardKey}`,
                 },
                 (increment) => progress.report({ increment })
               );

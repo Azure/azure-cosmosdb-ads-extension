@@ -352,7 +352,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
 
       const container = await client.database(createResult.databaseName).container(createResult.containerName);
       if (!container) {
-        reject(localize("failFindCollection", "Failed to find collection {0}", createResult.containerName));
+        reject(localize("failFindContainer", "Failed to find container {0}", createResult.containerName));
         return;
       }
 
@@ -395,34 +395,23 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         while (data.length > 0) {
           const countToInsert = Math.min(data.length, MAX_BULK_OPERATION_COUNT);
           console.log(`${data.length} documents left to insert...`);
-          try {
-            const result = await container.items.bulk(
-              data.splice(0, MAX_BULK_OPERATION_COUNT).map(
-                (doc): OperationInput => ({
-                  operationType: BulkOperationType.Create,
-                  resourceBody: doc as JSONObject,
-                })
-              ),
-              { continueOnError: true }
-            );
+          const result = await container.items.bulk(
+            data.splice(0, MAX_BULK_OPERATION_COUNT).map(
+              (doc): OperationInput => ({
+                operationType: BulkOperationType.Create,
+                resourceBody: doc as JSONObject,
+              })
+            )
+          );
 
-            if (result === undefined || result.length < countToInsert) {
-              vscode.window.showErrorMessage(
-                localize("failInsertDocs", "Failed to insert all documents {0}", data.length)
-              );
-              reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
-              hideStatusBarItem();
-              return;
-            }
-
-            if (onProgress) {
-              onProgress((countToInsert * 100) / count);
-            }
-          } catch (e: any) {
-            vscode.window.showErrorMessage("Error inserting documents: " + e.message + " " + e);
+          if (result === undefined || result.length < countToInsert) {
             reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
             hideStatusBarItem();
             return;
+          }
+
+          if (onProgress) {
+            onProgress((countToInsert * 100) / count);
           }
         }
 
