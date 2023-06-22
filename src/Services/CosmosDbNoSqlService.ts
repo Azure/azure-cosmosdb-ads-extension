@@ -10,7 +10,7 @@ import {
 } from "@azure/cosmos";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { IConnectionOptions, ICosmosDbContainersInfo, IDatabaseInfo } from "../models";
+import { IConnectionOptions, ICosmosDbContainerInfo, IDatabaseInfo } from "../models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
@@ -26,7 +26,9 @@ import { CdbContainerCreateInfo } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
-const MAX_BULK_OPERATION_COUNT = 100;
+// Maximum number of operations to send in a single bulk operation
+// Although the Cosmos DB SDK supports up to 100 operations, the low container default RU/s provisioning limits insertion without throttling
+const MAX_BULK_OPERATION_COUNT = 10;
 
 export class CosmosDbNoSqlService extends AbstractBackendService {
   public _cosmosClients = new Map<string, CosmosClient>(); // public for testing purposes (should be private)
@@ -492,7 +494,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   public async retrieveContainersInfo(
     databaseDashboardInfo: IDatabaseDashboardInfo,
     databaseName: string
-  ): Promise<ICosmosDbContainersInfo[]> {
+  ): Promise<ICosmosDbContainerInfo[]> {
     return new Promise(async (resolve, reject) => {
       const client = this._cosmosClients.get(databaseDashboardInfo.server);
       if (!client) {
@@ -508,7 +510,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
 
       try {
         const containers = await database.containers.readAll().fetchAll();
-        const result: ICosmosDbContainersInfo[] = await Promise.all(
+        const result: ICosmosDbContainerInfo[] = await Promise.all(
           containers.resources.map(async (container) => {
             const offer = await database.container(container.id).readOffer();
             offer.resource?.content?.offerThroughput;

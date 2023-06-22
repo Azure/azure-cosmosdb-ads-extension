@@ -36,7 +36,7 @@ suite("ArmServiceNoSql", () => {
     sinon.stub(armServiceNoSql, "createArmClient").resolves(fakeArmClient as any);
     sinon.stub(armServiceNoSql, "createArmMonitorClient").resolves(undefined);
 
-    const containers = await armServiceNoSql.retrieveCollectionsInfo(
+    const containers = await armServiceNoSql.retrieveContainersInfo(
       "azureAccountId",
       "azureTenantId",
       "azureResourceId",

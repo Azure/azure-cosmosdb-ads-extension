@@ -8,7 +8,12 @@ import {
 } from "@azure/arm-cosmosdb";
 import { MonitorClient } from "@azure/arm-monitor";
 import { getUsageSizeInKB } from "../Dashboards/getCollectionDataUsageSize";
-import { ICosmosDbCollectionInfo, ICosmosDbDatabaseInfo } from "../models";
+import {
+  IAzureCosmosDbContainerInfo,
+  ICosmosDbCollectionInfo,
+  ICosmosDbContainerInfoBase,
+  ICosmosDbDatabaseInfo,
+} from "../models";
 import {
   createNewContainerDialog,
   createNewDatabaseDialog,
@@ -157,7 +162,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     return await Promise.all(promises).then((colls) => colls.sort((a, b) => a.name.localeCompare(b.name)));
   };
 
-  private retrieveSqlCollectionInfoFromArm = async (
+  private retrieveSqlContainerInfoFromArm = async (
     client: CosmosDBManagementClient,
     resourceGroupName: string,
     accountName: string,
@@ -165,7 +170,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     collectionName: string,
     monitorARmClient: MonitorClient,
     resourceUri: string
-  ): Promise<ICosmosDbCollectionInfo> => {
+  ): Promise<IAzureCosmosDbContainerInfo> => {
     let throughputSetting = "";
     let isAutoscale: boolean = false;
     let currentThroughput: number | undefined;
@@ -228,18 +233,17 @@ export class ArmServiceNoSql extends AbstractArmService {
       usageSizeKB: usageDataKB,
       isAutoscale,
       currentThroughput,
-      // partitionKey: partitionKey?.paths,
-      shardKey: undefined, // TODO FIX THIS
+      partitionKey: partitionKey?.paths?.join(","),
     };
   };
 
-  public retrieveCollectionsInfo = async (
+  public retrieveContainersInfo = async (
     azureAccountId: string,
     azureTenantId: string,
     azureResourceId: string,
     cosmosDbAccountName: string,
     databaseName: string
-  ): Promise<ICosmosDbCollectionInfo[]> => {
+  ): Promise<IAzureCosmosDbContainerInfo[]> => {
     const client = await this.createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
     if (!azureResourceId) {
@@ -277,7 +281,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     const promises = sqlResources
       .filter((resource) => !!resource.name)
       .map((resource) =>
-        this.retrieveSqlCollectionInfoFromArm(
+        this.retrieveSqlContainerInfoFromArm(
           client,
           resourceGroup,
           cosmosDbAccountName,
@@ -297,14 +301,14 @@ export class ArmServiceNoSql extends AbstractArmService {
     azureResourceId: string,
     cosmosDbAccountName: string,
     databaseName: string,
-    collectionInfo: ICosmosDbCollectionInfo
+    containerInfoBase: ICosmosDbContainerInfoBase
   ): Promise<boolean> => {
     const mode = await vscode.window.showQuickPick<any>(
       [
         {
           label: "Autoscale",
           onSelect: async (): Promise<boolean> => {
-            if (collectionInfo.isAutoscale) {
+            if (containerInfoBase.isAutoscale) {
               vscode.window.showInformationMessage(localize("alreadySetToAutoscale", "Already set to Autoscale"));
               return false;
             } else {
@@ -314,7 +318,7 @@ export class ArmServiceNoSql extends AbstractArmService {
                 azureResourceId,
                 cosmosDbAccountName,
                 databaseName,
-                collectionInfo.name
+                containerInfoBase.name
               );
             }
           },
@@ -332,7 +336,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
             const requestedThroughput = Number.parseInt(requestedThroughputStr!);
 
-            if (collectionInfo.currentThroughput === requestedThroughput) {
+            if (containerInfoBase.currentThroughput === requestedThroughput) {
               vscode.window.showInformationMessage(
                 localize("throughputAlreadySetAt", "Throughput already set at {0} RU", requestedThroughput)
               );
@@ -344,9 +348,9 @@ export class ArmServiceNoSql extends AbstractArmService {
                 azureResourceId,
                 cosmosDbAccountName,
                 databaseName,
-                collectionInfo.name,
+                containerInfoBase.name,
                 requestedThroughput,
-                collectionInfo.isAutoscale
+                containerInfoBase.isAutoscale
               );
             }
           },

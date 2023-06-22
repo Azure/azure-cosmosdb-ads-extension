@@ -9,17 +9,18 @@ import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
-import { ICosmosDbCollectionInfo } from "../models";
+import { IAzureCosmosDbContainerInfo, ICosmosDbCollectionInfo } from "../models";
 import { AbstractArmService } from "../Services/AbstractArmService";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { buildHeroCard } from "../util";
 import { ingestSampleNoSqlData } from "../sampleData/DataSamplesUtil";
+import { ArmServiceNoSql } from "../Services/ArmServiceNoSql";
 
 const localize = nls.loadMessageBundle();
 
 export class AzureCosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
-  constructor(providerId: string, private armService: AbstractArmService) {
+  constructor(providerId: string, private armServiceNoSql: ArmServiceNoSql) {
     super(providerId);
   }
 
@@ -42,7 +43,7 @@ export class AzureCosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboa
             nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
           };
           vscode.commands
-            .executeCommand("cosmosdb-ads-extension.createMongoCollection", undefined, param)
+            .executeCommand("cosmosdb-ads-extension.createNoSqlContainer", undefined, param)
             .then(() => this.refreshContainers && this.refreshContainers());
           appContext.reporter?.sendActionEvent(
             Telemetry.sources.databaseDashboard,
@@ -110,7 +111,7 @@ export class AzureCosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboa
         view,
         context.asAbsolutePath("resources/fluent/new-collection.svg"),
         localize("importSampleData", "Import Sample Data"),
-        localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
+        localize("sampleContainerDescription", "Create a new container using one of our sample datasets"),
         () => {
           ingestSampleNoSqlData(appContext, context, databaseDashboardInfo).then(
             () => this.refreshContainers && this.refreshContainers()
@@ -159,29 +160,29 @@ export class AzureCosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboa
     appContext: AppContext,
     databaseDashboardInfo: IDatabaseDashboardInfo
   ): Promise<azdata.Component> {
-    let collections: ICosmosDbCollectionInfo[];
+    let containers: IAzureCosmosDbContainerInfo[];
 
     this.refreshContainers = () => {
-      this.armService
-        .retrieveCollectionsInfo(
+      this.armServiceNoSql
+        .retrieveContainersInfo(
           databaseDashboardInfo.azureAccount,
           databaseDashboardInfo.azureTenantId,
           databaseDashboardInfo.azureResourceId,
-          this.armService.getAccountNameFromOptions(databaseDashboardInfo),
+          this.armServiceNoSql.getAccountNameFromOptions(databaseDashboardInfo),
           databaseName
         )
         .then((collectionsInfo) => {
-          collections = collectionsInfo;
-          tableComponent.data = collectionsInfo.map((collection) => [
+          containers = collectionsInfo;
+          tableComponent.data = collectionsInfo.map((container) => [
             <azdata.HyperlinkColumnCellValue>{
-              title: collection.name,
+              title: container.name,
               icon: context.asAbsolutePath("resources/fluent/collection.svg"),
             },
-            collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
-            collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
-            collection.shardKey === undefined ? "" : Object.keys(collection.shardKey)[0],
+            container.usageSizeKB ?? localize("unknown", "Unknown"),
+            container.documentCount ?? localize("unknown", "Unknown"),
+            container.partitionKey ?? "",
             <azdata.HyperlinkColumnCellValue>{
-              title: collection.throughputSetting,
+              title: container.throughputSetting,
             },
           ]);
 
@@ -209,7 +210,7 @@ export class AzureCosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboa
             type: azdata.ColumnType.text,
           },
           {
-            value: localize("shardKey", "Shard key"), // TODO FIX
+            value: localize("shardKey", "Partition key"),
             type: azdata.ColumnType.text,
           },
           <azdata.HyperlinkColumn>{
@@ -235,7 +236,7 @@ export class AzureCosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboa
             undefined,
             { ...databaseDashboardInfo },
             databaseDashboardInfo.databaseName,
-            collections[arg.row].name
+            containers[arg.row].name
           );
 
           appContext.reporter?.sendActionEvent(
@@ -243,15 +244,15 @@ export class AzureCosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboa
             Telemetry.actions.click,
             Telemetry.targets.databaseDashboard.collectionsListAzureOpenDashboard
           );
-        } else if (arg.name === "throughput" && collections[arg.row].throughputSetting !== "") {
+        } else if (arg.name === "throughput" && containers[arg.row].throughputSetting !== "") {
           try {
-            const result = await this.armService.changeCollectionThroughput(
+            const result = await this.armServiceNoSql.changeCollectionThroughput(
               databaseDashboardInfo.azureAccount,
               databaseDashboardInfo.azureTenantId,
               databaseDashboardInfo.azureResourceId,
-              this.armService.getAccountNameFromOptions(databaseDashboardInfo),
+              this.armServiceNoSql.getAccountNameFromOptions(databaseDashboardInfo),
               databaseName,
-              collections[arg.row]
+              containers[arg.row]
             );
             if (result) {
               this.refreshContainers && this.refreshContainers();

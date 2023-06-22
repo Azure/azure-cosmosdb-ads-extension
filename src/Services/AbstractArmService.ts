@@ -350,14 +350,6 @@ export abstract class AbstractArmService {
     cdbCreateInfo?: CdbContainerCreateInfo | CdbCollectionCreateInfo
   ): Promise<{ databaseName: string; containerName: string | undefined }>;
 
-  public abstract retrieveCollectionsInfo(
-    azureAccountId: string,
-    azureTenantId: string,
-    azureResourceId: string,
-    cosmosDbAccountName: string,
-    databaseName: string
-  ): Promise<ICosmosDbCollectionInfo[]>;
-
   public abstract changeCollectionThroughput(
     azureAccountId: string,
     azureTenantId: string,

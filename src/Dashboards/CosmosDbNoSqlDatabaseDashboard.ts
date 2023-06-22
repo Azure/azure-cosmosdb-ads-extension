@@ -9,7 +9,7 @@ import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
-import { ICosmosDbContainersInfo } from "../models";
+import { ICosmosDbContainerInfo } from "../models";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { buildHeroCard } from "../util";
@@ -110,7 +110,7 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
         view,
         context.asAbsolutePath("resources/fluent/new-collection.svg"),
         localize("importSampleData", "Import Sample Data"),
-        localize("sampleCollectionDescription", "Create a new collection using one of our sample datasets"),
+        localize("sampleContainerDescription", "Create a new container using one of our sample datasets"),
         () => {
           ingestSampleNoSqlData(appContext, context, databaseDashboardInfo).then(
             () => this.refreshContainers && this.refreshContainers()
@@ -159,7 +159,7 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
     appContext: AppContext,
     databaseDashboardInfo: IDatabaseDashboardInfo
   ): Promise<azdata.Component> {
-    let containers: ICosmosDbContainersInfo[];
+    let containers: ICosmosDbContainerInfo[];
 
     this.refreshContainers = () => {
       this.cosmosDbNoSqlService.retrieveContainersInfo(databaseDashboardInfo, databaseName).then((containersInfo) => {
