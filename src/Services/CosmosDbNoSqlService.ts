@@ -28,7 +28,9 @@ const localize = nls.loadMessageBundle();
 
 // Maximum number of operations to send in a single bulk operation
 // Although the Cosmos DB SDK supports up to 100 operations, the low container default RU/s provisioning limits insertion without throttling
-const MAX_BULK_OPERATION_COUNT = 10;
+const MAX_BULK_OPERATION_COUNT = 100;
+
+const MIN_RETRY_DELAY_MS = 20; // Minimum delay before retrying a throttled operation
 
 export class CosmosDbNoSqlService extends AbstractBackendService {
   public _cosmosClients = new Map<string, CosmosClient>(); // public for testing purposes (should be private)
@@ -394,27 +396,56 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", count));
       try {
         const startMS = new Date().getTime();
+        let delayMs = 0;
         while (data.length > 0) {
-          const countToInsert = Math.min(data.length, MAX_BULK_OPERATION_COUNT);
           console.log(`${data.length} documents left to insert...`);
-          const result = await container.items.bulk(
-            data.splice(0, MAX_BULK_OPERATION_COUNT).map(
-              (doc): OperationInput => ({
-                operationType: BulkOperationType.Create,
-                resourceBody: doc as JSONObject,
-              })
-            )
-          );
 
-          if (result === undefined || result.length < countToInsert) {
-            reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
-            hideStatusBarItem();
-            return;
-          }
+          // This logic takes into account the retry delay provided by cosmosdb in case of throttling
+          await new Promise<void>((resolve1, reject1) => {
+            setTimeout(async () => {
+              const candidatesToInsert = data.splice(0, MAX_BULK_OPERATION_COUNT);
 
-          if (onProgress) {
-            onProgress((countToInsert * 100) / count);
-          }
+              const operationResponses = await container.items.bulk(
+                candidatesToInsert.map(
+                  (doc): OperationInput => ({
+                    operationType: BulkOperationType.Create,
+                    resourceBody: doc as JSONObject,
+                  })
+                )
+              );
+
+              let insertedCount = 0;
+              for (let i = 0; i < operationResponses.length; i++) {
+                const response = operationResponses[i];
+                if (response.statusCode === 201) {
+                  insertedCount++;
+                } else {
+                  if (response.statusCode === 429) {
+                    // Throttling: retry by pushing document back to the beginning of array
+                    const docToRetry = candidatesToInsert[i];
+                    const retryAfterInMilliseconds =
+                      response.resourceBody?.retryAfterInMilliseconds &&
+                      typeof response.resourceBody?.retryAfterInMilliseconds === "number"
+                        ? response.resourceBody?.retryAfterInMilliseconds
+                        : MIN_RETRY_DELAY_MS;
+
+                    data.unshift(docToRetry);
+                    delayMs = retryAfterInMilliseconds;
+                  } else {
+                    reject1(localize("unhandledStatusCode", "Unhandled status code {0}", response.statusCode));
+                    hideStatusBarItem();
+                    return;
+                  }
+                }
+              }
+
+              if (onProgress) {
+                onProgress((insertedCount * 100) / count);
+              }
+
+              resolve1();
+            }, delayMs);
+          });
         }
 
         const endMS = new Date().getTime();
@@ -423,8 +454,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
           count,
           elapsedTimeMS: endMS - startMS,
         });
-      } catch (e) {
-        reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
+      } catch (e: any) {
+        reject(localize("failInsertDocs", "Failed to insert documents. Error: {0}", e));
         return;
       } finally {
         hideStatusBarItem();
