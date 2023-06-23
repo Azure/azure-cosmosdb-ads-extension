@@ -92,9 +92,9 @@ export const ingestSampleMongoData = async (
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            cancellable: false,
+            cancellable: true,
           },
-          async (progress) => {
+          async (progress, token) => {
             progress.report({
               message: localize("importingSampleData", "Importing sample data..."),
             });
@@ -107,6 +107,7 @@ export const ingestSampleMongoData = async (
                   requiredThroughputRUPS: sampleData.offerThroughput,
                   shardKey: sampleData.shardKey,
                 },
+                () => token.isCancellationRequested,
                 (increment) => progress.report({ increment })
               );
               _count = count;
@@ -203,9 +204,9 @@ export const ingestSampleNoSqlData = async (
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            cancellable: false,
+            cancellable: true,
           },
-          async (progress) => {
+          async (progress, token) => {
             progress.report({
               message: localize("importingSampleData", "Importing sample data..."),
             });
@@ -218,6 +219,7 @@ export const ingestSampleNoSqlData = async (
                   requiredThroughputRUPS: sampleData.offerThroughput,
                   partitionKey: `/${sampleData.shardKey}`,
                 },
+                () => token.isCancellationRequested,
                 (increment) => progress.report({ increment })
               );
               _count = count;
@@ -245,6 +247,7 @@ export const ingestSampleNoSqlData = async (
       resolve();
     } catch (e) {
       vscode.window.showErrorMessage(e as string);
+      reject(e);
     }
     reject();
   });

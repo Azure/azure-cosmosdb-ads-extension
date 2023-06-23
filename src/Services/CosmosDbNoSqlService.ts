@@ -7,7 +7,6 @@ import {
   JSONObject,
   OperationInput,
   Resource,
-  RequestOptions,
 } from "@azure/cosmos";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
@@ -329,6 +328,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     sampleData: SampleData,
     containerName: string,
     cdbCreateInfo: CdbContainerCreateInfo,
+    isCanceled: () => boolean,
     onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
@@ -343,6 +343,12 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         ...databaseDashboardInfo,
         nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
       };
+
+      if (isCanceled()) {
+        reject(localize("canceled", "Canceled"));
+        return;
+      }
+
       const createResult = await vscode.commands.executeCommand<{ databaseName: string; containerName: string }>(
         "cosmosdb-ads-extension.createNoSqlContainer",
         undefined,
@@ -372,6 +378,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         createResult.databaseName,
         createResult.containerName,
         sampleData.data,
+        isCanceled,
         onProgress
       );
       resolve(result);
@@ -383,6 +390,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     databaseName: string,
     containerName: string,
     data: unknown[],
+    isCanceled: () => boolean,
     onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
@@ -406,6 +414,11 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         let delayMs = 0;
         while (data.length > 0) {
           console.log(`${data.length} documents left to insert...`);
+
+          if (isCanceled()) {
+            reject(localize("canceledDocumentInserted", "Canceled. {0} documents inserted", count - data.length));
+            return;
+          }
 
           // This logic takes into account the retry delay provided by cosmosdb in case of throttling
           await new Promise<void>((resolve1, reject1) => {
@@ -458,7 +471,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         const endMS = new Date().getTime();
 
         return resolve({
-          count,
+          count: count - data.length,
           elapsedTimeMS: endMS - startMS,
         });
       } catch (e: any) {

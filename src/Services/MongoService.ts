@@ -286,6 +286,7 @@ export class MongoService extends AbstractBackendService {
     sampleData: SampleData,
     collectionName: string,
     cdbCreateInfo: CdbCollectionCreateInfo,
+    isCanceled: () => boolean,
     onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
@@ -300,6 +301,12 @@ export class MongoService extends AbstractBackendService {
         ...databaseDashboardInfo,
         nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
       };
+
+      if (isCanceled()) {
+        reject(localize("canceled", "Canceled"));
+        return;
+      }
+
       const createResult = await vscode.commands.executeCommand<{ databaseName: string; collectionName: string }>(
         "cosmosdb-ads-extension.createMongoCollection",
         undefined,
@@ -331,6 +338,7 @@ export class MongoService extends AbstractBackendService {
           createResult.databaseName,
           createResult.collectionName,
           sampleData.data,
+          isCanceled,
           onProgress
         );
 
@@ -347,6 +355,7 @@ export class MongoService extends AbstractBackendService {
     databaseName: string,
     collectionName: string,
     data: unknown[],
+    isCanceled: () => boolean,
     onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
@@ -370,6 +379,11 @@ export class MongoService extends AbstractBackendService {
         while (data.length > 0) {
           const countToInsert = Math.min(data.length, MAX_BULK_OPERATION_COUNT);
           console.log(`${data.length} documents left to insert...`);
+
+          if (isCanceled()) {
+            reject(localize("canceledDocumentInserted", "Canceled. {0} documents inserted", count - data.length));
+            return;
+          }
 
           const result = await collection.bulkWrite(
             data.splice(0, MAX_BULK_OPERATION_COUNT).map((doc) => ({

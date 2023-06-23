@@ -1059,9 +1059,9 @@ export function activate(context: vscode.ExtensionContext) {
             await vscode.window.withProgress(
               {
                 location: vscode.ProgressLocation.Notification,
-                cancellable: false,
+                cancellable: true,
               },
-              async (progress) => {
+              async (progress, token) => {
                 progress.report({
                   message: localize("importingDocuments", "Importing documents..."),
                 });
@@ -1071,7 +1071,9 @@ export function activate(context: vscode.ExtensionContext) {
                       connectionNodeInfo.server,
                       databaseName!,
                       containerName!,
-                      data as unknown[]
+                      data as unknown[],
+                      () => token.isCancellationRequested,
+                      (increment) => progress.report({ increment })
                     );
                     _count = count;
                     _elapsedTimeMS = elapsedTimeMS;
@@ -1081,6 +1083,7 @@ export function activate(context: vscode.ExtensionContext) {
                       databaseName!,
                       containerName!,
                       data as unknown[],
+                      () => token.isCancellationRequested,
                       (increment) => progress.report({ increment })
                     );
                     _count = count;
