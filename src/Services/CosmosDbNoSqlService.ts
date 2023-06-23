@@ -7,6 +7,7 @@ import {
   JSONObject,
   OperationInput,
   Resource,
+  RequestOptions,
 } from "@azure/cosmos";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
@@ -152,7 +153,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         )
         .then((result) => ({ ...result, containerName: result.containerName }));
     } else {
-      return this.createContainerWithCosmosClient(connectionOptions, databaseName, containerName);
+      return this.createContainerWithCosmosClient(connectionOptions, databaseName, containerName, cdbCreateInfo);
     }
   }
 
@@ -225,7 +226,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   public async createContainerWithCosmosClient(
     connectionOptions: IConnectionOptions,
     databaseName?: string,
-    containerName?: string
+    containerName?: string,
+    cdbCreateInfo?: CdbContainerCreateInfo
   ): Promise<{ containerName: string; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
       if (!databaseName) {
@@ -273,9 +275,14 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
 
       if (cosmosClient) {
         showStatusBarItem(localize("creatingCosmosContainer", "Creating Cosmos container"));
+
         try {
           const { database } = await cosmosClient.databases.createIfNotExists({ id: databaseName });
-          const { container } = await database.containers.createIfNotExists({ id: containerName });
+          const { container } = await database.containers.createIfNotExists({
+            id: containerName,
+            partitionKey: cdbCreateInfo?.partitionKey ? { paths: [cdbCreateInfo.partitionKey] } : undefined,
+            throughput: cdbCreateInfo?.requiredThroughputRUPS,
+          });
           resolve({ containerName: container.id, databaseName: database.id });
         } catch (e) {
           reject(e);
