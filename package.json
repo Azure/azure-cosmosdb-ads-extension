@@ -340,7 +340,7 @@
     "@microsoft/ads-service-downloader": "1.1.0",
     "mongodb": "4.5.0",
     "mongodb-connection-string-url": "2.5.2",
-    "semver": "^7.3.2",
+    "semver": "^7.5.2",
     "tar": "6.1.11",
     "vscode-nls": "5.0.0",
     "yauzl": "2.10.0"
