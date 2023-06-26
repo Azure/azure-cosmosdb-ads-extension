@@ -64,16 +64,6 @@ export abstract class AbstractBackendService {
             connectionOptions.password = credentials["password"];
           }
         }
-        if (!connectionOptions.password) {
-          vscode.window.showErrorMessage(
-            localize(
-              "failRetrieveCredentials",
-              "Unable to retrieve credentials for {0}. Please manuallyenter your credentials.",
-              serverName
-            )
-          );
-          return undefined;
-        }
         return this.buildConnectionString(connectionOptions);
       default:
         // Should never happen
