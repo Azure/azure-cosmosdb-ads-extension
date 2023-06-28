@@ -1,12 +1,14 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { QueryEditorCommand, QueryEditorMessage, EditorUserQuery } from "./messageContract";
+import { create } from "domain";
 
 export interface ViewLoaderOptions {
   extensionPath: string;
   title: string;
   onReady: () => void;
   onQuerySubmit: (query: EditorUserQuery) => void;
+  onCreateNewDocument: () => void;
   onDidDispose: () => void;
 }
 
@@ -35,6 +37,8 @@ export default class ViewLoader {
           case "submitQuery":
             this.options.onQuerySubmit(msg.query);
             return;
+          case "createNewDocument":
+            this.options.onCreateNewDocument();
           default:
             console.error("Unrecognized message", JSON.stringify(msg));
         }

@@ -390,7 +390,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     databaseName: string,
     containerName: string,
     data: unknown[],
-    isCanceled: () => boolean,
+    isCanceled?: () => boolean,
     onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
@@ -415,7 +415,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         while (data.length > 0) {
           console.log(`${data.length} documents left to insert...`);
 
-          if (isCanceled()) {
+          if (isCanceled && isCanceled()) {
             reject(localize("canceledDocumentInserted", "Canceled. {0} documents inserted", count - data.length));
             return;
           }

@@ -34,6 +34,7 @@ import { MAX_IMPORT_FILE_SIZE_BYTES } from "./constant";
 import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
 import { CdbCollectionCreateInfo, CdbContainerCreateInfo } from "./Services/AbstractArmService";
 import { AbstractBackendService } from "./Services/AbstractBackendService";
+import { CosmosDbNoSqlFileSystemProvider } from "./Providers/CosmosDbNoSqlFileSystemProvider";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -683,6 +684,9 @@ export function activate(context: vscode.ExtensionContext) {
               vscode.window.showErrorMessage(getErrorMessage(e));
             }
           },
+          onCreateNewDocument: () => {
+            throw new Error("Method not implemented.");
+          },
           onDidDispose: () => {
             appContext.removeViewLoader(server, databaseName, collectionName);
           },
@@ -797,6 +801,21 @@ export function activate(context: vscode.ExtensionContext) {
               hideStatusBarItem();
             }
           },
+          onCreateNewDocument: () => {
+            const fileUri = vscode.Uri.parse(
+              `cdbnosql:/${server}/${databaseName}/${containerName}/${CosmosDbNoSqlFileSystemProvider.NEW_DOCUMENT_FILENAME}`
+            );
+            cosmosDbNoSqlFileSystemProvider.writeFile(
+              fileUri,
+              Buffer.from(
+                `{
+  "id": "replace_with_new_document_id"
+}`
+              ),
+              { create: true, overwrite: true }
+            );
+            vscode.commands.executeCommand("vscode.open", fileUri);
+          },
           onDidDispose: () => {
             appContext.removeViewLoader(server, databaseName!, containerName!);
           },
@@ -804,6 +823,21 @@ export function activate(context: vscode.ExtensionContext) {
         view.reveal();
       }
     )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("cosmosdb-ads-extension.saveToCosmosDb", async () => {
+      if (!vscode.window.activeTextEditor) {
+        return; // no editor
+      }
+      const { document } = vscode.window.activeTextEditor;
+      if (document.uri.scheme !== CosmosDbNoSqlFileSystemProvider.SCHEME) {
+        return;
+      }
+
+      // Force save
+      await document.save();
+    })
   );
 
   context.subscriptions.push(
@@ -1284,6 +1318,7 @@ export function activate(context: vscode.ExtensionContext) {
   // create telemetry reporter on extension activation
   const packageInfo = getPackageInfo();
   const reporter = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
+
   // Instantiate client
   appContext = new AppContext(reporter);
   createStatusBarItem();
@@ -1298,6 +1333,8 @@ export function activate(context: vscode.ExtensionContext) {
     appContext.reporter,
     appContext.cosmosDbNoSqlService
   );
+  const cosmosDbNoSqlFileSystemProvider = new CosmosDbNoSqlFileSystemProvider(appContext.cosmosDbNoSqlService);
+
   azdata.dataprotocol.registerConnectionProvider(mongoConnectionProvider);
   azdata.dataprotocol.registerConnectionProvider(noSqlConnectionProvider);
   azdata.dataprotocol.registerIconProvider(mongoIconProvider);
@@ -1310,6 +1347,13 @@ export function activate(context: vscode.ExtensionContext) {
   // ensure it gets property disposed
   context.subscriptions.push(reporter);
   context.subscriptions.push(appContext);
+  context.subscriptions.push(
+    vscode.workspace.registerFileSystemProvider(
+      CosmosDbNoSqlFileSystemProvider.SCHEME,
+      cosmosDbNoSqlFileSystemProvider,
+      { isCaseSensitive: true }
+    )
+  );
 }
 
 // export let objectExplorer:azdata.ObjectExplorerProvider | undefined; // TODO should we inject this instead?

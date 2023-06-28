@@ -24,6 +24,12 @@ const onReady = (): void => {
   });
 };
 
+const onCreateNewDocument = (): void => {
+  vscode.postMessage({
+    action: 'createNewDocument'
+  });
+};
+
 const Bootstrapper = (props: { onReady: () => void }) => {
   useEffect(() => props.onReady && props.onReady());
   return <>Not initialized yet</>;
@@ -62,6 +68,7 @@ window.addEventListener('message', event => {
 
   root.render(
     <React.StrictMode>
+      <button onClick={() => onCreateNewDocument() }>New Document</button>
       <QueryEditor {...queryEditorProps} />
     </React.StrictMode>
   );

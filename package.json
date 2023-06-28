@@ -108,9 +108,35 @@
         "command": "cosmosdb-ads-extension.exportContainer",
         "title": "Export Documents",
         "category": "Cosmos DB NoSql"
+      },
+      {
+        "command": "cosmosdb-ads-extension.saveToCosmosDb",
+        "title": "Click here to save to Cosmos DB",
+        "category": "Cosmos DB NoSql"
       }
     ],
     "menus": {
+      "editor/title": [
+				{
+					"command": "cosmosdb-ads-extension.saveToCosmosDb",
+					"group": "navigation",
+					"when": "resourceScheme == cdbnosql"
+				}
+			],
+      "editor/title/context": [
+				{
+					"command": "cosmosdb-ads-extension.saveToCosmosDb",
+					"group": "navigation",
+					"when": "resourceScheme == cdbnosql"
+				}
+			],
+      "editor/context": [
+				{
+					"command": "cosmosdb-ads-extension.saveToCosmosDb",
+					"group": "navigation",
+					"when": "resourceScheme == cdbnosql"
+				}
+			],
       "objectExplorer/item/context": [
         {
           "command": "cosmosdb-ads-extension.createMongoDatabase",

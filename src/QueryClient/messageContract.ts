@@ -44,6 +44,9 @@ export type QueryEditorCommand =
   | {
       action: "submitQuery";
       query: EditorUserQuery;
+    }
+  | {
+      action: "createNewDocument";
     };
 
 /**
