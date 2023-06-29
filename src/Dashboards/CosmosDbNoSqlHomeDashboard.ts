@@ -191,21 +191,11 @@ export class CosmosDbNoSqlHomeDashboard extends AbstractHomeDashboard {
     this.refreshDatabases = () => {
       this.cosmosDbNoSqlService.listDatabases(server).then(async (dbs) => {
         databases = dbs;
-
-        const databasesInfo: { name: string; nbContainers: number }[] = [];
-        for (const db of dbs) {
-          const name = db.name;
-          if (name !== undefined) {
-            const nbContainers = (await this.cosmosDbNoSqlService.listContainers(server, name)).length;
-            databasesInfo.push({ name, nbContainers: nbContainers });
-          }
-        }
-        tableComponent.data = databasesInfo.map((db) => [
+        tableComponent.data = dbs.map((db) => [
           <azdata.HyperlinkColumnCellValue>{
             title: db.name,
             icon: context.asAbsolutePath("resources/fluent/database.svg"),
           },
-          db.nbContainers,
         ]);
 
         tableLoadingComponent.loading = false;
@@ -222,10 +212,6 @@ export class CosmosDbNoSqlHomeDashboard extends AbstractHomeDashboard {
             type: azdata.ColumnType.hyperlink,
             name: "Database",
             width: 250,
-          },
-          {
-            value: localize("containers", "Containers"),
-            type: azdata.ColumnType.text,
           },
         ],
         data: [],

@@ -96,7 +96,7 @@ export const ingestSampleMongoData = async (
           },
           async (progress, token) => {
             progress.report({
-              message: localize("importingSampleData", "Importing sample data..."),
+              message: localize("importingSampleData", "Importing sample data may take a few minutes..."),
             });
             try {
               const { count, elapsedTimeMS } = await appContext.mongoService.createCollectionWithSampleData(
@@ -208,7 +208,7 @@ export const ingestSampleNoSqlData = async (
           },
           async (progress, token) => {
             progress.report({
-              message: localize("importingSampleData", "Importing sample data..."),
+              message: localize("importingSampleData", "Importing sample data may take a few minutes..."),
             });
             try {
               const { count, elapsedTimeMS } = await appContext.cosmosDbNoSqlService.createContainerWithSampleData(
