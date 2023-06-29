@@ -685,7 +685,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
           },
           onCreateNewDocument: () => {
-            throw new Error("Method not implemented.");
+            throw new Error(localize("notImplemented", "Method onCreateNewDocument not implemented"));
           },
           onDidDispose: () => {
             appContext.removeViewLoader(server, databaseName, collectionName);
@@ -814,7 +814,12 @@ export function activate(context: vscode.ExtensionContext) {
               ),
               { create: true, overwrite: true }
             );
-            vscode.commands.executeCommand("vscode.open", fileUri);
+            vscode.commands.executeCommand(
+              "vscode.open",
+              fileUri,
+              vscode.ViewColumn.Beside,
+              localize("cosmosDbNewDocument", "Cosmos DB: New Document")
+            );
           },
           onDidDispose: () => {
             appContext.removeViewLoader(server, databaseName!, containerName!);

@@ -1,5 +1,8 @@
 import * as vscode from "vscode";
+import * as nls from "vscode-nls";
 import { CosmosDbNoSqlService } from "../Services/CosmosDbNoSqlService";
+
+const localize = nls.loadMessageBundle();
 
 export class CdbFileStat implements vscode.FileStat {
   type: vscode.FileType;
@@ -36,7 +39,7 @@ export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvide
     uri: vscode.Uri,
     options: { readonly recursive: boolean; readonly excludes: readonly string[] }
   ): vscode.Disposable {
-    throw new Error("Method watch not implemented.");
+    throw new Error(localize("notImplemented", "Method watch not implemented"));
   }
 
   stat(uri: vscode.Uri): vscode.FileStat | Thenable<vscode.FileStat> {
@@ -47,7 +50,7 @@ export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvide
   }
 
   readDirectory(uri: vscode.Uri): [string, vscode.FileType][] | Thenable<[string, vscode.FileType][]> {
-    throw new Error("Method readDirectory not implemented.");
+    throw new Error(localize("notImplemented", "Method readDirectory not implemented"));
   }
 
   createDirectory(uri: vscode.Uri): void | Thenable<void> {
@@ -64,19 +67,6 @@ export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvide
     }
     throw vscode.FileSystemError.FileNotFound(uri);
   }
-
-  // private async renameToId(contentJson: any, uri: vscode.Uri) {
-  //   const { id } = contentJson;
-  //   if (id && this.docMap.has(uri.toString())) {
-  //     // Rename file with id
-  //     const pathComponents = uri.path.split("/");
-  //     const newPath = pathComponents.slice(0, pathComponents.length - 1).join("/") + "/" + id + ".json";
-  //     const newUri = uri.with({ scheme: CosmosDbNoSqlFileSystemProvider.SCHEME, path: newPath });
-  //     await vscode.workspace.fs.rename(uri, newUri, {
-  //       overwrite: false,
-  //     });
-  //   }
-  // }
 
   private async closeFileIfOpen(file: vscode.Uri): Promise<void> {
     const tabs: vscode.Tab[] = vscode.window.tabGroups.all.map((tg) => tg.tabs).flat();
@@ -100,13 +90,11 @@ export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvide
       if (isNotNew) {
         // User has updated the document
         setTimeout(async () => {
-          // this.renameToId(contentJson, uri);
           await this.closeFileIfOpen(uri);
           this.insertIntoCosmosDb(uri, contentJson);
-          vscode.window.showInformationMessage("Document successfully saved to Cosmos DB");
+          vscode.window.showInformationMessage(localize("documentSaved", "Document successfully saved to Cosmos DB"));
 
           this.docMap.delete(uri.toString());
-          // vscode.window.activeTextEditor.;
         }, 1000);
       }
     } catch (error) {
@@ -121,7 +109,7 @@ export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvide
   }
   private getContainerInfo(uri: vscode.Uri): { server: string; database: string; container: string } {
     if (!uri.path.startsWith("/")) {
-      throw new Error("Invalid path");
+      throw new Error(localize("invalidPath", "Invalid path"));
     }
 
     const [server, database, container] = uri.path.slice(1).split("/");
@@ -144,6 +132,6 @@ export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvide
   }
 
   copy?(source: vscode.Uri, destination: vscode.Uri, options: { readonly overwrite: boolean }): void | Thenable<void> {
-    throw new Error("Method copy not implemented.");
+    throw new Error(localize("notImplemented", "Method copy not implemented"));
   }
 }

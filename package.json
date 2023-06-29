@@ -111,7 +111,7 @@
       },
       {
         "command": "cosmosdb-ads-extension.saveToCosmosDb",
-        "title": "Click here to save to Cosmos DB",
+        "title": "Save",
         "category": "Cosmos DB NoSql"
       }
     ],
