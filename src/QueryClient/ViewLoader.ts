@@ -85,10 +85,10 @@ export default class ViewLoader {
 
     if (isProduction) {
       scriptUrl = this._panel?.webview
-        .asWebviewUri(vscode.Uri.file(path.join(this.options.extensionPath, "query-editor", "build", jsFile)))
+        .asWebviewUri(vscode.Uri.file(path.join(this.options.extensionPath, "query-editor", "dist", "assets", jsFile)))
         .toString();
       cssUrl = this._panel?.webview
-        .asWebviewUri(vscode.Uri.file(path.join(this.options.extensionPath, "query-editor", "build", cssFile)))
+        .asWebviewUri(vscode.Uri.file(path.join(this.options.extensionPath, "query-editor", "dist", "assets", cssFile)))
         .toString();
     } else {
       scriptUrl = `${localServerUrl}/${jsFile}`;

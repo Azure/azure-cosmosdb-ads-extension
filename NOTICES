@@ -39,7 +39,7 @@ PERFORMANCE OF THIS SOFTWARE.
 
 ---------------------------------------------------------
 
-tslib 2.5.0 - 0BSD
+tslib 2.6.1 - 0BSD
 https://www.typescriptlang.org/
 
 Copyright (c) Microsoft Corporation
@@ -1358,30 +1358,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 ---------------------------------------------------------
 
-tough-cookie 3.0.1 - BSD-3-Clause
-https://github.com/salesforce/tough-cookie
-
-Copyright (c) 2015, Salesforce.com, Inc.
-Copyright (c) 2018, Salesforce.com, Inc.
-
-Copyright (c) 2015, Salesforce.com, Inc.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-
-3. Neither the name of Salesforce.com nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
----------------------------------------------------------
-
----------------------------------------------------------
-
 @microsoft/ads-service-downloader 1.1.0 - ISC
 https://github.com/microsoft/ads-service-downloader#readme
 
@@ -1505,7 +1481,7 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ---------------------------------------------------------
 
-minipass 4.2.5 - ISC
+minipass 5.0.0 - ISC
 https://github.com/isaacs/minipass#readme
 
 Copyright (c) 2017-2023 npm, Inc., Isaac Z. Schlueter, and Contributors
@@ -1584,7 +1560,7 @@ License, as follows:
 
 ---------------------------------------------------------
 
-semver 7.3.8 - ISC
+semver 7.5.4 - ISC
 https://github.com/npm/node-semver#readme
 
 Copyright Isaac Z. Schlueter
@@ -1637,8 +1613,8 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ---------------------------------------------------------
 
-tar 6.1.13 - ISC
-https://github.com/npm/node-tar#readme
+tar 6.1.15 - ISC
+https://github.com/isaacs/node-tar#readme
 
 Copyright (c) Isaac Z. Schlueter and Contributors
 
@@ -1802,45 +1778,12 @@ SOFTWARE.
 
 ---------------------------------------------------------
 
-@azure/core-client 1.7.2 - MIT
-https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/core/core-client/
+@azure/core-rest-pipeline 1.11.0 - MIT
+https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/core/core-rest-pipeline/
 
 Copyright (c) 2020 Microsoft
 Copyright (c) Microsoft Corporation
-Copyright (c) Microsoft Corporation. const CollectionFormatToDelimiterMap CSV
-
-The MIT License (MIT)
-
-Copyright (c) 2020 Microsoft
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
----------------------------------------------------------
-
----------------------------------------------------------
-
-@azure/core-util 1.2.0 - MIT
-https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/core/core-util/
-
-Copyright (c) 2020 Microsoft
-Copyright (c) Microsoft Corporation
+Copyright (c) Microsoft Corporation. const RedactedString REDACTED Make
 
 The MIT License (MIT)
 
@@ -1902,7 +1845,7 @@ SOFTWARE.
 
 ---------------------------------------------------------
 
-@azure/ms-rest-js 2.6.4 - MIT
+@azure/ms-rest-js 2.7.0 - MIT
 https://github.com/Azure/ms-rest-js
 
 copyright 2015 Toru Nagashima
@@ -1936,7 +1879,7 @@ Copyright (c) 2010-2016 Robert Kieffer and other contributors
 
 ---------------------------------------------------------
 
-@fluentui/date-time-utilities 8.5.5 - MIT
+@fluentui/date-time-utilities 8.5.13 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -1962,7 +1905,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/dom-utilities 2.2.5 - MIT
+@fluentui/dom-utilities 2.2.11 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -1988,7 +1931,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/font-icons-mdl2 8.5.12 - MIT
+@fluentui/font-icons-mdl2 8.5.23 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2014,7 +1957,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/foundation-legacy 8.2.32 - MIT
+@fluentui/foundation-legacy 8.2.43 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2040,7 +1983,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/keyboard-key 0.4.5 - MIT
+@fluentui/keyboard-key 0.4.11 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2066,7 +2009,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/merge-styles 8.5.6 - MIT
+@fluentui/merge-styles 8.5.12 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2119,7 +2062,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/react-focus 8.8.18 - MIT
+@fluentui/react-focus 8.8.30 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2145,7 +2088,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/react-hooks 8.6.19 - MIT
+@fluentui/react-hooks 8.6.29 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2171,7 +2114,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/react-portal-compat-context 9.0.4 - MIT
+@fluentui/react-portal-compat-context 9.0.6 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2197,7 +2140,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/react-window-provider 2.2.8 - MIT
+@fluentui/react-window-provider 2.2.15 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2223,7 +2166,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/set-version 8.2.5 - MIT
+@fluentui/set-version 8.2.11 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2249,7 +2192,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/style-utilities 8.9.5 - MIT
+@fluentui/style-utilities 8.9.16 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2275,7 +2218,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/theme 2.6.24 - MIT
+@fluentui/theme 2.6.34 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2301,7 +2244,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@fluentui/utilities 8.13.8 - MIT
+@fluentui/utilities 8.13.18 - MIT
 https://github.com/microsoft/fluentui#readme
 
 Copyright (c) Microsoft Corporation
@@ -2327,7 +2270,7 @@ Note: Usage of the fonts and icons referenced in Fluent UI React is subject to t
 
 ---------------------------------------------------------
 
-@microsoft/ads-extension-telemetry 3.0.1 - MIT
+@microsoft/ads-extension-telemetry 3.0.2 - MIT
 https://github.com/Microsoft/ads-extension-telemetry#readme
 
 Copyright (c) Microsoft Corporation
@@ -2394,6 +2337,24 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ---------------------------------------------------------
 
+@swc/helpers 0.4.14 - MIT
+https://swc.rs/
+
+
+MIT License
+
+Copyright (c) <year> <copyright holders>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---------------------------------------------------------
+
+---------------------------------------------------------
+
 @tootallnate/once 2.0.0 - MIT
 https://github.com/TooTallNate/once#readme
 
@@ -2426,7 +2387,7 @@ SOFTWARE.
 
 ---------------------------------------------------------
 
-@types/node 18.15.11 - MIT
+@types/node 20.4.5 - MIT
 https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
 
 Copyright (c) Microsoft Corporation
@@ -2464,7 +2425,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---------------------------------------------------------
 
-@types/react 18.0.22 - MIT
+@types/react 18.2.15 - MIT
 https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
 
 Copyright (c) Microsoft Corporation
@@ -2483,26 +2444,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---------------------------------------------------------
 
-@types/react-dom 18.0.7 - MIT
-https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
-
-Copyright (c) Microsoft Corporation
-
-MIT License
-
-Copyright (c) <year> <copyright holders>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
----------------------------------------------------------
-
----------------------------------------------------------
-
-@types/scheduler 0.16.2 - MIT
+@types/scheduler 0.16.3 - MIT
 https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/scheduler
 
 Copyright (c) Microsoft Corporation
@@ -2833,7 +2775,7 @@ THE SOFTWARE.
 
 ---------------------------------------------------------
 
-csstype 3.1.1 - MIT
+csstype 3.1.2 - MIT
 https://github.com/frenic/csstype#readme
 
 Copyright (c) 2017-2018 Fredrik Nicol
@@ -3209,39 +3151,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---------------------------------------------------------
 
-ip-regex 2.1.0 - MIT
-https://github.com/sindresorhus/ip-regex#readme
-
-(c) Sindre Sorhus (https://sindresorhus.com)
-Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-
-The MIT License (MIT)
-
-Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-
----------------------------------------------------------
-
----------------------------------------------------------
-
 json-pointer 0.6.2 - MIT
 https://github.com/manuelstofer/json-pointer
 
@@ -3579,7 +3488,7 @@ SOFTWARE.
 
 ---------------------------------------------------------
 
-node-fetch 2.6.9 - MIT
+node-fetch 2.6.12 - MIT
 https://github.com/bitinn/node-fetch
 
 Copyright (c) 2016 David Frank
@@ -3692,27 +3601,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
----------------------------------------------------------
-
----------------------------------------------------------
-
-psl 1.9.0 - MIT
-https://github.com/lupomontero/psl#readme
-
-Copyright (c) 2017 Lupo Montero lupomontero@gmail.com
-Copyright (c) 2017 Lupo Montero <lupomontero@gmail.com>
-
-The MIT License (MIT)
-
-Copyright (c) 2017 Lupo Montero lupomontero@gmail.com
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 
 ---------------------------------------------------------
 
@@ -4255,10 +4143,10 @@ THE SOFTWARE.
 
 ---------------------------------------------------------
 
-xml2js 0.4.23 - MIT
+xml2js 0.5.0 - MIT
 https://github.com/Leonidas-from-XIV/node-xml2js
 
-Copyright 2010, 2011, 2012, 2013.
+Copyright 2010, 2011, 2012, 2013
 
 Copyright 2010, 2011, 2012, 2013. All rights reserved.
 

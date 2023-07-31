@@ -76,3 +76,6 @@
 * Move "Mongo Cluster" checkbox to main connection dialog (out of "Advanced") in "Parameters" view of new connection dialog
 * Improve connection logic and error messages in new connection flow to handle opening with URI
 
+## [0.3.5] - 7/27/2023
+### New changes
+* Allow connecting to passwordless servers

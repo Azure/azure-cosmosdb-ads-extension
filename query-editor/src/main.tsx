@@ -4,11 +4,12 @@ import './index.css';
 import { QueryEditor, QueryEditorProps, UserQuery } from '@azure/cosmos-query-editor-react';
 import { QueryEditorCommand, QueryEditorMessage } from '../../src/QueryClient/messageContract';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const vscode = (window as any).acquireVsCodeApi();
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
-const onSubmitQuery = (connectionId: string, query: UserQuery): void => {
+const onSubmitQuery = (_: string, query: UserQuery): void => {
   console.log("onSubmitQuery", query);
   const message: QueryEditorCommand = {
     action: 'submitQuery',
@@ -30,6 +31,7 @@ const onCreateNewDocument = (): void => {
   });
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 const Bootstrapper = (props: { onReady: () => void }) => {
   useEffect(() => props.onReady && props.onReady());
   return <>Not initialized yet</>;
