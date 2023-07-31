@@ -326,7 +326,7 @@
     "format:check": "prettier --check \"{src,test}/**/*.{ts,tsx,html}\" \"*.{js,html}\"",
     "proposedapi": "node installTypings.js",
     "publish": "vsce package",
-    "clean": "rimraf --glob ./out ./azure-cosmosdb-ads-extension-*.vsix ./query-editor/{out,build} ./dist",
+    "clean": "rimraf --glob ./out ./azure-cosmosdb-ads-extension-*.vsix ./query-editor/dist ./dist",
     "esbuild:base": "npx mkdirp ./dist && esbuild ./src/extension.ts --bundle --outfile=dist/main.js --external:vscode --external:azdata --format=cjs --platform=node",
     "esbuild": "yarn run esbuild:base --sourcemap",
     "esbuild:watch": "yarn run esbuild:base --sourcemap --watch"
