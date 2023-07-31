@@ -1,9 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react()
+  ],
   build: {
     sourcemap: true,
     rollupOptions: {
@@ -17,7 +20,22 @@ export default defineConfig({
   css: {
     devSourcemap: true,
   },
-  // optimizeDeps: {
-  //   exclude: ['@fluentui/react'],
-  // },
+  optimizeDeps: {
+    force: true,
+    esbuildOptions: {
+      plugins: [
+        {
+          // Some @fluentui require calls are not resolved correctly by vite:pre-bundling plugin
+          name: "fluentui:scss:resolver",
+          setup(build) {
+              build.onResolve({
+                  filter: new RegExp(".scss$")
+              }, args => {
+                return { path: path.resolve(args.resolveDir, `${args.path}.js`) };
+              });
+          }
+        },
+      ]
+    }
+  },
 })
