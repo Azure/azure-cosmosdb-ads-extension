@@ -10,7 +10,7 @@ vsc-extension-quickstart.md
 **/*.ts
 .github
 query-editor
-!query-editor/build
+!query-editor/dist
 online-resources/**
 local-resources/**
 node_modules
