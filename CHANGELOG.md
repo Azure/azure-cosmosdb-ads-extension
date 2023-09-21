@@ -79,3 +79,10 @@
 ## [0.3.5] - 7/27/2023
 ### New changes
 * Allow connecting to passwordless servers
+
+## [0.3.6] - 8/9/2023
+### New changes
+* Upgrade eslint
+* Upgrade to node 16 in ci
+### Bug fixes
+* Fix issue with "Overview" section of Manage Account not updating (constant spinner)
