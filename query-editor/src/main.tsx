@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import { QueryEditor, QueryEditorProps, UserQuery } from '@azure/cosmos-query-editor-react';
 import { QueryEditorCommand, QueryEditorMessage } from '../../src/QueryClient/messageContract';
+import { DefaultButton } from '@fluentui/react/lib/Button';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const vscode = (window as any).acquireVsCodeApi();
@@ -70,7 +71,7 @@ window.addEventListener('message', event => {
 
   root.render(
     <React.StrictMode>
-      <button onClick={() => onCreateNewDocument() }>New Document</button>
+      <DefaultButton onClick={() => onCreateNewDocument() } style={{ margin: 10 }}>New Document</DefaultButton>
       <QueryEditor {...queryEditorProps} />
     </React.StrictMode>
   );
