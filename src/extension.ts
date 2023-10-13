@@ -765,6 +765,10 @@ export function activate(context: vscode.ExtensionContext) {
           onQuerySubmit: async (query: EditorUserQuery) => {
             showStatusBarItem(localize("runningQuery", "Running query..."));
             console.log("submitquery", query);
+            view.sendCommand({
+              type: "setProgress",
+              data: true,
+            });
             try {
               const queryResult = await appContext.cosmosDbNoSqlService.submitQuery(
                 connectionOptions!,

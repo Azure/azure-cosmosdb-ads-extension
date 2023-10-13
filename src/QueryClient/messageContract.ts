@@ -66,4 +66,8 @@ export type QueryEditorMessage =
   | {
       type: "queryResult";
       data: EditorQueryResult;
+    }
+  | {
+      type: "setProgress";
+      data: boolean;
     };

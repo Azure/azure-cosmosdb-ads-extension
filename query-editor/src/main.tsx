@@ -60,9 +60,16 @@ window.addEventListener('message', event => {
       queryEditorProps.containerName = message.data.containerName;
 			queryEditorProps.pagingType = message.data.pagingType;
 			queryEditorProps.defaultQueryText = message.data.defaultQueryText;
+      queryEditorProps.progress = undefined;
       break;
     case "queryResult":
       queryEditorProps.queryResult = message.data;
+      queryEditorProps.progress = undefined;
+      break;
+    case "setProgress":
+      queryEditorProps.progress = {
+        spinner: message.data
+      };
       break;
     default:
       // console.log("Unknown type", message);
