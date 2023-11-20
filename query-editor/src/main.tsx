@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import { QueryEditor, QueryEditorProps, UserQuery } from '@azure/cosmos-query-editor-react';
 import { QueryEditorCommand, QueryEditorMessage } from '../../src/QueryClient/messageContract';
-import { DefaultButton } from '@fluentui/react/lib/Button';
+import { Button } from '@fluentui/react-components';
+import { FluentProvider, teamsLightTheme } from '@fluentui/react-components';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const vscode = (window as any).acquireVsCodeApi();
@@ -78,8 +79,10 @@ window.addEventListener('message', event => {
 
   root.render(
     <React.StrictMode>
-      <DefaultButton onClick={() => onCreateNewDocument() } style={{ margin: 10 }}>New Document</DefaultButton>
+      <FluentProvider theme={teamsLightTheme} style={{ height: "100%", overflow: "hidden" }}>
+      <Button onClick={() => onCreateNewDocument() } style={{ margin: 10 }}>New Document</Button>
       <QueryEditor {...queryEditorProps} />
+      </FluentProvider>
     </React.StrictMode>
   );
 });

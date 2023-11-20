@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@azure/cosmos-query-editor-react": "1.0.0-beta.3",
-    "@fluentui/react": "8.111.2",
+    "@azure/cosmos-query-editor-react": "1.0.0-beta.4",
+    "@fluentui/react-components": "9.37.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
