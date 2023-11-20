@@ -38,7 +38,7 @@ jobs:
   # DotNet Core needed for ESRP and building proxy
   - task: UseDotNet@2
     inputs:
-      version: '6.x'
+      version: '8.x'
 
   # Use for linux: xvfb-run -a yarn run test
   # For some reason, azuredatastudio for linux does not execute the tests.
