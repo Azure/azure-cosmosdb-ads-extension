@@ -47,14 +47,6 @@ jobs:
     displayName: 'Run unit tests'
   - script: yarn run publish
     displayName: 'Yarn publish'
-  - task: onebranch.pipeline.signing@1 # https://aka.ms/obpipelines/signing
-    displayName: 'Sign VSIX package'
-    inputs:
-      command: 'sign'
-      signing_environment: 'azure-ado'
-      signing_profile: 'external_distribution'
-      files_to_sign: '*.vsix'
-      search_root: '$(Build.SourcesDirectory)'
   - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
     inputs:
       ConnectedServiceName: 'ESRP Official Codesigning'
