@@ -38,7 +38,6 @@ jobs:
   # DotNet Core needed for ESRP and building proxy
   - task: UseDotNet@2
     inputs:
-      version: '2.1.0'
       performMultiLevelLookup: true
 
   # Use for linux: xvfb-run -a yarn run test
