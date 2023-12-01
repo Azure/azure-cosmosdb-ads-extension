@@ -80,8 +80,10 @@ window.addEventListener('message', event => {
   root.render(
     <React.StrictMode>
       <FluentProvider theme={teamsLightTheme} style={{ height: "100%", overflow: "hidden" }}>
-      <Button onClick={() => onCreateNewDocument() } style={{ margin: 10 }}>New Document</Button>
+        <Button onClick={() => onCreateNewDocument() } style={{ position: 'absolute', right: 20, top: 5 }}>New Document</Button>
+      <div style={{ paddingTop: 10 }}>
       <QueryEditor {...queryEditorProps} />
+      </div>
       </FluentProvider>
     </React.StrictMode>
   );
