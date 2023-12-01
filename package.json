@@ -276,7 +276,7 @@
       {
         "providerId": "COSMOSDB_MONGO",
         "languageMode": "cosmosdb",
-        "displayName": "Cosmos DB for MongoDB",
+        "displayName": "Azure Cosmos DB for MongoDB",
         "isQueryProvider": false,
         "connectionStringOptions": {
           "isEnabled": true,
@@ -421,7 +421,7 @@
       {
         "providerId": "COSMOSDB_NOSQL",
         "languageMode": "cosmosdb",
-        "displayName": "Cosmos DB for NoSQL",
+        "displayName": "Azure Cosmos DB for NoSQL",
         "isQueryProvider": false,
         "connectionStringOptions": {
           "isEnabled": true,
