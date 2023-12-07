@@ -487,12 +487,12 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     connectionOptions: IConnectionOptions,
     databaseName: string,
     containerName: string,
-    query: EditorUserQuery
+    query: EditorUserQuery,
+    cancelationTokenId?: number
   ): Promise<EditorQueryResult> {
     if (!this._cosmosDbProxies.has(connectionOptions.server)) {
       throw new Error(`Unknown server: ${connectionOptions.server}`); // Should we connect?
     }
-
     const result = await this._cosmosDbProxies
       .get(connectionOptions.server)!
       .submitQuery(
@@ -500,7 +500,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         containerName,
         query.query,
         (query.pagingInfo as QueryInfinitePagingInfo)?.continuationToken,
-        (query.pagingInfo as QueryInfinitePagingInfo)?.maxCount ?? NOSQL_QUERY_RESULT_MAX_COUNT
+        (query.pagingInfo as QueryInfinitePagingInfo)?.maxCount ?? NOSQL_QUERY_RESULT_MAX_COUNT,
+        cancelationTokenId
       );
     return {
       documents: result.documents,
@@ -578,5 +579,15 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         return;
       }
     });
+  }
+
+  public async generateCancelationToken(connectionOptions: IConnectionOptions): Promise<number> {
+    const tokenId = await this._cosmosDbProxies.get(connectionOptions.server)!.generateCancelationToken();
+    console.log('Got token id: ', tokenId);
+    return tokenId;
+  }
+
+  public async cancelToken(connectionOptions: IConnectionOptions, tokenId: number): Promise<void> {
+    await this._cosmosDbProxies.get(connectionOptions.server)!.cancelToken(tokenId);
   }
 }

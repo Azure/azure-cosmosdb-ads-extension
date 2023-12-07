@@ -9,6 +9,9 @@
   {
     private CosmosClient? client;
 
+    // Token dictionary: epoch <--> token
+    private Dictionary<long, CancellationTokenSource> cancellationTokenSources = new Dictionary<long, CancellationTokenSource>();
+
     public SdkRpcTarget()
     {
     }
@@ -41,9 +44,39 @@
       client = new CosmosClient(connectPayload.ConnectionString);
     }
 
-    public void shutdown()
+    public void Shutdown()
     {
       // Not implemented
+    }
+
+    public void CancelToken(Newtonsoft.Json.Linq.JToken paramObject)
+    {
+      if (paramObject == null)
+      {
+        throw new ArgumentNullException(nameof(paramObject));
+      }
+
+      // TODO handle error
+      CancelTokenPayload cancelTokenPayload = paramObject.ToObject<CancelTokenPayload>();
+
+      if (cancelTokenPayload == null)
+      {
+        throw new Exception("Could not deserialize connect message payload");
+      }
+
+      if (cancelTokenPayload.CancelationTokenId != null && cancellationTokenSources.ContainsKey((long)cancelTokenPayload.CancelationTokenId)) {
+          CancellationTokenSource cancellationTokenSource = cancellationTokenSources[(long)cancelTokenPayload.CancelationTokenId];
+          cancellationTokenSource.Cancel();
+        }
+    }
+
+    public long GenerateCancelationToken(Newtonsoft.Json.Linq.JToken paramObject)
+    {
+      CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+      TimeSpan t = DateTime.Now - new DateTime(1970, 1, 1);
+      long msSinceEpoch = (long)t.TotalMilliseconds;
+      cancellationTokenSources.Add(msSinceEpoch, cancellationTokenSource);
+      return msSinceEpoch;
     }
 
     public async Task<QueryResponseMessage?> ExecuteQueryNoPaginationAsync(Newtonsoft.Json.Linq.JToken paramObject)
@@ -99,8 +132,6 @@
         // TODO Handle error
         return null;
       }
-
-      // TODO Add Paging
 
       // Query multiple items from container
       using FeedIterator<dynamic> feed = container.GetItemQueryIterator<dynamic>(
@@ -159,7 +190,7 @@
       {
         //WriteToStdErr("Database not found: " + queryPayload.DatabaseId);
         // TODO Handle error
-        return null;
+        return   null;
       }
 
       Container container = database.GetContainer(queryPayload.ContainerId);
@@ -188,28 +219,49 @@
       // Iterate query result pages
       while (feed.HasMoreResults)
       {
-        FeedResponse<dynamic> response = await feed.ReadNextAsync();
-
-        // Iterate query results
-        foreach (Object item in response)
-        {
-          //Console.WriteLine($"Found item:\t{item.ToString()}");
-          //WriteToStdErr($"Found item:\t{item.ToString()}");
-          responseMessage.Documents.Add(item);
+        CancellationToken cancellationToken = default;
+        if (queryPayload.CancelationTokenId != null && cancellationTokenSources.ContainsKey((long)queryPayload.CancelationTokenId)) {
+          CancellationTokenSource cancellationTokenSource = cancellationTokenSources[(long)queryPayload.CancelationTokenId];
+          cancellationToken = cancellationTokenSource.Token;
         }
 
-        responseMessage.RequestCharge += response.RequestCharge;
-        responseMessage.Count += response.Count;
-
-        // Get continuation token once we've gotten > 0 results.
-        //if (response.Count > 0)
-        if (responseMessage.Documents.Count >= queryPayload.MaxCount)
+        try
         {
-          responseMessage.ContinuationToken = response.ContinuationToken;
+          FeedResponse<dynamic> response = await feed.ReadNextAsync(cancellationToken);
+
+          // Iterate query results
+          foreach (Object item in response)
+          {
+            //Console.WriteLine($"Found item:\t{item.ToString()}");
+            //WriteToStdErr($"Found item:\t{item.ToString()}");
+            responseMessage.Documents.Add(item);
+          }
+
+          responseMessage.RequestCharge += response.RequestCharge;
+          responseMessage.Count += response.Count;
+
+          // Get continuation token once we've gotten > 0 results.
+          //if (response.Count > 0)
+          if (responseMessage.Documents.Count >= queryPayload.MaxCount)
+          {
+            responseMessage.ContinuationToken = response.ContinuationToken;
+            break;
+          }
+
+        }
+        catch (CosmosOperationCanceledException ex)
+        {
+          // Handle this gracefully, user has canceled the query.
           break;
         }
       }
       responseMessage.MaxCount = queryPayload.MaxCount;
+
+      // Deallocate token
+      if (queryPayload.CancelationTokenId != null && cancellationTokenSources.ContainsKey((long)queryPayload.CancelationTokenId)) {
+        cancellationTokenSources.Remove((long)queryPayload.CancelationTokenId);
+      }
+
       return responseMessage;
     }
   }

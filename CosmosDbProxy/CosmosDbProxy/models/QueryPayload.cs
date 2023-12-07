@@ -18,5 +18,8 @@ namespace Microsoft.Azure.Cosmos.AdsExtensionProxy.DataModel
 
         [JsonProperty("maxCount")]
         public int MaxCount { get; set; }
+
+        [JsonProperty("cancelationTokenId")]
+        public long? CancelationTokenId { get; set; }
     }
 }

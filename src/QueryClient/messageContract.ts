@@ -46,6 +46,9 @@ export type QueryEditorCommand =
       query: EditorUserQuery;
     }
   | {
+      action: "cancelQuery";
+    }
+  | {
       action: "createNewDocument";
     };
 

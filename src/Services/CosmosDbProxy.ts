@@ -20,10 +20,17 @@ export type CosmosDbProxyRequest =
         queryText: string;
         continuationToken: string | undefined;
         maxCount: number | undefined;
+        cancelationTokenId?: number;
       };
     }
   | {
-      command: "ListDatabases" | "Shutdown";
+      command: "CancelToken";
+      payload: {
+        cancelationTokenId: number;
+      };
+    }
+  | {
+      command: "ListDatabases" | "Shutdown" | "GenerateCancelationToken";
       payload?: undefined;
     };
 
@@ -138,8 +145,12 @@ export class CosmosDbProxy {
   private async sendMessage(message: CosmosDbProxyRequest): Promise<any> {
     return new Promise(async (resolve, reject) => {
       if (this._childProcess) {
-        const result = await this._rpcConnection?.sendRequest(message.command, message.payload);
-        return resolve(result);
+        try {
+          const result = await this._rpcConnection?.sendRequest(message.command, message.payload);
+          return resolve(result);
+        } catch (err) {
+          return reject(err);
+        }
       }
 
       return reject(localize("errorSendingMessageToProxy", "Error sending message to proxy"));
@@ -168,7 +179,8 @@ export class CosmosDbProxy {
     containerId: string,
     queryText: string,
     continuationToken: string | undefined,
-    maxCount: number
+    maxCount: number,
+    cancelationTokenId?: number
   ): Promise<QueryResponseMessage> {
     return await this.sendRequest({
       command: "ExecuteQuery",
@@ -178,7 +190,16 @@ export class CosmosDbProxy {
         queryText,
         continuationToken,
         maxCount,
+        cancelationTokenId
       },
     });
+  }
+
+  public async generateCancelationToken(): Promise<number> {
+    return await this.sendRequest({ command: "GenerateCancelationToken" });
+  }
+
+  public async cancelToken(cancelationTokenId: number): Promise<number> {
+    return await this.sendRequest({ command: "CancelToken", payload: { cancelationTokenId } });
   }
 }

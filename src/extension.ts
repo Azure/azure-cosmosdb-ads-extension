@@ -684,6 +684,9 @@ export function activate(context: vscode.ExtensionContext) {
               vscode.window.showErrorMessage(getErrorMessage(e));
             }
           },
+          onQueryCancel: () => {
+            // no op
+          },
           onCreateNewDocument: () => {
             throw new Error(localize("notImplemented", "Method onCreateNewDocument not implemented"));
           },
@@ -747,6 +750,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Cache
         const server = connectionOptions.server;
 
+        let tokenId: number | undefined = undefined;
         const view = appContext.getViewLoader(server, databaseName, containerName, {
           extensionPath: context.extensionPath,
           title: containerName,
@@ -763,6 +767,8 @@ export function activate(context: vscode.ExtensionContext) {
             });
           },
           onQuerySubmit: async (query: EditorUserQuery) => {
+            tokenId = await appContext.cosmosDbNoSqlService.generateCancelationToken(connectionOptions!);
+
             showStatusBarItem(localize("runningQuery", "Running query..."));
             console.log("submitquery", query);
             view.sendCommand({
@@ -774,7 +780,8 @@ export function activate(context: vscode.ExtensionContext) {
                 connectionOptions!,
                 databaseName!,
                 containerName!,
-                query
+                query,
+                tokenId
               );
 
               if (queryResult.documents === undefined) {
@@ -803,7 +810,20 @@ export function activate(context: vscode.ExtensionContext) {
               vscode.window.showErrorMessage(getErrorMessage(e));
             } finally {
               hideStatusBarItem();
+              view.sendCommand({
+                type: "setProgress",
+                data: false,
+              });
             }
+          },
+          onQueryCancel: () => {
+            if (tokenId === undefined) {
+              vscode.window.showErrorMessage(localize("TokenIdNotInitialized", "Token Id is not initialized"));
+              return;
+            }
+            // Cancel query and set progress to undefined
+            vscode.window.showInformationMessage(localize("CancelingQueryRequested", "Canceling query requested"));
+            appContext.cosmosDbNoSqlService.cancelToken(connectionOptions!, tokenId);
           },
           onCreateNewDocument: () => {
             const fileUri = vscode.Uri.parse(

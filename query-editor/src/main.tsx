@@ -21,6 +21,12 @@ const onSubmitQuery = (_: string, query: UserQuery): void => {
   vscode.postMessage(message);
 };
 
+const onCancelQuery = (): void => {
+  vscode.postMessage({
+    action: 'cancelQuery'
+  });
+};
+
 const onReady = (): void => {
   vscode.postMessage({
     action: 'ready'
@@ -47,7 +53,8 @@ const queryEditorProps: QueryEditorProps = {
 	pagingType: "offset",
   queryInputLabel: "Enter filter",
   queryButtonLabel: "Find",
-  onSubmitQuery
+  onSubmitQuery,
+  onCancelQuery,
 };
 
 window.addEventListener('message', event => {
@@ -68,9 +75,8 @@ window.addEventListener('message', event => {
       queryEditorProps.progress = undefined;
       break;
     case "setProgress":
-      queryEditorProps.progress = {
-        spinner: message.data
-      };
+      queryEditorProps.progress = message.data ? { spinner: true } : undefined;
+      queryEditorProps.isSubmitDisabled = message.data;
       break;
     default:
       // console.log("Unknown type", message);

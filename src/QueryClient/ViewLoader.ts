@@ -8,6 +8,7 @@ export interface ViewLoaderOptions {
   title: string;
   onReady: () => void;
   onQuerySubmit: (query: EditorUserQuery) => void;
+  onQueryCancel: () => void;
   onCreateNewDocument: () => void;
   onDidDispose: () => void;
 }
@@ -36,6 +37,9 @@ export default class ViewLoader {
             return;
           case "submitQuery":
             this.options.onQuerySubmit(msg.query);
+            return;
+          case "cancelQuery":
+            this.options.onQueryCancel();
             return;
           case "createNewDocument":
             this.options.onCreateNewDocument();
