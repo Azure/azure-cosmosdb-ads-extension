@@ -216,14 +216,11 @@
       responseMessage.RequestCharge = 0;
       responseMessage.Count = 0;
 
-      // Iterate query result pages
-      while (feed.HasMoreResults)
-      {
-        CancellationToken cancellationToken = default;
-        if (queryPayload.CancelationTokenId != null && cancellationTokenSources.ContainsKey((long)queryPayload.CancelationTokenId)) {
-          CancellationTokenSource cancellationTokenSource = cancellationTokenSources[(long)queryPayload.CancelationTokenId];
-          cancellationToken = cancellationTokenSource.Token;
-        }
+      CancellationToken cancellationToken = default;
+      if (queryPayload.CancelationTokenId != null && cancellationTokenSources.ContainsKey((long)queryPayload.CancelationTokenId)) {
+        CancellationTokenSource cancellationTokenSource = cancellationTokenSources[(long)queryPayload.CancelationTokenId];
+        cancellationToken = cancellationTokenSource.Token;
+      }
 
         try
         {
