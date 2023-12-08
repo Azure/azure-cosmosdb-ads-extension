@@ -222,6 +222,9 @@
         cancellationToken = cancellationTokenSource.Token;
       }
 
+      // Iterate query result pages
+      while (feed.HasMoreResults)
+      {
         try
         {
           FeedResponse<dynamic> response = await feed.ReadNextAsync(cancellationToken);
