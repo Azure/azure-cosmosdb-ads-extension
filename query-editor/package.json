@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@azure/cosmos-query-editor-react": "../../../../azure-cosmos-db-query-editor/azure-cosmos-query-editor-react-1.0.0-beta.4.tgz",
+    "@azure/cosmos-query-editor-react": "1.0.0-beta.5",
     "@fluentui/react-components": "9.37.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"

@@ -55,6 +55,7 @@ const queryEditorProps: QueryEditorProps = {
   queryButtonLabel: "Find",
   onSubmitQuery,
   onCancelQuery,
+  style: { marginTop: 10 },
 };
 
 window.addEventListener('message', event => {
@@ -86,10 +87,8 @@ window.addEventListener('message', event => {
   root.render(
     <React.StrictMode>
       <FluentProvider theme={teamsLightTheme} style={{ height: "100%", overflow: "hidden" }}>
-        <Button onClick={() => onCreateNewDocument() } style={{ position: 'absolute', right: 20, top: 5 }}>New Document</Button>
-      <div style={{ paddingTop: 10 }}>
-      <QueryEditor {...queryEditorProps} />
-      </div>
+        <Button onClick={() => onCreateNewDocument()} style={{ position: "absolute", right: 20, top: 5 }}>New Document</Button>
+        <QueryEditor {...queryEditorProps} />
       </FluentProvider>
     </React.StrictMode>
   );
