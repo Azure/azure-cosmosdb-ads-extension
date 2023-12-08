@@ -583,7 +583,6 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
 
   public async generateCancelationToken(connectionOptions: IConnectionOptions): Promise<number> {
     const tokenId = await this._cosmosDbProxies.get(connectionOptions.server)!.generateCancelationToken();
-    console.log('Got token id: ', tokenId);
     return tokenId;
   }
 

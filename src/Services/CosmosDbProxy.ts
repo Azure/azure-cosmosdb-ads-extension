@@ -190,7 +190,7 @@ export class CosmosDbProxy {
         queryText,
         continuationToken,
         maxCount,
-        cancelationTokenId
+        cancelationTokenId,
       },
     });
   }
