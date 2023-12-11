@@ -14,3 +14,5 @@ query-editor
 online-resources/**
 local-resources/**
 node_modules
+CosmosDbProxy/**
+!CosmosDbProxy/CosmosDbProxy/bin/Release/net6.0/publish/*

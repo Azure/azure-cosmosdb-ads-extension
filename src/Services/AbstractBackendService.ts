@@ -5,7 +5,6 @@ import { CosmosClient } from "@azure/cosmos";
 import { IConnectionOptions, IDatabaseInfo } from "../models";
 import { MongoClient } from "mongodb";
 import { AbstractArmService } from "./AbstractArmService";
-import { buildMongoConnectionString } from "../Providers/connectionString";
 
 const localize = nls.loadMessageBundle();
 
@@ -23,6 +22,12 @@ export abstract class AbstractBackendService {
   public abstract disconnect(server: string): Promise<void> | void;
   public abstract listDatabases(server: string): Promise<IDatabaseInfo[]>;
   public abstract getDocuments(serverName: string, databaseName: string, containerName: string): Promise<unknown[]>;
+  protected abstract disconnectAll(): void;
+  protected abstract buildConnectionString(connectionOptions: IConnectionOptions): string | undefined;
+
+  public dispose(): void {
+    this.disconnectAll();
+  }
 
   public retrieveConnectionStringFromConnectionOptions = async (
     connectionOptions: IConnectionOptions,
@@ -59,7 +64,7 @@ export abstract class AbstractBackendService {
             connectionOptions.password = credentials["password"];
           }
         }
-        return buildMongoConnectionString(connectionOptions);
+        return this.buildConnectionString(connectionOptions);
       default:
         // Should never happen
         vscode.window.showErrorMessage(

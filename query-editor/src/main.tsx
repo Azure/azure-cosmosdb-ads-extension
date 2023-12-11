@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import { QueryEditor, QueryEditorProps, UserQuery } from '@azure/cosmos-query-editor-react';
 import { QueryEditorCommand, QueryEditorMessage } from '../../src/QueryClient/messageContract';
+import { Button } from '@fluentui/react-components';
+import { FluentProvider, teamsLightTheme } from '@fluentui/react-components';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const vscode = (window as any).acquireVsCodeApi();
@@ -19,9 +21,21 @@ const onSubmitQuery = (_: string, query: UserQuery): void => {
   vscode.postMessage(message);
 };
 
+const onCancelQuery = (): void => {
+  vscode.postMessage({
+    action: 'cancelQuery'
+  });
+};
+
 const onReady = (): void => {
   vscode.postMessage({
     action: 'ready'
+  });
+};
+
+const onCreateNewDocument = (): void => {
+  vscode.postMessage({
+    action: 'createNewDocument'
   });
 };
 
@@ -39,7 +53,9 @@ const queryEditorProps: QueryEditorProps = {
 	pagingType: "offset",
   queryInputLabel: "Enter filter",
   queryButtonLabel: "Find",
-  onSubmitQuery
+  onSubmitQuery,
+  onCancelQuery,
+  style: { marginTop: 10 },
 };
 
 window.addEventListener('message', event => {
@@ -53,9 +69,15 @@ window.addEventListener('message', event => {
       queryEditorProps.containerName = message.data.containerName;
 			queryEditorProps.pagingType = message.data.pagingType;
 			queryEditorProps.defaultQueryText = message.data.defaultQueryText;
+      queryEditorProps.progress = undefined;
       break;
     case "queryResult":
       queryEditorProps.queryResult = message.data;
+      queryEditorProps.progress = undefined;
+      break;
+    case "setProgress":
+      queryEditorProps.progress = message.data ? { spinner: true } : undefined;
+      queryEditorProps.isSubmitDisabled = message.data;
       break;
     default:
       // console.log("Unknown type", message);
@@ -64,7 +86,10 @@ window.addEventListener('message', event => {
 
   root.render(
     <React.StrictMode>
-      <QueryEditor {...queryEditorProps} />
+      <FluentProvider theme={teamsLightTheme} style={{ height: "100%", overflow: "hidden" }}>
+        <Button onClick={() => onCreateNewDocument()} style={{ position: "absolute", right: 20, top: 5 }}>New Document</Button>
+        <QueryEditor {...queryEditorProps} />
+      </FluentProvider>
     </React.StrictMode>
   );
 });

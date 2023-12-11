@@ -86,3 +86,12 @@
 * Upgrade to node 16 in ci
 ### Bug fixes
 * Fix issue with "Overview" section of Manage Account not updating (constant spinner)
+
+## [0.4.0] - 11/22/2023
+### New changes
+* Add NoSQL API support: Query Editor, .NET C# proxy to execute the queries, new Dashboards
+* Make Mongo sample data import cancelable
+* Add progress indicator when importing data
+
+### Bug fixes
+* Fix import sample data for Mongo

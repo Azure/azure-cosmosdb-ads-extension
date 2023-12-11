@@ -32,14 +32,27 @@ export interface ICosmosDbDatabaseInfo {
   currentThroughput: number | undefined;
 }
 
-export interface ICosmosDbCollectionInfo {
+export interface ICosmosDbContainerInfoBase {
   name: string;
   documentCount: number | undefined;
   throughputSetting: string;
   usageSizeKB: number | undefined;
   isAutoscale: boolean;
   currentThroughput: number | undefined;
+}
+
+export interface ICosmosDbCollectionInfo extends ICosmosDbContainerInfoBase {
   shardKey: { [propertyName: string]: string } | undefined;
+}
+
+export interface IAzureCosmosDbContainerInfo extends ICosmosDbContainerInfoBase {
+  partitionKey: string | undefined;
+}
+
+export interface ICosmosDbContainerInfo {
+  name: string;
+  currentThroughput: number | undefined;
+  partitionKey: string | undefined;
 }
 
 export interface IMongoShellOptions {

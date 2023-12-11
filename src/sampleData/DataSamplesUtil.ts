@@ -14,11 +14,6 @@ import { Events } from "../constant";
 
 const localize = nls.loadMessageBundle();
 
-export interface CdbCollectionCreateInfo {
-  requiredThroughputRUPS: number;
-  shardKey: string;
-}
-
 let outputChannel: vscode.OutputChannel;
 
 const downloadSampleData = async (extensionPath: string): Promise<string> => {
@@ -57,15 +52,15 @@ export const ingestSampleMongoData = async (
         databaseDashboardInfo.databaseName = sampleData.databaseId;
       }
 
-      let collectionToCreate = sampleData.collectionId;
+      let collectionIdToCreate = sampleData.collectionId;
 
       // If collection already exists
       const collections = await appContext.mongoService.listCollections(
         databaseDashboardInfo.server,
         databaseDashboardInfo.databaseName!
       );
-      if (collections.find((c) => c.collectionName === sampleData.collectionId)) {
-        collectionToCreate = await vscode.window.showInputBox({
+      if (collections.find((c) => c.collectionName === collectionIdToCreate)) {
+        collectionIdToCreate = await vscode.window.showInputBox({
           placeHolder: localize("collectionName", "Collection name"),
           prompt: localize("enterCollectionNameToCreate", "Enter collection name to create"),
           validateInput: validateMongoCollectionName,
@@ -73,7 +68,7 @@ export const ingestSampleMongoData = async (
         });
       }
 
-      if (!collectionToCreate) {
+      if (!collectionIdToCreate) {
         reject();
         return;
       }
@@ -83,7 +78,7 @@ export const ingestSampleMongoData = async (
           "ingestSampleMongoDataConfirm",
           "This will create a collection '{1}' inside database '{0}'. It may incur additional costs to your account. Do you want to proceed?",
           databaseDashboardInfo.databaseName,
-          collectionToCreate
+          collectionIdToCreate
         ),
         ...[localize("yes", "Yes"), localize("no", "No")]
       );
@@ -97,23 +92,144 @@ export const ingestSampleMongoData = async (
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            cancellable: false,
+            cancellable: true,
           },
-          async (progress) => {
+          async (progress, token) => {
             progress.report({
-              message: localize("importingSampleData", "Importing sample data..."),
+              message: localize("importingSampleData", "Importing sample data may take a few minutes..."),
             });
-            const { count, elapsedTimeMS } = await appContext.mongoService.createCollectionWithSampleData(
-              databaseDashboardInfo,
-              sampleData,
-              collectionToCreate,
-              {
-                requiredThroughputRUPS: sampleData.offerThroughput,
-                shardKey: sampleData.shardKey,
-              }
-            );
-            _count = count;
-            _elapsedTimeMS = elapsedTimeMS;
+            try {
+              const { count, elapsedTimeMS } = await appContext.mongoService.createCollectionWithSampleData(
+                databaseDashboardInfo,
+                sampleData,
+                collectionIdToCreate,
+                {
+                  requiredThroughputRUPS: sampleData.offerThroughput,
+                  shardKey: sampleData.shardKey,
+                },
+                () => token.isCancellationRequested,
+                (increment) => progress.report({ increment })
+              );
+              _count = count;
+              _elapsedTimeMS = elapsedTimeMS;
+              Promise.resolve();
+            } catch (e: any) {
+              vscode.window.showErrorMessage(e);
+              Promise.reject();
+              return;
+            }
+          }
+        );
+      } catch (e: any) {
+        vscode.window.showErrorMessage(e);
+        return;
+      }
+
+      vscode.window.showInformationMessage(
+        localize(
+          "successInsertDoc",
+          `Successfully inserted {0} documents (took ${Math.floor((_elapsedTimeMS ?? 0) / 1000)}s)`,
+          _count
+        )
+      );
+      resolve();
+    } catch (e) {
+      vscode.window.showErrorMessage(e as string);
+    }
+    reject();
+  });
+};
+
+export const ingestSampleNoSqlData = async (
+  appContext: AppContext,
+  context: vscode.ExtensionContext,
+  databaseDashboardInfo: IDatabaseDashboardInfo
+): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    showStatusBarItem(localize("downloadingSampleData", "Downloading sample data..."));
+    const finalPath = await downloadSampleData(context.extensionPath);
+    hideStatusBarItem();
+
+    try {
+      const rawData = fs.readFileSync(finalPath);
+      const sampleData = JSON.parse(rawData.toString());
+
+      if (sampleData.data.length < 1) {
+        vscode.window.showErrorMessage(localize("noSampleDataProvided", "No sample data provided"));
+        reject();
+        return;
+      }
+
+      if (!databaseDashboardInfo.databaseName) {
+        databaseDashboardInfo.databaseName = sampleData.databaseId;
+      }
+
+      let containerIdToCreate = sampleData.collectionId;
+
+      // If container already exists
+      const containers = await appContext.cosmosDbNoSqlService.listContainers(
+        databaseDashboardInfo.server,
+        databaseDashboardInfo.databaseName!
+      );
+      if (containers.find((c) => c.id === containerIdToCreate)) {
+        containerIdToCreate = await vscode.window.showInputBox({
+          placeHolder: localize("containerName", "Container name"),
+          prompt: localize("enterContainerNameToCreate", "Enter container name to create"),
+          // validateInput: validateMongoCollectionName, TODO: do we need to validate container name?
+          ignoreFocusOut: true,
+        });
+      }
+
+      if (!containerIdToCreate) {
+        reject();
+        return;
+      }
+
+      const response = await vscode.window.showInformationMessage(
+        localize(
+          "ingestSampleNoSqlDataConfirm",
+          "This will create a container '{1}' inside database '{0}'. It may incur additional costs to your account. Do you want to proceed?",
+          databaseDashboardInfo.databaseName,
+          containerIdToCreate
+        ),
+        ...[localize("yes", "Yes"), localize("no", "No")]
+      );
+      if (response !== "Yes") {
+        return;
+      }
+
+      let _count, _elapsedTimeMS;
+
+      try {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+          },
+          async (progress, token) => {
+            progress.report({
+              message: localize("importingSampleData", "Importing sample data may take a few minutes..."),
+            });
+            try {
+              const { count, elapsedTimeMS } = await appContext.cosmosDbNoSqlService.createContainerWithSampleData(
+                databaseDashboardInfo,
+                sampleData,
+                containerIdToCreate,
+                {
+                  requiredThroughputRUPS: sampleData.offerThroughput,
+                  partitionKey: `/${sampleData.shardKey}`,
+                },
+                () => token.isCancellationRequested,
+                (increment) => progress.report({ increment })
+              );
+              _count = count;
+              _elapsedTimeMS = elapsedTimeMS;
+              Promise.resolve();
+            } catch (e: any) {
+              vscode.window.showErrorMessage(e.message);
+              Promise.reject();
+              return;
+            }
           }
         );
       } catch (e: any) {
@@ -131,6 +247,7 @@ export const ingestSampleMongoData = async (
       resolve();
     } catch (e) {
       vscode.window.showErrorMessage(e as string);
+      reject(e);
     }
     reject();
   });

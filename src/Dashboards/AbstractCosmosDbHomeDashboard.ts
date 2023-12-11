@@ -16,7 +16,10 @@ import TelemetryReporter from "@microsoft/ads-extension-telemetry";
 
 const localize = nls.loadMessageBundle();
 
-export abstract class AbstractCosmosDbHomeDashboard extends AbstractHomeDashboard {
+/**
+ * This is the Azure Cosmos DB home dashboard
+ */
+export abstract class AbstractAzureCosmosDbHomeDashboard extends AbstractHomeDashboard {
   constructor(
     reporter: TelemetryReporter,
     private armService: AbstractArmService,
@@ -127,7 +130,7 @@ export abstract class AbstractCosmosDbHomeDashboard extends AbstractHomeDashboar
       .component();
 
     heroCardsContainer.addItem(
-      AbstractCosmosDbHomeDashboard.createOpenInPortalButton(view, context, this.reporter, this.armService),
+      AbstractAzureCosmosDbHomeDashboard.createOpenInPortalButton(view, context, this.reporter, this.armService),
       { flex: "0 0 auto" }
     );
 

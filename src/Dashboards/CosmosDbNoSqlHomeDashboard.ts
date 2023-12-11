@@ -4,21 +4,23 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as azdata from "azdata";
+import { ICellActionEventArgs } from "azdata";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { COSMOSDB_DOC_URL, Telemetry } from "../constant";
-import { IConnectionNodeInfo } from "../extension";
-import { convertToConnectionOptions } from "../models";
-import { buildHeroCard } from "../util";
-import { AbstractArmService } from "../Services/AbstractArmService";
+import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
+import { convertToConnectionOptions, IDatabaseInfo } from "../models";
+import { AbstractHomeDashboard } from "./AbstractHomeDashboard";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { AbstractCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
+import { buildHeroCard } from "../util";
+import { CosmosDbNoSqlService } from "../Services/CosmosDbNoSqlService";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbNoSqlHomeDashboard extends AbstractCosmosDbHomeDashboard {
-  constructor(reporter: TelemetryReporter, armService: AbstractArmService) {
-    super(reporter, armService, "cosmosdb-ads-extension.openNoSqlDatabaseDashboard");
+// TODO see if we can merge with NativeMongoHomeDashboard which is almost identical
+export class CosmosDbNoSqlHomeDashboard extends AbstractHomeDashboard {
+  constructor(reporter: TelemetryReporter, private cosmosDbNoSqlService: CosmosDbNoSqlService) {
+    super(reporter);
   }
 
   protected buildToolbar(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.ToolbarContainer {
@@ -35,7 +37,7 @@ export class CosmosDbNoSqlHomeDashboard extends AbstractCosmosDbHomeDashboard {
             ...convertToConnectionOptions(view.connection),
           };
           vscode.commands
-            .executeCommand("cosmosdb-ads-extension.createMongoDatabase", undefined, param)
+            .executeCommand("cosmosdb-ads-extension.createNoSqlDatabase", undefined, param)
             .then(() => this.refreshDatabases && this.refreshDatabases());
           this.reporter.sendActionEvent(
             Telemetry.sources.homeDashboard,
@@ -128,5 +130,149 @@ export class CosmosDbNoSqlHomeDashboard extends AbstractCosmosDbHomeDashboard {
         }
       ),
     ];
+  }
+
+  public buildModel(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.FlexContainer {
+    const viewItems: azdata.Component[] = [this.buildToolbar(view, context)];
+    this.createModelViewItems(view, context).forEach((p) => {
+      viewItems.push(p);
+    });
+    return view.modelBuilder.flexContainer().withItems(viewItems).withLayout({ flexFlow: "column" }).component();
+  }
+
+  protected createModelViewItems(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component[] {
+    return [this.buildGettingStarted(view, context)];
+  }
+
+  private buildGettingStarted(view: azdata.ModelView, context: vscode.ExtensionContext): azdata.Component {
+    const heroCards: azdata.ButtonComponent[] = this.createGettingStartedDefaultButtons(view, context);
+
+    const heroCardsContainer = view.modelBuilder
+      .flexContainer()
+      .withItems(heroCards, { flex: "0 0 auto" })
+      .withLayout({ flexFlow: "row", flexWrap: "wrap" })
+      .withProps({ CSSStyles: { width: "100%" } })
+      .component();
+
+    return view.modelBuilder
+      .flexContainer()
+      .withItems([
+        view.modelBuilder
+          .text()
+          .withProps({
+            value: localize("gettingStarted", "Getting started"),
+            CSSStyles: { "font-size": "20px", "font-weight": "600" },
+          })
+          .component(),
+        view.modelBuilder
+          .text()
+          .withProps({
+            value: localize(
+              "gettingStartedDescription",
+              "Getting started with creating a new database, viewing documentation"
+            ),
+          })
+          .component(),
+        heroCardsContainer,
+      ])
+      .withLayout({ flexFlow: "column" })
+      .withProps({
+        CSSStyles: {
+          padding: "10px",
+        },
+      })
+      .component();
+  }
+
+  public async buildDatabasesArea(view: azdata.ModelView, context: vscode.ExtensionContext): Promise<azdata.Component> {
+    const server = view.connection.options["server"];
+    let databases: IDatabaseInfo[];
+
+    this.refreshDatabases = () => {
+      this.cosmosDbNoSqlService.listDatabases(server).then(async (dbs) => {
+        databases = dbs;
+        tableComponent.data = dbs.map((db) => [
+          <azdata.HyperlinkColumnCellValue>{
+            title: db.name,
+            icon: context.asAbsolutePath("resources/fluent/database.svg"),
+          },
+        ]);
+
+        tableLoadingComponent.loading = false;
+      });
+    };
+    this.refreshDatabases();
+
+    const tableComponent = view.modelBuilder
+      .table()
+      .withProps({
+        columns: [
+          <azdata.HyperlinkColumn>{
+            value: localize("database", "Database"),
+            type: azdata.ColumnType.hyperlink,
+            name: "Database",
+            width: 250,
+          },
+        ],
+        data: [],
+        height: 500,
+        CSSStyles: {
+          padding: "20px",
+        },
+      })
+      .component();
+
+    tableComponent.onCellAction &&
+      tableComponent.onCellAction((arg: ICellActionEventArgs) => {
+        if (!databases) {
+          return;
+        }
+
+        const databaseDashboardInfo: IDatabaseDashboardInfo = {
+          databaseName: databases[arg.row].name,
+          connectionId: view.connection.connectionId,
+          ...convertToConnectionOptions(view.connection),
+        };
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openNoSqlDatabaseDashboard",
+          undefined,
+          databaseDashboardInfo
+        );
+        this.reporter.sendActionEvent(
+          Telemetry.sources.homeDashboard,
+          Telemetry.actions.click,
+          Telemetry.targets.homeDashboard.databasesListNonAzureOpenDashboard
+        );
+      });
+
+    const tableLoadingComponent = view.modelBuilder
+      .loadingComponent()
+      .withItem(tableComponent)
+      .withProps({
+        loading: true,
+      })
+      .component();
+
+    return view.modelBuilder
+      .flexContainer()
+      .withItems([
+        view.modelBuilder
+          .text()
+          .withProps({
+            value: localize("databaseOverview", "Database overview"),
+            CSSStyles: { "font-size": "20px", "font-weight": "600" },
+          })
+          .component(),
+        view.modelBuilder
+          .text()
+          .withProps({
+            value: localize("clickOnDatabaseDescription", "Click on a database for more details"),
+          })
+          .component(),
+        tableLoadingComponent,
+      ])
+      .withLayout({ flexFlow: "column" })
+      .withProps({ CSSStyles: { padding: "10px" } })
+      .component();
   }
 }

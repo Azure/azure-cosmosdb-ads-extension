@@ -4,32 +4,41 @@ import {
   CosmosClient,
   DatabaseDefinition,
   FeedResponse,
+  JSONObject,
   OperationInput,
   Resource,
 } from "@azure/cosmos";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { IConnectionOptions, IDatabaseInfo } from "../models";
+import { IConnectionOptions, ICosmosDbContainerInfo, IDatabaseInfo } from "../models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
-import { EditorUserQuery, EditorQueryResult, QueryInfinitePaginInfo } from "../QueryClient/messageContract";
+import { EditorUserQuery, EditorQueryResult, QueryInfinitePagingInfo } from "../QueryClient/messageContract";
 import { CosmosDbProxy } from "./CosmosDbProxy";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { SampleData, isAzureAuthType } from "./ServiceUtil";
 import { ArmServiceNoSql } from "./ArmServiceNoSql";
 import { AbstractBackendService } from "./AbstractBackendService";
+import { buildCosmosDbNoSqlConnectionString } from "../Providers/cosmosDbNoSqlConnectionString";
+import { NOSQL_QUERY_RESULT_MAX_COUNT } from "../constant";
+import { CdbContainerCreateInfo } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
+
+// Maximum number of operations to send in a single bulk operation
+// Although the Cosmos DB SDK supports up to 100 operations, the low container default RU/s provisioning limits insertion without throttling
+const MAX_BULK_OPERATION_COUNT = 100;
+
+const MIN_RETRY_DELAY_MS = 20; // Minimum delay before retrying a throttled operation
 
 export class CosmosDbNoSqlService extends AbstractBackendService {
   public _cosmosClients = new Map<string, CosmosClient>(); // public for testing purposes (should be private)
   private _cosmosDbProxies = new Map<string, CosmosDbProxy>();
   public reporter: TelemetryReporter | undefined = undefined;
 
-  constructor() {
-    super(new ArmServiceNoSql());
+  constructor(armService: ArmServiceNoSql) {
+    super(armService);
   }
 
   /**
@@ -40,16 +49,12 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
    */
   public async connect(server: string, connectionString: string): Promise<CosmosClient> {
     if (!this._cosmosDbProxies.has(server)) {
-      this._cosmosDbProxies.set(server, new CosmosDbProxy(connectionString));
+      this._cosmosDbProxies.set(server, new CosmosDbProxy(server, connectionString));
     }
 
     const client = new CosmosClient(connectionString);
     this._cosmosClients.set(server, client);
     return client;
-  }
-
-  public hasConnection(server: string): boolean {
-    return this._cosmosClients.has(server);
   }
 
   public async listDatabases(server: string): Promise<IDatabaseInfo[]> {
@@ -131,11 +136,12 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     connectionOptions: IConnectionOptions,
     databaseName?: string,
     containerName?: string,
-    cdbCreateInfo?: CdbCollectionCreateInfo
+    cdbCreateInfo?: CdbContainerCreateInfo
   ): Promise<{ databaseName: string; containerName: string | undefined }> {
+    // TODO We can do everthing with the client
     if (isAzureAuthType(connectionOptions.authenticationType)) {
       return this.armService
-        .createDatabaseAndCollection(
+        .createDatabaseAndContainer(
           connectionOptions.azureAccount,
           connectionOptions.azureTenantId,
           connectionOptions.azureResourceId,
@@ -144,9 +150,9 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
           containerName,
           cdbCreateInfo
         )
-        .then((result) => ({ ...result, containerName: result.collectionName })); // FIX THIS
+        .then((result) => ({ ...result, containerName: result.containerName }));
     } else {
-      return this.createContainerWithCosmosClient(connectionOptions, databaseName, containerName);
+      return this.createContainerWithCosmosClient(connectionOptions, databaseName, containerName, cdbCreateInfo);
     }
   }
 
@@ -219,7 +225,8 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   public async createContainerWithCosmosClient(
     connectionOptions: IConnectionOptions,
     databaseName?: string,
-    containerName?: string
+    containerName?: string,
+    cdbCreateInfo?: CdbContainerCreateInfo
   ): Promise<{ containerName: string; databaseName: string }> {
     return new Promise(async (resolve, reject) => {
       if (!databaseName) {
@@ -267,9 +274,14 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
 
       if (cosmosClient) {
         showStatusBarItem(localize("creatingCosmosContainer", "Creating Cosmos container"));
+
         try {
           const { database } = await cosmosClient.databases.createIfNotExists({ id: databaseName });
-          const { container } = await database.containers.createIfNotExists({ id: containerName });
+          const { container } = await database.containers.createIfNotExists({
+            id: containerName,
+            partitionKey: cdbCreateInfo?.partitionKey ? { paths: [cdbCreateInfo.partitionKey] } : undefined,
+            throughput: cdbCreateInfo?.requiredThroughputRUPS,
+          });
           resolve({ containerName: container.id, databaseName: database.id });
         } catch (e) {
           reject(e);
@@ -286,26 +298,38 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   }
 
   public disconnect(server: string): void {
-    if (!this._cosmosClients.has(server)) {
-      return;
+    const client = this._cosmosClients.get(server);
+    if (client) {
+      this._cosmosClients.delete(server);
+      client.dispose();
     }
 
-    const client = this._cosmosClients.get(server);
-    this._cosmosClients.delete(server);
-    return client!.dispose();
+    const proxy = this._cosmosDbProxies.get(server);
+    if (proxy) {
+      this._cosmosDbProxies.delete(server);
+      proxy.dispose();
+    }
+  }
+
+  protected disconnectAll(): void {
+    this._cosmosClients.forEach((_, server) => this.disconnect(server));
+    this._cosmosDbProxies.forEach((proxy) => proxy.dispose());
+    this._cosmosDbProxies.clear();
   }
 
   /**
-   * Insert container
+   * Insert collection using mongo client
    * @param server
    * @param sampleData
    * @returns Promise with inserted count
    */
-  public async insertDocuments(
+  public async createContainerWithSampleData(
     databaseDashboardInfo: IDatabaseDashboardInfo,
     sampleData: SampleData,
     containerName: string,
-    cdbCreateInfo: CdbCollectionCreateInfo
+    cdbCreateInfo: CdbContainerCreateInfo,
+    isCanceled: () => boolean,
+    onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected
@@ -319,8 +343,14 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         ...databaseDashboardInfo,
         nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
       };
+
+      if (isCanceled()) {
+        reject(localize("canceled", "Canceled"));
+        return;
+      }
+
       const createResult = await vscode.commands.executeCommand<{ databaseName: string; containerName: string }>(
-        "cosmosdb-ads-extension-nosql.createNoSqlContainer",
+        "cosmosdb-ads-extension.createNoSqlContainer",
         undefined,
         param,
         containerName,
@@ -328,7 +358,7 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
       );
 
       if (!createResult.containerName) {
-        reject(localize("failCreateCollection", "Failed to create collection {0}", containerName));
+        reject(localize("failCreateContainer", "Failed to create container {0}", containerName));
         return;
       }
 
@@ -337,38 +367,115 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
         return;
       }
 
-      const container = client.database(databaseDashboardInfo.databaseName!).container(containerName);
+      const container = await client.database(createResult.databaseName).container(createResult.containerName);
       if (!container) {
-        reject(localize("failFindCollection", "Failed to find collection {0}", createResult.containerName));
+        reject(localize("failFindContainer", "Failed to find container {0}", createResult.containerName));
         return;
       }
 
-      // Bulk import
-      const operations: OperationInput[] = sampleData.data.map((doc) => ({
-        operationType: BulkOperationType.Create,
-        resourceBody: doc,
-      }));
+      const result = await this.insertDocuments(
+        databaseDashboardInfo.server,
+        createResult.databaseName,
+        createResult.containerName,
+        sampleData.data,
+        isCanceled,
+        onProgress
+      );
+      resolve(result);
+    });
+  }
 
-      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", sampleData.data.length));
+  public async insertDocuments(
+    serverName: string,
+    databaseName: string,
+    containerName: string,
+    data: unknown[],
+    isCanceled?: () => boolean,
+    onProgress?: (percentIncrement: number) => void
+  ): Promise<{ count: number; elapsedTimeMS: number }> {
+    return new Promise(async (resolve, reject) => {
+      const client = this._cosmosClients.get(serverName);
+      if (!client) {
+        reject(localize("notConnected", "Not connected"));
+        return;
+      }
 
+      const container = await client.database(databaseName).container(containerName);
+      if (!container) {
+        reject(localize("failFindContainer", "Failed to find container {0}", containerName));
+        return;
+      }
+
+      const count = data.length;
+
+      showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", count));
       try {
         const startMS = new Date().getTime();
-        const response = await container.items.bulk(operations);
-        const endMS = new Date().getTime();
+        let delayMs = 0;
+        while (data.length > 0) {
+          console.log(`${data.length} documents left to insert...`);
 
-        // TODO Check individual response for status code
-        // Example: https://github.com/Azure-Samples/cosmos-typescript-bulk-import-throughput-optimizer/blob/master/src/importers/bulk-importer-bulk-operations.ts
-        if (response === undefined || response.length < sampleData.data.length) {
-          reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
-          return;
+          if (isCanceled && isCanceled()) {
+            reject(localize("canceledDocumentInserted", "Canceled. {0} documents inserted", count - data.length));
+            return;
+          }
+
+          // This logic takes into account the retry delay provided by cosmosdb in case of throttling
+          await new Promise<void>((resolve1, reject1) => {
+            setTimeout(async () => {
+              const candidatesToInsert = data.splice(0, MAX_BULK_OPERATION_COUNT);
+
+              const operationResponses = await container.items.bulk(
+                candidatesToInsert.map(
+                  (doc): OperationInput => ({
+                    operationType: BulkOperationType.Create,
+                    resourceBody: doc as JSONObject,
+                  })
+                )
+              );
+
+              let insertedCount = 0;
+              for (let i = 0; i < operationResponses.length; i++) {
+                const response = operationResponses[i];
+                if (response.statusCode === 201) {
+                  insertedCount++;
+                } else {
+                  if (response.statusCode === 429) {
+                    // Throttling: retry by pushing document back to the beginning of array
+                    const docToRetry = candidatesToInsert[i];
+                    const retryAfterInMilliseconds =
+                      response.resourceBody?.retryAfterInMilliseconds &&
+                      typeof response.resourceBody?.retryAfterInMilliseconds === "number"
+                        ? response.resourceBody?.retryAfterInMilliseconds
+                        : MIN_RETRY_DELAY_MS;
+
+                    data.unshift(docToRetry);
+                    delayMs = retryAfterInMilliseconds;
+                  } else {
+                    reject1(localize("unhandledStatusCode", "Unhandled status code {0}", response.statusCode));
+                    hideStatusBarItem();
+                    return;
+                  }
+                }
+              }
+
+              if (onProgress) {
+                onProgress((insertedCount * 100) / count);
+              }
+
+              resolve1();
+            }, delayMs);
+          });
         }
 
+        const endMS = new Date().getTime();
+
         return resolve({
-          count: response.length,
+          count: count - data.length,
           elapsedTimeMS: endMS - startMS,
         });
-      } catch (e) {
-        reject(localize("failInsertDocs", "Failed to insert all documents {0}", sampleData.data.length));
+      } catch (e: any) {
+        reject(localize("failInsertDocs", "Failed to insert documents. Error: {0}", e));
         return;
       } finally {
         hideStatusBarItem();
@@ -380,23 +487,25 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
     connectionOptions: IConnectionOptions,
     databaseName: string,
     containerName: string,
-    query: EditorUserQuery
+    query: EditorUserQuery,
+    cancelationTokenId?: number
   ): Promise<EditorQueryResult> {
     if (!this._cosmosDbProxies.has(connectionOptions.server)) {
       throw new Error(`Unknown server: ${connectionOptions.server}`); // Should we connect?
     }
-
     const result = await this._cosmosDbProxies
       .get(connectionOptions.server)!
       .submitQuery(
         databaseName,
         containerName,
         query.query,
-        (query.pagingInfo as QueryInfinitePaginInfo)?.continuationToken,
-        (query.pagingInfo as QueryInfinitePaginInfo)?.maxCount ?? 20 /* TODO MOVE TO CONSTANT */
+        (query.pagingInfo as QueryInfinitePagingInfo)?.continuationToken,
+        (query.pagingInfo as QueryInfinitePagingInfo)?.maxCount ?? NOSQL_QUERY_RESULT_MAX_COUNT,
+        cancelationTokenId
       );
     return {
       documents: result.documents,
+      requestCharge: result.requestCharge,
       pagingInfo: {
         kind: "infinite",
         continuationToken: result.continuationToken,
@@ -406,6 +515,78 @@ export class CosmosDbNoSqlService extends AbstractBackendService {
   }
 
   public getDocuments(serverName: string, databaseName: string, containerName: string): Promise<unknown[]> {
-    throw new Error("Method not implemented.");
+    return new Promise(async (resolve, reject) => {
+      if (!this._cosmosClients.has(serverName)) {
+        return reject(new Error(`Unknown server: ${serverName}`)); // Should we connect?
+      }
+
+      resolve(
+        (
+          await this._cosmosClients
+            .get(serverName)!
+            .database(databaseName)
+            .container(containerName)
+            .items.readAll()
+            .fetchAll()
+        ).resources
+      );
+    });
+  }
+
+  public buildConnectionString(connectionOptions: IConnectionOptions): string | undefined {
+    if (!connectionOptions.server) {
+      return undefined;
+    }
+
+    return buildCosmosDbNoSqlConnectionString(connectionOptions);
+  }
+
+  // Extra methods specific to Cosmos DB NoSQL
+
+  public async retrieveContainersInfo(
+    databaseDashboardInfo: IDatabaseDashboardInfo,
+    databaseName: string
+  ): Promise<ICosmosDbContainerInfo[]> {
+    return new Promise(async (resolve, reject) => {
+      const client = this._cosmosClients.get(databaseDashboardInfo.server);
+      if (!client) {
+        reject(localize("notConnected", "Not connected"));
+        return;
+      }
+
+      const database = client.database(databaseName);
+      if (!database) {
+        reject(localize("failFindDatabase", "Failed to find database {0}", databaseName));
+        return;
+      }
+
+      try {
+        const containers = await database.containers.readAll().fetchAll();
+        const result: ICosmosDbContainerInfo[] = await Promise.all(
+          containers.resources.map(async (container) => {
+            const offer = await database.container(container.id).readOffer();
+            offer.resource?.content?.offerThroughput;
+            return {
+              name: container.id,
+              partitionKey: container.partitionKey?.paths.join(",") ?? "",
+              currentThroughput: offer?.resource?.content?.offerThroughput ?? 0,
+            };
+          })
+        );
+        return resolve(result);
+      } catch (e) {
+        reject(localize("failRetrieveContainers", "Failed to retrieve containers for database {0}", databaseName));
+        return;
+      }
+    });
+  }
+
+  public async generateCancelationToken(connectionOptions: IConnectionOptions): Promise<number> {
+    const tokenId = await this._cosmosDbProxies.get(connectionOptions.server)!.generateCancelationToken();
+    return tokenId;
+  }
+
+  public async cancelToken(connectionOptions: IConnectionOptions, tokenId: number): Promise<void> {
+    await this._cosmosDbProxies.get(connectionOptions.server)!.cancelToken(tokenId);
   }
 }

@@ -5,14 +5,17 @@ import { isCosmosDBAccount } from "../MongoShell/mongoUtils";
 import { convertToConnectionOptions, IConnectionOptions, IDatabaseInfo, IMongoShellOptions } from "../models";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
-import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { EditorUserQuery, EditorQueryResult, QueryOffsetPagingInfo } from "../QueryClient/messageContract";
 import { SampleData, askUserForConnectionProfile, isAzureConnection } from "./ServiceUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
 import { AbstractBackendService } from "./AbstractBackendService";
 import { ArmServiceMongo } from "./ArmServiceMongo";
+import { buildMongoConnectionString } from "../Providers/mongoConnectionString";
+import { CdbCollectionCreateInfo } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
+
+const MAX_BULK_OPERATION_COUNT = 100;
 
 export class MongoService extends AbstractBackendService {
   public _mongoClients = new Map<string, MongoClient>(); // public for testing purposes (should be protected)
@@ -32,10 +35,6 @@ export class MongoService extends AbstractBackendService {
     const mongoClient = await MongoClient.connect(connectionString, options);
     this._mongoClients.set(server, mongoClient);
     return mongoClient;
-  }
-
-  public hasConnection(server: string): boolean {
-    return this._mongoClients.has(server);
   }
 
   public async listDatabases(server: string): Promise<IDatabaseInfo[]> {
@@ -136,7 +135,7 @@ export class MongoService extends AbstractBackendService {
     cdbCreateInfo?: CdbCollectionCreateInfo
   ): Promise<{ databaseName: string; collectionName: string | undefined }> {
     return isAzureConnection(connectionOptions) && !connectionOptions.isServer
-      ? this.createMongoDatabaseAndCollectionWithArm(connectionOptions, databaseName, collectionName)
+      ? this.createMongoDatabaseAndCollectionWithArm(connectionOptions, databaseName, collectionName, cdbCreateInfo)
       : this.createMongoDbCollectionWithMongoDbClient(connectionOptions, databaseName, collectionName);
   }
 
@@ -173,15 +172,17 @@ export class MongoService extends AbstractBackendService {
     collectionName?: string,
     cdbCreateInfo?: CdbCollectionCreateInfo
   ): Promise<{ databaseName: string; collectionName: string | undefined }> {
-    return this.armService.createDatabaseAndCollection(
-      connectionOptions.azureAccount,
-      connectionOptions.azureTenantId,
-      connectionOptions.azureResourceId,
-      this.armService.getAccountNameFromOptions(connectionOptions),
-      databaseName,
-      collectionName,
-      cdbCreateInfo
-    );
+    return this.armService
+      .createDatabaseAndContainer(
+        connectionOptions.azureAccount,
+        connectionOptions.azureTenantId,
+        connectionOptions.azureResourceId,
+        this.armService.getAccountNameFromOptions(connectionOptions),
+        databaseName,
+        collectionName,
+        cdbCreateInfo
+      )
+      .then((result) => ({ databaseName: result.databaseName, collectionName: result.containerName }));
   }
 
   /**
@@ -270,6 +271,10 @@ export class MongoService extends AbstractBackendService {
     return client!.close();
   }
 
+  protected disconnectAll(): void {
+    this._mongoClients.forEach((_, server) => this.disconnect(server));
+  }
+
   /**
    * Insert collection using mongo client
    * @param server
@@ -280,7 +285,9 @@ export class MongoService extends AbstractBackendService {
     databaseDashboardInfo: IDatabaseDashboardInfo,
     sampleData: SampleData,
     collectionName: string,
-    cdbCreateInfo: CdbCollectionCreateInfo
+    cdbCreateInfo: CdbCollectionCreateInfo,
+    isCanceled: () => boolean,
+    onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       // should already be connected
@@ -294,6 +301,12 @@ export class MongoService extends AbstractBackendService {
         ...databaseDashboardInfo,
         nodePath: createNodePath(databaseDashboardInfo.server, databaseDashboardInfo.databaseName),
       };
+
+      if (isCanceled()) {
+        reject(localize("canceled", "Canceled"));
+        return;
+      }
+
       const createResult = await vscode.commands.executeCommand<{ databaseName: string; collectionName: string }>(
         "cosmosdb-ads-extension.createMongoCollection",
         undefined,
@@ -319,16 +332,32 @@ export class MongoService extends AbstractBackendService {
         return;
       }
 
-      await this.insertDocuments(
-        databaseDashboardInfo.server,
-        createResult.databaseName,
-        createResult.collectionName,
-        sampleData.data
-      );
+      try {
+        const result = await this.insertDocuments(
+          databaseDashboardInfo.server,
+          createResult.databaseName,
+          createResult.collectionName,
+          sampleData.data,
+          isCanceled,
+          onProgress
+        );
+
+        resolve(result);
+      } catch (e) {
+        // For some reason, when insertDocument() reject, this won't reject unless we do this
+        reject(e);
+      }
     });
   }
 
-  public async insertDocuments(serverName: string, databaseName: string, collectionName: string, data: unknown[]) {
+  public async insertDocuments(
+    serverName: string,
+    databaseName: string,
+    collectionName: string,
+    data: unknown[],
+    isCanceled: () => boolean,
+    onProgress?: (percentIncrement: number) => void
+  ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
       const client = this._mongoClients.get(serverName);
       if (!client) {
@@ -342,30 +371,46 @@ export class MongoService extends AbstractBackendService {
         return;
       }
 
+      const count = data.length;
+
       showStatusBarItem(localize("insertingData", "Inserting documents ({0})...", data.length));
       try {
         const startMS = new Date().getTime();
-        const result = await collection.bulkWrite(
-          data.map((doc) => ({
-            insertOne: {
-              document: doc as AnyBulkWriteOperation<Document>[],
-            },
-          }))
-        );
-        const endMS = new Date().getTime();
-        if (result.insertedCount === undefined || result.insertedCount < data.length) {
-          reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
-          hideStatusBarItem();
-          return;
+        while (data.length > 0) {
+          const countToInsert = Math.min(data.length, MAX_BULK_OPERATION_COUNT);
+          console.log(`${data.length} documents left to insert...`);
+
+          if (isCanceled()) {
+            reject(localize("canceledDocumentInserted", "Canceled. {0} documents inserted", count - data.length));
+            return;
+          }
+
+          const result = await collection.bulkWrite(
+            data.splice(0, MAX_BULK_OPERATION_COUNT).map((doc) => ({
+              insertOne: {
+                document: doc as AnyBulkWriteOperation<Document>,
+              },
+            }))
+          );
+
+          if (result.insertedCount === undefined || result.insertedCount < countToInsert) {
+            reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
+            hideStatusBarItem();
+            return;
+          }
+          if (onProgress) {
+            onProgress((countToInsert * 100) / count);
+          }
         }
 
+        const endMS = new Date().getTime();
+
         return resolve({
-          count: result.insertedCount,
+          count,
           elapsedTimeMS: endMS - startMS,
         });
-      } catch (e) {
-        reject(localize("failInsertDocs", "Failed to insert all documents {0}", data.length));
-        return;
+      } catch (e: any) {
+        return reject(localize("failInsertDocs", "Failed to insert all documents {0}", e.message));
       } finally {
         hideStatusBarItem();
       }
@@ -439,6 +484,10 @@ export class MongoService extends AbstractBackendService {
       const documents = await collection.find({}).toArray();
       resolve(documents);
     });
+  }
+
+  protected buildConnectionString(connectionOptions: IConnectionOptions): string | undefined {
+    return buildMongoConnectionString(connectionOptions);
   }
 }
 

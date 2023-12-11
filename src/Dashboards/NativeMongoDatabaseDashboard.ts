@@ -20,7 +20,7 @@ export class NativeMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard
     super(providerId);
   }
 
-  protected async buildCollectionsArea(
+  protected async buildContainersArea(
     databaseName: string,
     view: azdata.ModelView,
     context: vscode.ExtensionContext,
@@ -29,7 +29,7 @@ export class NativeMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard
   ): Promise<azdata.Component> {
     let collections: Collection<Document>[];
 
-    this.refreshCollections = () => {
+    this.refreshContainers = () => {
       appContext.mongoService
         .listCollections(databaseDashboardInfo.server, databaseName)
         .then(async (collectionsInfo) => {
@@ -57,7 +57,7 @@ export class NativeMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard
           tableLoadingComponent.loading = false;
         });
     };
-    this.refreshCollections();
+    this.refreshContainers();
 
     const tableComponent = view.modelBuilder
       .table()

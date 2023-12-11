@@ -12,12 +12,12 @@ import { convertToConnectionOptions } from "../models";
 import { buildHeroCard } from "../util";
 import { AbstractArmService } from "../Services/AbstractArmService";
 import TelemetryReporter from "@microsoft/ads-extension-telemetry";
-import { AbstractCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
+import { AbstractAzureCosmosDbHomeDashboard } from "./AbstractCosmosDbHomeDashboard";
 import { systemDefaultPlatform } from "azdata-test/out/util";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbMongoHomeDashboard extends AbstractCosmosDbHomeDashboard {
+export class AzureCosmosDbMongoHomeDashboard extends AbstractAzureCosmosDbHomeDashboard {
   constructor(reporter: TelemetryReporter, armService: AbstractArmService) {
     super(reporter, armService, "cosmosdb-ads-extension.openMongoDatabaseDashboard");
   }

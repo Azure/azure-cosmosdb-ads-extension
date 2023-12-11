@@ -17,7 +17,7 @@ const localize = nls.loadMessageBundle();
 
 export const getNodeInfo = (
   nodePath: string
-): { serverName: string; databaseName?: string; collectionName?: string } => {
+): { serverName: string; databaseName?: string; containerName?: string } => {
   const pathComponents = nodePath?.split("/");
   const slashCount = pathComponents.length - 1;
 
@@ -27,7 +27,7 @@ export const getNodeInfo = (
     case 1:
       return { serverName: pathComponents[0], databaseName: pathComponents[1] }; // database node
     case 2:
-      return { serverName: pathComponents[0], databaseName: pathComponents[1], collectionName: pathComponents[2] }; // collection node
+      return { serverName: pathComponents[0], databaseName: pathComponents[1], containerName: pathComponents[2] }; // collection node
     default:
       throw new Error(localize("unrecognizedPath", "Unrecognized path {0}", nodePath));
   }
@@ -123,7 +123,7 @@ abstract class ObjectExplorerProviderBase implements azdata.ObjectExplorerProvid
 
     const nodeInfo = getNodeInfo(azNodeInfo.nodePath);
 
-    if (nodeInfo.collectionName !== undefined) {
+    if (nodeInfo.containerName !== undefined) {
       return this.expandCollection(azNodeInfo); // collection node
     } else if (nodeInfo.databaseName !== undefined) {
       return this.expandDatabase(azNodeInfo, nodeInfo.databaseName, nodeInfo.serverName); // database node

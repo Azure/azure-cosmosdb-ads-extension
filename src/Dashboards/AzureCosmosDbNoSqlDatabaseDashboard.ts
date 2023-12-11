@@ -9,17 +9,18 @@ import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
 import { Telemetry } from "../constant";
 import { IConnectionNodeInfo, IDatabaseDashboardInfo } from "../extension";
-import { ICosmosDbContainerInfo } from "../models";
+import { IAzureCosmosDbContainerInfo, ICosmosDbCollectionInfo } from "../models";
+import { AbstractArmService } from "../Services/AbstractArmService";
 import { AbstractDatabaseDashboard } from "./AbstractDatabaseDashboard";
 import { createNodePath } from "../Providers/objectExplorerNodeProvider";
 import { buildHeroCard } from "../util";
-import { CosmosDbNoSqlService } from "../Services/CosmosDbNoSqlService";
 import { ingestSampleNoSqlData } from "../sampleData/DataSamplesUtil";
+import { ArmServiceNoSql } from "../Services/ArmServiceNoSql";
 
 const localize = nls.loadMessageBundle();
 
-export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
-  constructor(providerId: string, private cosmosDbNoSqlService: CosmosDbNoSqlService) {
+export class AzureCosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
+  constructor(providerId: string, private armServiceNoSql: ArmServiceNoSql) {
     super(providerId);
   }
 
@@ -159,24 +160,34 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
     appContext: AppContext,
     databaseDashboardInfo: IDatabaseDashboardInfo
   ): Promise<azdata.Component> {
-    let containers: ICosmosDbContainerInfo[];
+    let containers: IAzureCosmosDbContainerInfo[];
 
     this.refreshContainers = () => {
-      this.cosmosDbNoSqlService.retrieveContainersInfo(databaseDashboardInfo, databaseName).then((containersInfo) => {
-        containers = containersInfo;
-        tableComponent.data = containersInfo.map((container) => [
-          <azdata.HyperlinkColumnCellValue>{
-            title: container.name,
-            icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-          },
-          container.partitionKey,
-          <azdata.HyperlinkColumnCellValue>{
-            title: container.currentThroughput?.toString(),
-          },
-        ]);
+      this.armServiceNoSql
+        .retrieveContainersInfo(
+          databaseDashboardInfo.azureAccount,
+          databaseDashboardInfo.azureTenantId,
+          databaseDashboardInfo.azureResourceId,
+          this.armServiceNoSql.getAccountNameFromOptions(databaseDashboardInfo),
+          databaseName
+        )
+        .then((collectionsInfo) => {
+          containers = collectionsInfo;
+          tableComponent.data = collectionsInfo.map((container) => [
+            <azdata.HyperlinkColumnCellValue>{
+              title: container.name,
+              icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+            },
+            container.usageSizeKB ?? localize("unknown", "Unknown"),
+            container.documentCount ?? localize("unknown", "Unknown"),
+            container.partitionKey ?? "",
+            <azdata.HyperlinkColumnCellValue>{
+              title: container.throughputSetting,
+            },
+          ]);
 
-        tableLoadingComponent.loading = false;
-      });
+          tableLoadingComponent.loading = false;
+        });
     };
     this.refreshContainers();
 
@@ -185,13 +196,21 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
       .withProps({
         columns: [
           <azdata.HyperlinkColumn>{
-            value: "Container",
+            value: "collection",
             type: azdata.ColumnType.hyperlink,
             name: localize("container", "Container"),
             width: 250,
           },
           {
-            value: localize("partitionKey", "Partition key"), // TODO FIX
+            value: localize("dataUsage", "Data Usage (KB)"),
+            type: azdata.ColumnType.text,
+          },
+          {
+            value: localize("documents", "Documents"),
+            type: azdata.ColumnType.text,
+          },
+          {
+            value: localize("shardKey", "Partition key"),
             type: azdata.ColumnType.text,
           },
           <azdata.HyperlinkColumn>{
@@ -211,7 +230,7 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
 
     tableComponent.onCellAction &&
       tableComponent.onCellAction(async (arg: any /* Bug with definition: ICellActionEventArgs */) => {
-        if (arg.name === "Container") {
+        if (arg.name === "collection") {
           vscode.commands.executeCommand(
             "cosmosdb-ads-extension.openNoSqlQuery",
             undefined,
@@ -225,6 +244,27 @@ export class CosmosDbNoSqlDatabaseDashboard extends AbstractDatabaseDashboard {
             Telemetry.actions.click,
             Telemetry.targets.databaseDashboard.collectionsListAzureOpenDashboard
           );
+        } else if (arg.name === "throughput" && containers[arg.row].throughputSetting !== "") {
+          try {
+            const result = await this.armServiceNoSql.changeCollectionThroughput(
+              databaseDashboardInfo.azureAccount,
+              databaseDashboardInfo.azureTenantId,
+              databaseDashboardInfo.azureResourceId,
+              this.armServiceNoSql.getAccountNameFromOptions(databaseDashboardInfo),
+              databaseName,
+              containers[arg.row]
+            );
+            if (result) {
+              this.refreshContainers && this.refreshContainers();
+            }
+            appContext.reporter?.sendActionEvent(
+              Telemetry.sources.databaseDashboard,
+              Telemetry.actions.click,
+              Telemetry.targets.databaseDashboard.collectionsListAzureChangeThroughput
+            );
+          } catch (e: any) {
+            vscode.window.showErrorMessage(e?.message);
+          }
         }
       });
 

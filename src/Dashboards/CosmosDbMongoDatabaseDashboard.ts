@@ -12,15 +12,16 @@ import { IDatabaseDashboardInfo } from "../extension";
 import { ICosmosDbCollectionInfo } from "../models";
 import { AbstractMongoDatabaseDashboard } from "./AbstractMongoDatabaseDashboard";
 import { AbstractArmService } from "../Services/AbstractArmService";
+import { ArmServiceMongo } from "../Services/ArmServiceMongo";
 
 const localize = nls.loadMessageBundle();
 
 export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard {
-  constructor(providerId: string, private armService: AbstractArmService) {
+  constructor(providerId: string, private armServiceMongo: ArmServiceMongo) {
     super(providerId);
   }
 
-  protected async buildCollectionsArea(
+  protected async buildContainersArea(
     databaseName: string,
     view: azdata.ModelView,
     context: vscode.ExtensionContext,
@@ -29,13 +30,13 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
   ): Promise<azdata.Component> {
     let collections: ICosmosDbCollectionInfo[];
 
-    this.refreshCollections = () => {
-      this.armService
+    this.refreshContainers = () => {
+      this.armServiceMongo
         .retrieveCollectionsInfo(
           databaseDashboardInfo.azureAccount,
           databaseDashboardInfo.azureTenantId,
           databaseDashboardInfo.azureResourceId,
-          this.armService.getAccountNameFromOptions(databaseDashboardInfo),
+          this.armServiceMongo.getAccountNameFromOptions(databaseDashboardInfo),
           databaseName
         )
         .then((collectionsInfo) => {
@@ -45,8 +46,8 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
               title: collection.name,
               icon: context.asAbsolutePath("resources/fluent/collection.svg"),
             },
-            collection.usageSizeKB === undefined ? localize("unknown", "Unknown") : collection.usageSizeKB,
-            collection.documentCount === undefined ? localize("unknown", "Unknown") : collection.documentCount,
+            collection.usageSizeKB ?? localize("unknown", "Unknown"),
+            collection.documentCount ?? localize("unknown", "Unknown"),
             collection.shardKey === undefined ? "" : Object.keys(collection.shardKey)[0],
             <azdata.HyperlinkColumnCellValue>{
               title: collection.throughputSetting,
@@ -56,7 +57,7 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
           tableLoadingComponent.loading = false;
         });
     };
-    this.refreshCollections();
+    this.refreshContainers();
 
     const tableComponent = view.modelBuilder
       .table()
@@ -118,16 +119,16 @@ export class CosmosDbMongoDatabaseDashboard extends AbstractMongoDatabaseDashboa
           );
         } else if (arg.name === "throughput" && collections[arg.row].throughputSetting !== "") {
           try {
-            const result = await this.armService.changeCollectionThroughput(
+            const result = await this.armServiceMongo.changeCollectionThroughput(
               databaseDashboardInfo.azureAccount,
               databaseDashboardInfo.azureTenantId,
               databaseDashboardInfo.azureResourceId,
-              this.armService.getAccountNameFromOptions(databaseDashboardInfo),
+              this.armServiceMongo.getAccountNameFromOptions(databaseDashboardInfo),
               databaseName,
               collections[arg.row]
             );
             if (result) {
-              this.refreshCollections && this.refreshCollections();
+              this.refreshContainers && this.refreshContainers();
             }
             appContext.reporter?.sendActionEvent(
               Telemetry.sources.databaseDashboard,

@@ -8,16 +8,20 @@ import {
 } from "@azure/arm-cosmosdb";
 import { MonitorClient } from "@azure/arm-monitor";
 import { getUsageSizeInKB } from "../Dashboards/getCollectionDataUsageSize";
-import { ICosmosDbCollectionInfo, ICosmosDbDatabaseInfo } from "../models";
 import {
-  createNewCollectionDialog,
+  IAzureCosmosDbContainerInfo,
+  ICosmosDbCollectionInfo,
+  ICosmosDbContainerInfoBase,
+  ICosmosDbDatabaseInfo,
+} from "../models";
+import {
+  createNewContainerDialog,
   createNewDatabaseDialog,
-  NewCollectionFormData,
+  NewContainerFormData,
   NewDatabaseFormData,
 } from "../dialogUtil";
-import { CdbCollectionCreateInfo } from "../sampleData/DataSamplesUtil";
 import { hideStatusBarItem, showStatusBarItem } from "../appContext";
-import { AbstractArmService, azDataTokenToCoreAuthCredential } from "./AbstractArmService";
+import { AbstractArmService, CdbContainerCreateInfo, azDataTokenToCoreAuthCredential } from "./AbstractArmService";
 
 const localize = nls.loadMessageBundle();
 
@@ -158,7 +162,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     return await Promise.all(promises).then((colls) => colls.sort((a, b) => a.name.localeCompare(b.name)));
   };
 
-  private retrieveSqlCollectionInfoFromArm = async (
+  private retrieveSqlContainerInfoFromArm = async (
     client: CosmosDBManagementClient,
     resourceGroupName: string,
     accountName: string,
@@ -166,7 +170,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     collectionName: string,
     monitorARmClient: MonitorClient,
     resourceUri: string
-  ): Promise<ICosmosDbCollectionInfo> => {
+  ): Promise<IAzureCosmosDbContainerInfo> => {
     let throughputSetting = "";
     let isAutoscale: boolean = false;
     let currentThroughput: number | undefined;
@@ -229,18 +233,17 @@ export class ArmServiceNoSql extends AbstractArmService {
       usageSizeKB: usageDataKB,
       isAutoscale,
       currentThroughput,
-      // partitionKey: partitionKey?.paths,
-      shardKey: undefined, // TODO FIX THIS
+      partitionKey: partitionKey?.paths?.join(","),
     };
   };
 
-  public retrieveCollectionsInfo = async (
+  public retrieveContainersInfo = async (
     azureAccountId: string,
     azureTenantId: string,
     azureResourceId: string,
     cosmosDbAccountName: string,
     databaseName: string
-  ): Promise<ICosmosDbCollectionInfo[]> => {
+  ): Promise<IAzureCosmosDbContainerInfo[]> => {
     const client = await this.createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 
     if (!azureResourceId) {
@@ -278,7 +281,7 @@ export class ArmServiceNoSql extends AbstractArmService {
     const promises = sqlResources
       .filter((resource) => !!resource.name)
       .map((resource) =>
-        this.retrieveSqlCollectionInfoFromArm(
+        this.retrieveSqlContainerInfoFromArm(
           client,
           resourceGroup,
           cosmosDbAccountName,
@@ -298,14 +301,14 @@ export class ArmServiceNoSql extends AbstractArmService {
     azureResourceId: string,
     cosmosDbAccountName: string,
     databaseName: string,
-    collectionInfo: ICosmosDbCollectionInfo
+    containerInfoBase: ICosmosDbContainerInfoBase
   ): Promise<boolean> => {
     const mode = await vscode.window.showQuickPick<any>(
       [
         {
           label: "Autoscale",
           onSelect: async (): Promise<boolean> => {
-            if (collectionInfo.isAutoscale) {
+            if (containerInfoBase.isAutoscale) {
               vscode.window.showInformationMessage(localize("alreadySetToAutoscale", "Already set to Autoscale"));
               return false;
             } else {
@@ -315,7 +318,7 @@ export class ArmServiceNoSql extends AbstractArmService {
                 azureResourceId,
                 cosmosDbAccountName,
                 databaseName,
-                collectionInfo.name
+                containerInfoBase.name
               );
             }
           },
@@ -333,7 +336,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
             const requestedThroughput = Number.parseInt(requestedThroughputStr!);
 
-            if (collectionInfo.currentThroughput === requestedThroughput) {
+            if (containerInfoBase.currentThroughput === requestedThroughput) {
               vscode.window.showInformationMessage(
                 localize("throughputAlreadySetAt", "Throughput already set at {0} RU", requestedThroughput)
               );
@@ -345,9 +348,9 @@ export class ArmServiceNoSql extends AbstractArmService {
                 azureResourceId,
                 cosmosDbAccountName,
                 databaseName,
-                collectionInfo.name,
+                containerInfoBase.name,
                 requestedThroughput,
-                collectionInfo.isAutoscale
+                containerInfoBase.isAutoscale
               );
             }
           },
@@ -405,8 +408,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
       return !!rpResponse;
     } catch (e) {
-      Promise.reject(e);
-      return false;
+      return Promise.reject(e);
     } finally {
       hideStatusBarItem();
     }
@@ -602,8 +604,7 @@ export class ArmServiceNoSql extends AbstractArmService {
 
       return !!rpResponse;
     } catch (e) {
-      Promise.reject(e);
-      return false;
+      return Promise.reject(e);
     } finally {
       hideStatusBarItem();
     }
@@ -755,24 +756,24 @@ export class ArmServiceNoSql extends AbstractArmService {
   };
 
   /**
-   * Do not bring up UI if database and collection are already specified
+   * Do not bring up UI if database and container are already specified
    * @param azureAccountId
    * @param azureTenantId
    * @param azureResourceId
    * @param cosmosDbAccountName
    * @param databaseName
-   * @param collectionName
+   * @param containerName
    * @returns
    */
-  public createDatabaseAndCollection = async (
+  public createDatabaseAndContainer = async (
     azureAccountId: string,
     azureTenantId: string,
     azureResourceId: string,
     cosmosDbAccountName: string,
     databaseName?: string,
-    collectionName?: string,
-    cdbCreateInfo?: CdbCollectionCreateInfo
-  ): Promise<{ databaseName: string; collectionName: string | undefined }> => {
+    containerName?: string,
+    cdbCreateInfo?: CdbContainerCreateInfo
+  ): Promise<{ databaseName: string; containerName: string | undefined }> => {
     const client = await this.createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
     azureResourceId = await this.retrieveResourceId(
       azureAccountId,
@@ -793,9 +794,9 @@ export class ArmServiceNoSql extends AbstractArmService {
     hideStatusBarItem();
 
     return new Promise(async (resolve, reject) => {
-      const COLLECTION_DEFAULT_THROUGHPUT_RUPS = 400;
+      const CONTAINER_DEFAULT_THROUGHPUT_RUPS = 400;
 
-      const createDatabaseCollectioNCB = async (inputData: NewCollectionFormData) => {
+      const createDatabaseContainerCB = async (inputData: NewContainerFormData) => {
         try {
           showStatusBarItem(localize("creatingCosmosDbDatabase", "Creating CosmosDB database"));
           let newDatabaseName;
@@ -843,20 +844,19 @@ export class ArmServiceNoSql extends AbstractArmService {
             newDatabaseName = inputData.existingDatabaseId;
           }
 
-          if (inputData.newCollectionName !== undefined && newDatabaseName !== undefined) {
+          if (inputData.newContainerName !== undefined && newDatabaseName !== undefined) {
             const createContainerParams: SqlContainerCreateUpdateParameters = {
               resource: {
-                id: inputData.newCollectionName,
+                id: inputData.newContainerName,
               },
             };
 
-            if (inputData.isSharded) {
-              createContainerParams.resource.partitionKey = {
-                // [inputData.partitionKey!]: "Hash", // TODO FIX THIS
-              };
-            }
+            createContainerParams.resource.partitionKey = {
+              paths: [inputData.partitionKey!],
+              kind: "Hash",
+            };
 
-            if (inputData.isProvisionCollectionThroughput) {
+            if (inputData.isProvisionContainerThroughput) {
               if (inputData.isAutoScale) {
                 createContainerParams.options = {
                   autoscaleSettings: {
@@ -871,24 +871,24 @@ export class ArmServiceNoSql extends AbstractArmService {
             }
 
             showStatusBarItem(localize("creatingSqlContainer", "Creating CosmosDB NoSql container"));
-            const collResult = await client.sqlResources
+            const createResult = await client.sqlResources
               .beginCreateUpdateSqlContainerAndWait(
                 resourceGroup,
                 cosmosDbAccountName,
                 newDatabaseName,
-                inputData.newCollectionName,
+                inputData.newContainerName,
                 createContainerParams
               )
               .catch((e: any) => reject(e));
 
-            if (!collResult || !collResult.resource?.id) {
-              reject(localize("failedCreatingCollection", "Failed creating collection"));
+            if (!createResult || !createResult.resource?.id) {
+              reject(localize("failedCreatingContainer", "Failed creating container"));
               return;
             }
-            collectionName = collResult.resource.id;
-            resolve({ databaseName: newDatabaseName, collectionName });
+            containerName = createResult.resource.id;
+            resolve({ databaseName: newDatabaseName, containerName });
           }
-          reject(localize("collectionOrDatabaseNotSpecified", "Collection or database not specified"));
+          reject(localize("containerOrDatabaseNotSpecified", "Container or database not specified"));
         } catch (e) {
           reject(e);
         } finally {
@@ -896,32 +896,31 @@ export class ArmServiceNoSql extends AbstractArmService {
         }
       };
 
-      if (databaseName !== undefined && collectionName !== undefined) {
-        // If database and collection are specified, do not bring up UI
+      if (databaseName !== undefined && containerName !== undefined) {
+        // If database and container are specified, do not bring up UI
         // Assumption is database already exists
-        createDatabaseCollectioNCB({
+        createDatabaseContainerCB({
           isCreateNewDatabase: false,
           existingDatabaseId: databaseName,
           newDatabaseInfo: {
             newDatabaseName: "",
             isShareDatabaseThroughput: false,
           },
-          newCollectionName: collectionName,
-          isSharded: true,
-          shardKey: cdbCreateInfo?.shardKey,
-          isProvisionCollectionThroughput: true,
+          newContainerName: containerName,
+          partitionKey: cdbCreateInfo?.partitionKey,
+          isProvisionContainerThroughput: true,
           isAutoScale: false,
           maxThroughputRUPS: 0,
-          requiredThroughputRUPS: cdbCreateInfo?.requiredThroughputRUPS ?? COLLECTION_DEFAULT_THROUGHPUT_RUPS,
+          requiredThroughputRUPS: cdbCreateInfo?.requiredThroughputRUPS ?? CONTAINER_DEFAULT_THROUGHPUT_RUPS,
         });
         return;
       }
 
-      const dialog = await createNewCollectionDialog(
-        createDatabaseCollectioNCB,
+      const dialog = await createNewContainerDialog(
+        createDatabaseContainerCB,
         existingDatabases,
         databaseName,
-        collectionName
+        containerName
       );
       azdata.window.openDialog(dialog);
     });
