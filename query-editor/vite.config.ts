@@ -8,7 +8,7 @@ export default defineConfig({
     react()
   ],
   build: {
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: () => 'one-chunk',
@@ -18,7 +18,7 @@ export default defineConfig({
     }
   },
   css: {
-    devSourcemap: true,
+    devSourcemap: false,
   },
   optimizeDeps: {
     force: true,
