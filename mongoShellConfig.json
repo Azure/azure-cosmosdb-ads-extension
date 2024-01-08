@@ -12,7 +12,8 @@
 		"RHEL_7": "1.6.0-linux-x64.tgz",
 		"SLES_12_2": "1.6.0-linux-x64.tgz",
 		"Ubuntu_14": "1.6.0-linux-x64.tgz",
-		"Ubuntu_16": "1.6.0-linux-x64.tgz"
+		"Ubuntu_16": "1.6.0-linux-x64.tgz",
+		"Ubuntu_22": "1.6.0-linux-x64.tgz"
 	},
 	"installDirectory": "./local-resources/{#version#}/mongoshell/{#platform#}",
 	"executableFiles": [

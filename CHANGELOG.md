@@ -95,3 +95,7 @@
 
 ### Bug fixes
 * Fix import sample data for Mongo
+
+## [0.4.1] - 1/8/2024
+### New changes
+* Add support for Ubuntu 22 for mongo shell install
