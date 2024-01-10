@@ -41,7 +41,11 @@
     }
     private void Initialize(ConnectPayload connectPayload)
     {
-      client = new CosmosClient(connectPayload.ConnectionString);
+      CosmosClientOptions clientOptions = new CosmosClientOptions()
+      {
+        ApplicationName = "ADSExtensionProxy"
+      };
+      client = new CosmosClient(connectPayload.ConnectionString, clientOptions);
     }
 
     public void Shutdown()
