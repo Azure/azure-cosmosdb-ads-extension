@@ -644,10 +644,48 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cosmosdb-ads-extension.openMongoQuery",
-      async (connectionOptions?: IConnectionOptions, databaseName?: string, collectionName?: string) => {
-        if (!connectionOptions || !databaseName || !collectionName) {
-          // TODO FIX
-          return;
+      async (
+        objectExplorerContext: azdata.ObjectExplorerContext,
+        connectionOptions?: IConnectionOptions,
+        databaseName?: string,
+        collectionName?: string) => {
+        if (objectExplorerContext) {
+          // Opened from tree item context menu
+          if (!objectExplorerContext.connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          if (!objectExplorerContext.nodeInfo) {
+            vscode.window.showErrorMessage(localize("missingNodeInfo", "Missing node information"));
+            return Promise.reject();
+          }
+
+          connectionOptions = convertToConnectionOptions(objectExplorerContext.connectionProfile!);
+          const nodeInfo = getNodeInfo(objectExplorerContext.nodeInfo.nodePath);
+          databaseName = nodeInfo.databaseName;
+          collectionName = nodeInfo.containerName;
+        }
+
+        if (!connectionOptions) {
+          const connectionProfile = await askUserForConnectionProfile();
+          if (!connectionProfile) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+
+          connectionOptions = convertToConnectionOptions(connectionProfile);
+
+          if (!connectionOptions) {
+            vscode.window.showErrorMessage(localize("missingConnectionProfile", "Missing ConnectionProfile"));
+            return Promise.reject();
+          }
+        }
+
+        if (!databaseName || !collectionName) {
+          // TODO ask user for database and collection
+          vscode.window.showErrorMessage(localize("missingDatabaseName", "Database not specified"));
+          return Promise.reject();
         }
 
         const server = connectionOptions.server;
@@ -658,24 +696,22 @@ export function activate(context: vscode.ExtensionContext) {
             view.sendCommand({
               type: "initialize",
               data: {
-                connectionId: connectionOptions.server,
-                databaseName,
-                containerName: collectionName,
+                connectionId: connectionOptions!.server,
+                databaseName: databaseName!,
+                containerName: collectionName!,
                 pagingType: "offset",
                 defaultQueryText: "{}",
               },
             });
           },
           onQuerySubmit: async (query: EditorUserQuery) => {
-            console.log("submitquery", query);
             try {
               const queryResult = await appContext.mongoService.submitQuery(
-                connectionOptions,
-                databaseName,
-                collectionName,
+                connectionOptions!,
+                databaseName!,
+                collectionName!,
                 query
               );
-              console.log("query # results:", queryResult.documents.length, queryResult.pagingInfo);
               view.sendCommand({
                 type: "queryResult",
                 data: queryResult,
@@ -691,7 +727,7 @@ export function activate(context: vscode.ExtensionContext) {
             throw new Error(localize("notImplemented", "Method onCreateNewDocument not implemented"));
           },
           onDidDispose: () => {
-            appContext.removeViewLoader(server, databaseName, collectionName);
+            appContext.removeViewLoader(server, databaseName!, collectionName!);
           },
         });
         view.reveal();

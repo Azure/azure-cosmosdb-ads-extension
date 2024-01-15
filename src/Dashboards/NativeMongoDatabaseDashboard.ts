@@ -88,18 +88,13 @@ export class NativeMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard
 
     tableComponent.onCellAction &&
       tableComponent.onCellAction((arg: ICellActionEventArgs) => {
-        vscode.commands.executeCommand("cosmosdb-ads-extension.openMongoShell", undefined, {
-          ...databaseDashboardInfo,
-          serverName: databaseDashboardInfo.server,
-        });
-
-        // TODO Replace previous code with this to enable query editor
-        // vscode.commands.executeCommand(
-        //   "cosmosdb-ads-extension.openMongoQuery",
-        //   { ...databaseDashboardInfo },
-        //   databaseDashboardInfo.databaseName,
-        //   collections[arg.row].collectionName
-        // );
+        vscode.commands.executeCommand(
+          "cosmosdb-ads-extension.openMongoQuery",
+          undefined,
+          { ...databaseDashboardInfo },
+          databaseDashboardInfo.databaseName,
+          collections[arg.row].collectionName
+        );
 
         appContext.reporter?.sendActionEvent(
           Telemetry.sources.databaseDashboard,
