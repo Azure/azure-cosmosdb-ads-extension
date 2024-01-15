@@ -175,6 +175,12 @@
           "isDefault": true
         },
         {
+          "command": "cosmosdb-ads-extension.openMongoQuery",
+          "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Queue",
+          "group": "cosmosdb",
+          "isDefault": true
+        },
+        {
           "command": "cosmosdb-ads-extension.importDocuments",
           "when": "connectionProvider == COSMOSDB_MONGO && nodeType == Queue",
           "group": "cosmosdb"
