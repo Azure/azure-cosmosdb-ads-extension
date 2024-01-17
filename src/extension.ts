@@ -725,17 +725,35 @@ export function activate(context: vscode.ExtensionContext) {
           onQueryCancel: () => {
             // no op
           },
-          onCreateNewDocument: () => {
+          onCreateNewDocument: async () => {
             const fileUri = vscode.Uri.parse(
               `${CosmosDbMongoFileSystemProvider.SCHEME}:/${server}/${databaseName}/${collectionName}/${CosmosDbMongoFileSystemProvider.NEW_DOCUMENT_FILENAME}`
             );
+
+            // If cosmos db, must have a shard key
+            const placeHolderDocument: { [key: string]: string } = {
+              "id": "replace_with_new_document_id"
+            };
+            if (connectionOptions?.authenticationType === "AzureMFA") {
+              const collectionInfo = await appContext.armServiceMongo.retrieveCollectionInfo(
+                connectionOptions.azureAccount,
+                connectionOptions.azureTenantId,
+                connectionOptions.azureResourceId,
+                appContext.armServiceMongo.getAccountNameFromOptions(connectionOptions),
+                databaseName!,
+                collectionName!
+              );
+
+              if (collectionInfo.shardKey) {
+              // Take the first shard key
+               const shardKey = Object.keys(collectionInfo.shardKey)[0];
+               placeHolderDocument[shardKey] = "replace_with_shard_key_value";
+              }
+            }
+
             cosmosDbMongoFileSystemProvider.writeFile(
               fileUri,
-              Buffer.from(
-                `{
-  "id": "replace_with_new_document_id"
-}`
-              ),
+              Buffer.from(JSON.stringify(placeHolderDocument, null, 2)),
               { create: true, overwrite: true }
             );
             vscode.commands.executeCommand(

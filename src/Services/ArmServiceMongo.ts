@@ -291,6 +291,52 @@ export class ArmServiceMongo extends AbstractArmService {
     return await Promise.all(promises).then((colls) => colls.sort((a, b) => a.name.localeCompare(b.name)));
   };
 
+  public retrieveCollectionInfo = async (
+    azureAccountId: string,
+    azureTenantId: string,
+    azureResourceId: string,
+    cosmosDbAccountName: string,
+    databaseName: string,
+    collectionName: string
+  ): Promise<{ shardKey: {
+    [propertyName: string]: string;
+} | undefined }> => {
+    return new Promise(async (resolve, reject) => {
+      const client = await this.createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
+
+      if (!azureResourceId) {
+        const azureToken = await this.retrieveAzureToken(azureTenantId, azureAccountId);
+        const credentials = azDataTokenToCoreAuthCredential(azureToken);
+
+        const azureResource = await this.retrieveResourceInfofromArm(cosmosDbAccountName, credentials);
+        if (!azureResource) {
+          throw new Error(localize("azureResourceNotFound", "Azure Resource not found"));
+        } else {
+          azureResourceId = azureResource.id;
+        }
+      }
+      const { resourceGroup } = this.parsedAzureResourceId(azureResourceId);
+
+      let shardKey;
+      try {
+        showStatusBarItem(localize("retrievingMongoCollectionInfo", "Retrieving mongodb collection information..."));
+        const collInfoResponse = await client.mongoDBResources.getMongoDBCollection(
+          resourceGroup,
+          cosmosDbAccountName,
+          databaseName,
+          collectionName
+        );
+        shardKey = collInfoResponse.resource?.shardKey;
+      } catch (e) {
+        reject(e);
+      } finally {
+        hideStatusBarItem();
+      }
+
+      resolve({ shardKey });
+    });
+  };
+
   public changeCollectionThroughput = async (
     azureAccountId: string,
     azureTenantId: string,
