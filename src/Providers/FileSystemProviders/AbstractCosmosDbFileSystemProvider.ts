@@ -25,7 +25,10 @@ export abstract class AbstractCosmosDbFileSystemProvider implements vscode.FileS
 
   readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
 
-  protected abstract insertIntoCosmosDb(uri: vscode.Uri, contentJson: any): Promise<{ count: number; elapsedTimeMS: number }>;
+  protected abstract insertIntoCosmosDb(
+    uri: vscode.Uri,
+    contentJson: any
+  ): Promise<{ count: number; elapsedTimeMS: number }>;
 
   watch(
     uri: vscode.Uri,
@@ -87,10 +90,9 @@ export abstract class AbstractCosmosDbFileSystemProvider implements vscode.FileS
             await this.insertIntoCosmosDb(uri, contentJson);
             vscode.window.showInformationMessage(localize("documentSaved", "Document successfully saved to Cosmos DB"));
             this.docMap.delete(uri.toString());
-          } catch(error) {
+          } catch (error) {
             vscode.window.showErrorMessage(localize("failedToSaveDocument", "Failed to save document:") + " " + error);
           }
-
         }, 1000);
       }
     } catch (error) {

@@ -649,7 +649,8 @@ export function activate(context: vscode.ExtensionContext) {
         objectExplorerContext: azdata.ObjectExplorerContext,
         connectionOptions?: IConnectionOptions,
         databaseName?: string,
-        collectionName?: string) => {
+        collectionName?: string
+      ) => {
         if (objectExplorerContext) {
           // Opened from tree item context menu
           if (!objectExplorerContext.connectionProfile) {
