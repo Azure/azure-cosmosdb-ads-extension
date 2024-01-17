@@ -355,7 +355,7 @@ export class MongoService extends AbstractBackendService {
     databaseName: string,
     collectionName: string,
     data: unknown[],
-    isCanceled: () => boolean,
+    isCanceled?: () => boolean,
     onProgress?: (percentIncrement: number) => void
   ): Promise<{ count: number; elapsedTimeMS: number }> {
     return new Promise(async (resolve, reject) => {
@@ -380,7 +380,7 @@ export class MongoService extends AbstractBackendService {
           const countToInsert = Math.min(data.length, MAX_BULK_OPERATION_COUNT);
           console.log(`${data.length} documents left to insert...`);
 
-          if (isCanceled()) {
+          if (isCanceled && isCanceled()) {
             reject(localize("canceledDocumentInserted", "Canceled. {0} documents inserted", count - data.length));
             return;
           }

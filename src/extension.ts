@@ -34,7 +34,8 @@ import { MAX_IMPORT_FILE_SIZE_BYTES } from "./constant";
 import { CosmosDbNoSqlDatabaseDashboard } from "./Dashboards/CosmosDbNoSqlDatabaseDashboard";
 import { CdbCollectionCreateInfo, CdbContainerCreateInfo } from "./Services/AbstractArmService";
 import { AbstractBackendService } from "./Services/AbstractBackendService";
-import { CosmosDbNoSqlFileSystemProvider } from "./Providers/CosmosDbNoSqlFileSystemProvider";
+import { CosmosDbNoSqlFileSystemProvider } from "./Providers/FileSystemProviders/CosmosDbNoSqlFileSystemProvider";
+import { CosmosDbMongoFileSystemProvider } from "./Providers/FileSystemProviders/CosmosDbMongoFileSystemProvider";
 
 const localize = nls.loadMessageBundle();
 // uncomment to test
@@ -724,7 +725,24 @@ export function activate(context: vscode.ExtensionContext) {
             // no op
           },
           onCreateNewDocument: () => {
-            throw new Error(localize("notImplemented", "Method onCreateNewDocument not implemented"));
+            const fileUri = vscode.Uri.parse(
+              `${CosmosDbMongoFileSystemProvider.SCHEME}:/${server}/${databaseName}/${collectionName}/${CosmosDbMongoFileSystemProvider.NEW_DOCUMENT_FILENAME}`
+            );
+            cosmosDbMongoFileSystemProvider.writeFile(
+              fileUri,
+              Buffer.from(
+                `{
+  "id": "replace_with_new_document_id"
+}`
+              ),
+              { create: true, overwrite: true }
+            );
+            vscode.commands.executeCommand(
+              "vscode.open",
+              fileUri,
+              vscode.ViewColumn.Beside,
+              localize("cosmosDbNewDocument", "Cosmos DB: New Document")
+            );
           },
           onDidDispose: () => {
             appContext.removeViewLoader(server, databaseName!, collectionName!);
@@ -863,7 +881,7 @@ export function activate(context: vscode.ExtensionContext) {
           },
           onCreateNewDocument: () => {
             const fileUri = vscode.Uri.parse(
-              `cdbnosql:/${server}/${databaseName}/${containerName}/${CosmosDbNoSqlFileSystemProvider.NEW_DOCUMENT_FILENAME}`
+              `${CosmosDbNoSqlFileSystemProvider.SCHEME}:/${server}/${databaseName}/${containerName}/${CosmosDbNoSqlFileSystemProvider.NEW_DOCUMENT_FILENAME}`
             );
             cosmosDbNoSqlFileSystemProvider.writeFile(
               fileUri,
@@ -1399,6 +1417,7 @@ export function activate(context: vscode.ExtensionContext) {
     appContext.cosmosDbNoSqlService
   );
   const cosmosDbNoSqlFileSystemProvider = new CosmosDbNoSqlFileSystemProvider(appContext.cosmosDbNoSqlService);
+  const cosmosDbMongoFileSystemProvider = new CosmosDbMongoFileSystemProvider(appContext.mongoService);
 
   azdata.dataprotocol.registerConnectionProvider(mongoConnectionProvider);
   azdata.dataprotocol.registerConnectionProvider(noSqlConnectionProvider);
@@ -1416,6 +1435,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.registerFileSystemProvider(
       CosmosDbNoSqlFileSystemProvider.SCHEME,
       cosmosDbNoSqlFileSystemProvider,
+      { isCaseSensitive: true }
+    )
+  );
+  context.subscriptions.push(
+    vscode.workspace.registerFileSystemProvider(
+      CosmosDbMongoFileSystemProvider.SCHEME,
+      cosmosDbMongoFileSystemProvider,
       { isCaseSensitive: true }
     )
   );
