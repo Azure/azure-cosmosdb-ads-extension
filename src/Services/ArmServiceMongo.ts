@@ -298,9 +298,13 @@ export class ArmServiceMongo extends AbstractArmService {
     cosmosDbAccountName: string,
     databaseName: string,
     collectionName: string
-  ): Promise<{ shardKey: {
-    [propertyName: string]: string;
-} | undefined }> => {
+  ): Promise<{
+    shardKey:
+      | {
+          [propertyName: string]: string;
+        }
+      | undefined;
+  }> => {
     return new Promise(async (resolve, reject) => {
       const client = await this.createArmClient(azureAccountId, azureTenantId, azureResourceId, cosmosDbAccountName);
 

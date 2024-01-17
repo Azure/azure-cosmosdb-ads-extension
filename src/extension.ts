@@ -732,7 +732,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             // If cosmos db, must have a shard key
             const placeHolderDocument: { [key: string]: string } = {
-              "id": "replace_with_new_document_id"
+              id: "replace_with_new_document_id",
             };
             if (connectionOptions?.authenticationType === "AzureMFA") {
               const collectionInfo = await appContext.armServiceMongo.retrieveCollectionInfo(
@@ -745,9 +745,9 @@ export function activate(context: vscode.ExtensionContext) {
               );
 
               if (collectionInfo.shardKey) {
-              // Take the first shard key
-               const shardKey = Object.keys(collectionInfo.shardKey)[0];
-               placeHolderDocument[shardKey] = "replace_with_shard_key_value";
+                // Take the first shard key
+                const shardKey = Object.keys(collectionInfo.shardKey)[0];
+                placeHolderDocument[shardKey] = "replace_with_shard_key_value";
               }
             }
 
