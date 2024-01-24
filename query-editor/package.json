@@ -11,7 +11,7 @@
     "build:viz": "npx vite-bundle-visualizer"
   },
   "dependencies": {
-    "@azure/cosmos-query-editor-react": "1.0.0-beta.7",
+    "@azure/cosmos-query-editor-react": "1.0.0-beta.8",
     "@fluentui/react-components": "9.37.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
