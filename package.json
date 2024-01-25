@@ -602,7 +602,7 @@
     "@typescript-eslint/eslint-plugin": "6.2.0",
     "@typescript-eslint/parser": "6.2.0",
     "azdata-test": "1.2.0",
-    "esbuild": "0.19.12",
+    "esbuild": "0.19.11",
     "eslint": "8.45.0",
     "glob": "7.2.0",
     "mkdirp": "2.1.5",
