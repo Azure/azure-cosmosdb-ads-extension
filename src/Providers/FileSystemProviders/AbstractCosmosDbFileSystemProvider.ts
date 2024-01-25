@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
-import { CosmosDbNoSqlService } from "../Services/CosmosDbNoSqlService";
 
 const localize = nls.loadMessageBundle();
 
@@ -18,22 +17,18 @@ export class CdbFileStat implements vscode.FileStat {
   }
 }
 
-export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvider {
+export abstract class AbstractCosmosDbFileSystemProvider implements vscode.FileSystemProvider {
   private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
 
   // In-memory cache of documents
   private docMap = new Map<string, string>();
 
-  /*
-   * Simulate a file system where each document is exposed as a "virtual" file which can be edited by vscode.
-   * The scheme is: cdbnosql:/server/database/container/id.json
-   */
-  public static readonly SCHEME = "cdbnosql";
-  public static readonly NEW_DOCUMENT_FILENAME = "new.json";
-
-  constructor(private nosqlService: CosmosDbNoSqlService) {}
-
   readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
+
+  protected abstract insertIntoCosmosDb(
+    uri: vscode.Uri,
+    contentJson: any
+  ): Promise<{ count: number; elapsedTimeMS: number }>;
 
   watch(
     uri: vscode.Uri,
@@ -91,10 +86,13 @@ export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvide
         // User has updated the document
         setTimeout(async () => {
           await this.closeFileIfOpen(uri);
-          this.insertIntoCosmosDb(uri, contentJson);
-          vscode.window.showInformationMessage(localize("documentSaved", "Document successfully saved to Cosmos DB"));
-
-          this.docMap.delete(uri.toString());
+          try {
+            await this.insertIntoCosmosDb(uri, contentJson);
+            vscode.window.showInformationMessage(localize("documentSaved", "Document successfully saved to Cosmos DB"));
+            this.docMap.delete(uri.toString());
+          } catch (error) {
+            vscode.window.showErrorMessage(localize("failedToSaveDocument", "Failed to save document:") + " " + error);
+          }
         }, 1000);
       }
     } catch (error) {
@@ -103,11 +101,7 @@ export class CosmosDbNoSqlFileSystemProvider implements vscode.FileSystemProvide
     }
   }
 
-  private insertIntoCosmosDb(uri: vscode.Uri, contentJson: any): Promise<{ count: number; elapsedTimeMS: number }> {
-    const { server, database, container } = this.getContainerInfo(uri);
-    return this.nosqlService.insertDocuments(server, database, container, [contentJson]);
-  }
-  private getContainerInfo(uri: vscode.Uri): { server: string; database: string; container: string } {
+  protected getContainerInfo(uri: vscode.Uri): { server: string; database: string; container: string } {
     if (!uri.path.startsWith("/")) {
       throw new Error(localize("invalidPath", "Invalid path"));
     }

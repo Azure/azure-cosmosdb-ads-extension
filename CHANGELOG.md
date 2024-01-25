@@ -100,3 +100,7 @@
 ### New changes
 * Add support for Ubuntu 22 for mongo shell install
 * Update user-agent suffix for proxy
+
+## [0.4.2] - 1/19/2024
+### New changes
+* Add query editor to Mongo DB and Cosmos DB for Mongo accounts
