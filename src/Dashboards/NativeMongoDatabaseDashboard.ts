@@ -34,7 +34,10 @@ export class NativeMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard
     }[];
 
     this.refreshContainers = async () => {
-      const collectionStats = await appContext.mongoService.getCollectionsStats(databaseDashboardInfo.server, databaseName);
+      const collectionStats = await appContext.mongoService.getCollectionsStats(
+        databaseDashboardInfo.server,
+        databaseName
+      );
       collections = collectionStats;
 
       tableComponent.data = collectionStats.map((stats) => {
