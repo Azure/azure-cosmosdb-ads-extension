@@ -61,6 +61,30 @@ export class MongoService extends AbstractBackendService {
       .then((collections) => collections.sort((a, b) => a.collectionName.localeCompare(b.collectionName)));
   }
 
+  public async getCollectionsStats(server: string, databaseName: string): Promise<{
+    collectionName: string;
+    count: number;
+    storageSize: number;
+  }[]> {
+    if (!this._mongoClients.has(server)) {
+      return [];
+    }
+    const collections = await this._mongoClients
+      .get(server)!
+      .db(databaseName)
+      .collections();
+
+    const database = this._mongoClients.get(server)!.db(databaseName);
+    return Promise.all(collections.map(async (collection) => {
+      const stats = await database.command({ collStats: collection.collectionName });
+      return {
+        collectionName: collection.collectionName,
+        count: stats.count,
+        storageSize: stats.size,
+      };
+    }));
+  }
+
   public async removeDatabase(server: string, databaseName: string): Promise<boolean> {
     if (!this._mongoClients.has(server)) {
       return false;

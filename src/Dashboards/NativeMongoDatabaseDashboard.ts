@@ -5,7 +5,7 @@
 
 import * as azdata from "azdata";
 import { ICellActionEventArgs } from "azdata";
-import { CollStats, Collection, Document } from "mongodb";
+import { Collection, Document } from "mongodb";
 import * as vscode from "vscode";
 import * as nls from "vscode-nls";
 import { AppContext } from "../appContext";
@@ -27,36 +27,30 @@ export class NativeMongoDatabaseDashboard extends AbstractMongoDatabaseDashboard
     appContext: AppContext,
     databaseDashboardInfo: IDatabaseDashboardInfo
   ): Promise<azdata.Component> {
-    let collections: Collection<Document>[];
+    let collections: {
+      collectionName: string;
+      count: number;
+      storageSize: number;
+    }[];
 
-    this.refreshContainers = () => {
-      appContext.mongoService
-        .listCollections(databaseDashboardInfo.server, databaseName)
-        .then(async (collectionsInfo) => {
-          collections = collectionsInfo;
-          const statsMap = new Map<string, CollStats>();
-          // Retrieve all stats for each collection
-          await Promise.all(
-            collectionsInfo.map((collection) =>
-              collection.stats().then((stats) => statsMap.set(collection.collectionName, stats))
-            )
-          );
+    this.refreshContainers = async () => {
+      const collectionStats = await appContext.mongoService.getCollectionsStats(databaseDashboardInfo.server, databaseName);
+      collections = collectionStats;
 
-          tableComponent.data = collectionsInfo.map((collection) => {
-            const stats = statsMap.get(collection.collectionName);
-            return [
-              <azdata.HyperlinkColumnCellValue>{
-                title: collection.collectionName,
-                icon: context.asAbsolutePath("resources/fluent/collection.svg"),
-              },
-              stats?.storageSize,
-              stats?.count,
-            ];
-          });
+      tableComponent.data = collectionStats.map((stats) => {
+        return [
+          <azdata.HyperlinkColumnCellValue>{
+            title: stats.collectionName,
+            icon: context.asAbsolutePath("resources/fluent/collection.svg"),
+          },
+          stats?.storageSize,
+          stats?.count,
+        ];
+      });
 
-          tableLoadingComponent.loading = false;
-        });
+      tableLoadingComponent.loading = false;
     };
+
     this.refreshContainers();
 
     const tableComponent = view.modelBuilder
