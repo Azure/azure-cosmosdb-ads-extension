@@ -588,6 +588,7 @@
     "yauzl": "2.10.0"
   },
   "devDependencies": {
+    "@microsoft/azdata-test": "3.0.4",
     "@types/azdata": "1.38.0",
     "@types/glob": "7.2.0",
     "@types/mkdirp": "2.0.0",
@@ -601,7 +602,6 @@
     "@types/yauzl": "2.9.2",
     "@typescript-eslint/eslint-plugin": "6.2.0",
     "@typescript-eslint/parser": "6.2.0",
-    "azdata-test": "1.2.0",
     "esbuild": "0.17.12",
     "eslint": "8.45.0",
     "glob": "7.2.0",
