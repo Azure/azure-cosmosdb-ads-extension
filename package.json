@@ -579,7 +579,7 @@
     "@azure/cosmos": "3.17.3",
     "@microsoft/ads-extension-telemetry": "^3.0.1",
     "@microsoft/ads-service-downloader": "1.1.0",
-    "mongodb": "4.5.0",
+    "mongodb": "6.3.0",
     "mongodb-connection-string-url": "2.5.2",
     "semver": "^7.5.2",
     "tar": "6.1.11",
