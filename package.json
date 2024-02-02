@@ -589,7 +589,7 @@
   },
   "devDependencies": {
     "@microsoft/azdata-test": "3.0.4",
-    "@types/azdata": "1.38.0",
+    "@types/azdata": "1.46.5",
     "@types/glob": "7.2.0",
     "@types/mkdirp": "2.0.0",
     "@types/mocha": "7.0.2",
