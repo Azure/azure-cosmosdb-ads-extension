@@ -1,5 +1,5 @@
 import * as path from "path";
-import { runTests } from "azdata-test";
+import { runTests } from "@microsoft/azdata-test";
 
 async function main() {
   try {
