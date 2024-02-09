@@ -307,17 +307,17 @@ suite("CosmosDb NoSql connection String Test Suite", () => {
     authenticationType: string;
   }[] = [
     {
-      cs: "AccountEndpoint=https://cdbaccount.documents.azure.com:443/;AccountKey=password123==;",
+      cs: "AccountEndpoint=https://cdbaccount.documents.azure.com:443/;AccountKey=[PLACEHOLDER]==;",
       server: "cdbaccount.documents.azure.com",
       user: "https://cdbaccount.documents.azure.com:443/",
-      password: "password123==",
+      password: "[PLACEHOLDER]==",
       authenticationType: "SqlLogin",
     },
     {
-      cs: "AccountKey=password123==;AccountEndpoint=https://cdbaccount.documents.azure.com:443/;",
+      cs: "AccountKey=[PLACEHOLDER]==;AccountEndpoint=https://cdbaccount.documents.azure.com:443/;",
       server: "cdbaccount.documents.azure.com",
       user: "https://cdbaccount.documents.azure.com:443/",
-      password: "password123==",
+      password: "[PLACEHOLDER]==",
       authenticationType: "SqlLogin",
     },
   ];
