@@ -166,17 +166,20 @@ export class ConnectionProvider implements azdata.ConnectionProvider {
     }
     return undefined!;
   }
-  registerOnConnectionComplete(handler: (connSummary: azdata.ConnectionInfoSummary) => any): void {
+  registerOnConnectionComplete(handler: (connSummary: azdata.ConnectionInfoSummary) => any): vscode.Disposable {
     console.log("ConnectionProvider.registerOnConnectionComplete");
     this.onConnectionComplete((e) => {
       handler(e);
     });
+    return { dispose: () => {} };
   }
-  registerOnIntelliSenseCacheComplete(handler: (connectionUri: string) => any): void {
+  registerOnIntelliSenseCacheComplete(handler: (connectionUri: string) => any): vscode.Disposable {
     console.log("IntellisenseCache complete");
+    return { dispose: () => {} };
   }
-  registerOnConnectionChanged(handler: (changedConnInfo: azdata.ChangedConnectionInfo) => any): void {
+  registerOnConnectionChanged(handler: (changedConnInfo: azdata.ChangedConnectionInfo) => any): vscode.Disposable {
     console.log("Connection changed");
+    return { dispose: () => {} };
   }
   handle?: number;
 }

@@ -99,17 +99,19 @@ abstract class ObjectExplorerProviderBase implements azdata.ObjectExplorerProvid
       success: true,
     });
   }
-  registerOnSessionCreated(handler: (response: azdata.ObjectExplorerSession) => any): void {
+  registerOnSessionCreated(handler: (response: azdata.ObjectExplorerSession) => any): vscode.Disposable {
     console.log("ObjectExplorerProvider.registerOnSessionCreated");
     this.onSessionCreated((e) => {
       handler(e);
     });
+    return { dispose: () => {} };
   }
-  registerOnSessionDisconnected?(handler: (response: azdata.ObjectExplorerSession) => any): void {
+  registerOnSessionDisconnected?(handler: (response: azdata.ObjectExplorerSession) => any): vscode.Disposable {
     console.log("ObjectExplorerProvider.registerOnSessionDisconnected");
     this.onSessionDisconnected((e) => {
       handler(e);
     });
+    return { dispose: () => {} };
   }
   expandNode(nodeInfo: azdata.ExpandNodeInfo): Thenable<boolean> {
     console.log(`ObjectExplorerProvider.expandNode ${nodeInfo.nodePath} ${nodeInfo.sessionId}`);
@@ -205,11 +207,12 @@ abstract class ObjectExplorerProviderBase implements azdata.ObjectExplorerProvid
     console.log("ObjectExplorerProvider.findNodes");
     throw new Error("Method not implemented.");
   }
-  registerOnExpandCompleted(handler: (response: azdata.ObjectExplorerExpandInfo) => any): void {
+  registerOnExpandCompleted(handler: (response: azdata.ObjectExplorerExpandInfo) => any): vscode.Disposable {
     console.log("ObjectExplorerProvider.registerOnExpandCompleted");
     this.onExpandCompleted((e) => {
       handler(e);
     });
+    return { dispose: () => {} };
   }
   handle?: number;
 
