@@ -349,10 +349,10 @@
     tmp "^0.0.33"
     yauzl "^2.10.0"
 
-"@microsoft/azdata-test@3.0.4":
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/@microsoft/azdata-test/-/azdata-test-3.0.4.tgz#58b4a6ebe31f45b4ef2b9dfe1b68a1b201600131"
-  integrity sha512-SZwjmA4wkJMaT3G1WopsainXBLNi7k0A0gLzDpFe0tfdPDeEvOYpTpzwEIN2Gk3Fa1kdPpQ9RbJaNQ0v1h9C+A==
+"@microsoft/azdata-test@4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@microsoft/azdata-test/-/azdata-test-4.0.0.tgz#c687166966fdea320605578be06c7d0ab7f8aff3"
+  integrity sha512-nSlhf4QvTOhLSX63/0MqiWbkonYsL7Xx0i5j9lwwTCS+J3SAVCHw/3gcj2RJsGWsTsZ3sGxQ4Be7TOjIfbOuqQ==
   dependencies:
     http-proxy-agent "^5.0.0"
     https-proxy-agent "^5.0.0"
