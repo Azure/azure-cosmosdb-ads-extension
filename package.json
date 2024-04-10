@@ -582,7 +582,7 @@
     "mongodb": "6.3.0",
     "mongodb-connection-string-url": "2.5.2",
     "semver": "^7.5.2",
-    "tar": "6.1.11",
+    "tar": "6.2.1",
     "vscode-nls": "5.0.0",
     "vscode-jsonrpc": "8.1.0",
     "yauzl": "2.10.0"
